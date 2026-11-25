@@ -2109,7 +2109,7 @@ dosya	sim/tests/test_onarim_kisiti.py	sim/tests/test_repair_limits.py
 dosya	sim/tests/test_sabah.py	sim/tests/test_morning.py	
 dosya	sim/tests/test_teslim_zamani.py	sim/tests/test_delivery_time.py	
 dosya	sim/tests/test_yasakli_icerik.py	sim/tests/test_forbidden_content.py	
-dosya	ui-hikaye	ui-story	
+dosya	ui-hikaye	ui/story	
 dosya	ui-hikaye/data/iz_yedek.json	ui-hikaye/data/trace_fallback.json	
 dosya	ui-hikaye/data/sahne1.json	ui-hikaye/data/scene1.json	
 dosya	ui-hikaye/data/sahne2.json	ui-hikaye/data/scene2.json	

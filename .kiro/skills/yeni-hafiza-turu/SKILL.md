@@ -18,7 +18,7 @@ Kod adı İngilizce `snake_case`, kullanıcıya görünen etiket Türkçe (`stru
 3. `agents/cards.py` → `TITLE`; durağa varmadan lazımsa `APPROACH_KINDS`
 4. `agents/region.py` → `KIND_NAME`
 5. `agents/prompts/memory.md` → tür listesi ve bir satır açıklama
-6. Arayüz etiketleri: `ui/common.js` ve `ui-story/js/common.js` → `CM.QUIRK`; `ui-flow/index.html` → `KIND`
+6. Arayüz etiketleri: `ui/common.js` ve `ui/story/js/common.js` → `CM.QUIRK`; `ui/flow/index.html` → `KIND`
 7. Testler: `agents/tests/test_cards.py` içine sınıflandırma ve kart testi; simülatör notlarının hiçbiri yeni türe düşmemeli (mevcut test bunu denetler)
 8. Belgeler: `docs/sozlesmeler.md` §11, `.kiro/specs/durak-kartlari/` (gereksinim 1.1 ve görev listesi), `docs/ad-eslemesi.tsv` gerekirse
 

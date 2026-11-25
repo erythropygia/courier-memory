@@ -1,8 +1,8 @@
 """Hikaye arayüzünün veri dosyalarını üretir (Sahne 1 gerçek veri, Sahne 2 sim → Beykoz eşlemesi).
 
-  .venv/Scripts/python ui-story/tools/prepare.py            (paket: ../courier-memory-paket/karsilastirma, CM_PACKAGE ile değişir)
+  .venv/Scripts/python ui/story/tools/prepare.py            (paket: ../courier-memory-paket/karsilastirma, CM_PACKAGE ile değişir)
 
-Çıktı (ui-story/data/):
+Çıktı (ui/story/data/):
   scene1.json     18 sabit bölge, yeni yapının 4 Mayıs dinamik bölgeleri, 4 Mayıs gerçek durakları
                   (eski renk = o durağa giden kurye, yeni renk = dinamik küme, u = geçmişe bakmadan atamada yabancı sokak)
   sim_mapping.json  sim adresi → gerçek Beykoz teslim noktası (deterministik: eksen başına afin + en yakın eşsiz nokta)
@@ -27,8 +27,8 @@ from scipy.spatial import cKDTree
 from shapely.geometry import Polygon, box
 from shapely.ops import unary_union
 
-ROOT = Path(__file__).resolve().parents[2]
-UI = ROOT / "ui-story"
+ROOT = Path(__file__).resolve().parents[3]
+UI = ROOT / "ui" / "story"
 OUT = UI / "data"
 PACKAGE = Path(os.environ.get("CM_PACKAGE", ROOT.parent / "courier-memory-paket" / "karsilastirma"))
 RUN = ROOT / "data" / "demo_run"

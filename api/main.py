@@ -22,6 +22,9 @@ from agents import Services
 
 ROOT = Path(__file__).resolve().parents[1]
 UI_DIR = ROOT / "ui"
+UI_LEGACY = UI_DIR / "legacy"
+UI_STORY = UI_DIR / "story"
+UI_FLOW = UI_DIR / "flow"
 
 app = FastAPI(title="Courier Memory", version="0.1.0",
               description="Uygulama verisi · 1 aylık geçmiş. Orkestratör, Atama, Hafıza, Hasat, Brifing, Değerlendirme ve Bölge ajanları.")
@@ -796,23 +799,25 @@ def speech(text: str = Query(..., max_length=600)):
 # ------------------------------------------------------------------ arayüz
 if UI_DIR.exists():
     app.mount("/ui", StaticFiles(directory=UI_DIR), name="ui")
-if (ROOT / "ui-story").exists():  # hikaye arayüzü (sunum): /story/
-    app.mount("/story", StaticFiles(directory=ROOT / "ui-story", html=True), name="story")
-if (ROOT / "ui-flow").exists():  # nasıl çalışır: ajanların izi, API çağrıları ve veri akışı adım adım: /flow/
-    app.mount("/flow", StaticFiles(directory=ROOT / "ui-flow", html=True), name="flow")
+if UI_STORY.exists():  # hikaye arayüzü (sunum): /story/
+    app.mount("/story", StaticFiles(directory=UI_STORY, html=True), name="story")
+if UI_FLOW.exists():  # nasıl çalışır: ajanların izi, API çağrıları ve veri akışı adım adım: /flow/
+    app.mount("/flow", StaticFiles(directory=UI_FLOW, html=True), name="flow")
 
 
 @app.get("/")
 def index():
     """Demo arayüzü: hikaye (8 sahne). Eski tek sayfa ayrıntı ekranları /legacy adresinde kalır."""
-    if (ROOT / "ui-story" / "index.html").exists():
+    if (UI_STORY / "index.html").exists():
         return RedirectResponse("story/")          # göreli: ters vekil öneki (/proxy/<port>/) altında da çalışır
     return legacy()
 
 
 @app.get("/legacy")
 def legacy():
-    p = UI_DIR / "index.html"
+    """Eski tek sayfa arayüzü."""
+    p = UI_LEGACY / "index.html"
     if not p.exists():
-        return JSONResponse({"detail": "Arayüz henüz yok (ui/index.html)."}, status_code=404)
+        return JSONResponse({"detail": "Arayüz henüz yok (ui/legacy/index.html)."}, status_code=404)
     return FileResponse(p)
+

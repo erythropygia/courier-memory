@@ -17,7 +17,7 @@ Sert kısıt ilkesi: **onarım rotayı uzatmaz, fazla mesai satın almaz** (`Rep
 - **Simülasyon:** `numpy`, `scipy` (`scipy.optimize.linear_sum_assignment` Hungarian için), `pydantic` v2 (yapılandırma ve veri modelleri), `pyyaml`.
 - **Test:** `pytest`.
 - **API:** `fastapi` + `uvicorn`. Arayüz ile ajanlar ve simülatör arasındaki katman.
-- **Arayüz:** Hikaye arayüzü (`ui-story/`): vanilla JS, derleme yok; harita MapLibre GL'nin **yerel kopyası** + **yerel vektör karolar ve yazı tipleri** (internetsiz; karo yoksa çevrimiçi OpenFreeMap), WebGL yoksa 2D tuval; grafikler SVG. API'ye ulaşamazsa kayıtlı yanıtları oynatır. Eski tek sayfa (`ui/`, `/legacy`): tamamen SVG, dış bağımlılık yok.
+- **Arayüz:** Hikaye arayüzü (`ui/story/`): vanilla JS, derleme yok; harita MapLibre GL'nin **yerel kopyası** + **yerel vektör karolar ve yazı tipleri** (internetsiz; karo yoksa çevrimiçi OpenFreeMap), WebGL yoksa 2D tuval; grafikler SVG. API'ye ulaşamazsa kayıtlı yanıtları oynatır. Eski tek sayfa (`ui/`, `/legacy`): tamamen SVG, dış bağımlılık yok.
 - **Ses:**
   - P0: tarayıcının `speechSynthesis` (tr-TR) özelliği.
   - P1: Amazon Polly ve Amazon Transcribe.
@@ -84,5 +84,5 @@ Demo senaryosu sunumdan önce `record` modunda bir kez koşulur.
 - Hedef 1 deneyi: `python -m cm_sim.learning --seeds 12` (~50 sn). Hafızanın parça parça katkısı: `python -m cm_sim.ablation --seeds 3` (~70 sn; varyantlar `no_time`, `full_g60`, `no_time_g60`; sert kısıt: `full_tol5`, `no_time_tol5`, `unconstrained`, `no_time_unconstrained` dahil)
 - Sağlamlık taraması: `python -m cm_sim.sweep --seeds 2` (~10 dk; `sweep.json → manset`)
 - Yeniden üretim sırası: `cm_sim.run --demo` → `cm_sim.run --scenario long_term --no-snapshots` → `cm_sim.learning` → `cm_sim.ablation` → `cm_sim.sweep` → `cm_sim.publish` → `agents.cost` → `agents.economics` → `agents.presentation_figures`
-- API + arayüz: `uvicorn api.main:app --port 8000` → http://localhost:8000 (hikaye; eski tek sayfa `/legacy`). Arayüz yedekleri (mock API açıkken): `python ui-story/tools/record_trace.py http://127.0.0.1:8000` ve `python ui-story/tools/record_fallback.py http://127.0.0.1:8000`
+- API + arayüz: `uvicorn api.main:app --port 8000` → http://localhost:8000 (hikaye; eski tek sayfa `/legacy`). Arayüz yedekleri (mock API açıkken): `python ui/story/tools/record_trace.py http://127.0.0.1:8000` ve `python ui/story/tools/record_fallback.py http://127.0.0.1:8000`
 - Bedrock kontrolü: `python -m agents.check`. Hafıza Ajanı ölçümü: `python -m agents.evaluate`

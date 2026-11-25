@@ -1,7 +1,7 @@
 """Orkestratör izinin yedeğini kaydeder: API'ye ulaşılamazsa Sahne 2 bunu "KAYIT" etiketiyle oynatır.
 
   CM_LLM_MODE=mock uvicorn api.main:app --port 8767   (ayrı pencerede)
-  python ui-story/tools/record_trace.py [http://127.0.0.1:8767]
+  python ui/story/tools/record_trace.py [http://127.0.0.1:8767]
 Büyük ve arayüzün kullanmadığı alanlar (rota kısıt listeleri) kırpılır.
 """
 import json

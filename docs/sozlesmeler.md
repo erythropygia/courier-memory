@@ -6,7 +6,7 @@ Proje üç parçadan oluşur. Her parça yalnızca bu belgedeki sözleşmeye day
 |---|---|---|---|
 | 1. Simülatör | `sim/` (`cm_sim`) | Çalıştırma klasörü (§1) | — |
 | 2. Ajanlar | `agents/` | Ajan sonuçları (§3) | Çalıştırma klasörü (§1) |
-| 3. API + arayüz | `api/`, `ui/` | REST API (§4), demo sayfası | Ajanlar (§3), çalıştırma klasörü (§1) |
+| 3. API + arayüz | `api/`, `ui/` (`legacy`, `story`, `flow`, `direction`) | REST API (§4), demo sayfası | Ajanlar (§3), çalıştırma klasörü (§1) |
 
 **Hazır uygulama verisi (1 aylık geçmiş):** `data/demo_run/` her zaman geçerli bir çalıştırma klasörüdür. 2. ve 3. parça simülatörü beklemeden bununla çalışır. Yeniden üretmek için:
 
@@ -465,9 +465,9 @@ Satır: `{address, source, reason, arrival, p_now, good, good_slot, min_extra_mi
 
 **Kabul testleri:** `sim/tests/test_repair_limits.py`, `agents/tests/test_repair_constraint.py`, `api/tests/test_repair_constraint_api.py`; 408/408 birebir (`agents/tests/test_delivery_time_agent.py`, yavaş) korunur.
 
-## 9. Hikaye arayüzü (`ui-story/`, `/story/`)
+## 9. Hikaye arayüzü (`ui/story/`, `/story/`)
 
-**Sunum:** `GET /` → `307 /story/` (`ui-story/index.html` yoksa eski tek sayfa). Eski tek sayfa `GET /legacy` (`ui/index.html`; varlıkları `/ui/*`). Spec: `.kiro/specs/api-arayuz/` Gereksinim 7.
+**Sunum:** `GET /` → `307 /story/` (`ui/story/index.html` yoksa eski tek sayfa). Eski tek sayfa `GET /legacy` (`ui/index.html`; varlıkları `/ui/*`). Spec: `.kiro/specs/api-arayuz/` Gereksinim 7.
 
 **Sahne → uç nokta:**
 
@@ -482,7 +482,7 @@ Satır: `{address, source, reason, arrival, p_now, good, good_slot, min_extra_mi
 | 7 Değer | `GET /api/economics` (`headline`, `operation.{waterfall, arms, scale}`, `scale`, `model_comparison`, `llm_scenarios`, `llm.agents`, `models`, `assumptions`), `GET /api/economics?scenario=optimize`, `GET /api/economics?model_assignment=&model_memory=&model_briefing=&cache=` (model seçici), `GET /api/economics?courier_daily_cost_tl=&fails_other_tl=&second_attempt_min=&km_cost_tl=` (kaydırıcılar), `GET /api/summary` (`long_term.summary.arms.*.unfamiliar_share`) |
 | 8 Kapanış | `GET /api/status` (`mode`, `models`), `GET /api/economics` (`headline`) |
 
-**Kayıtlı yanıtlar (`ui-story/data/fallback.json`, `tools/record_fallback.py`):** düz JSON nesnesi; anahtar `"GET <path+sorgu>"` ya da `"POST <path>#<name>"` (aynı yola farklı gövdeli POST'lar: `ask#onur|gokhan`, `decision#approval`, `note#personal|noise|back`, `geri-bildirim#<kayıt>`, `simule-cevap#<question_id>`; aynı GET'in farklı anı: `route/32/<courier>#before|after-<question_id>`). `GET /api/summary` kırpılmış hâlde saklanır (arayüzün okuduğu alanlar). Ek anahtarlar:
+**Kayıtlı yanıtlar (`ui/story/data/fallback.json`, `tools/record_fallback.py`):** düz JSON nesnesi; anahtar `"GET <path+sorgu>"` ya da `"POST <path>#<name>"` (aynı yola farklı gövdeli POST'lar: `ask#onur|gokhan`, `decision#approval`, `note#personal|noise|back`, `geri-bildirim#<kayıt>`, `simule-cevap#<question_id>`; aynı GET'in farklı anı: `route/32/<courier>#before|after-<question_id>`). `GET /api/summary` kırpılmış hâlde saklanır (arayüzün okuduğu alanlar). Ek anahtarlar:
 - `demo`: `{note_address, note_order, next{day, courier, name}, harvest_gap{address, courier, courier_name}, harvest_time{address, courier, courier_name}}`. Kurallar (aracın docstring'i): not adresi O02'nin gün 32 rotasında, bölgeye yabancı, kapı notu yok, 8–20. sıra, sonraki 7 günde başka kuryenin gittiği; en erken gün, sonra en küçük sıra. Hasat: boşluk sorusu O02 rotasında ve simüle cevabı hafızaya yazılıp rotayı değiştiren ilki; saat teyidi cevabı `confirmation` olup o adrese bugün giden kuryenin rotasını değiştiren ilki.
 - `_note`: üretim notu.
 

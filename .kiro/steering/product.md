@@ -119,7 +119,7 @@ Kuryenin bıraktığı bilginin hepsi rotayı değiştirmez: "arabayı köşedek
 
 ## Demo hikayesi (sırayla)
 
-Demo ve sunum aynı ekrandır: hikaye arayüzü (`ui-story/`, http://localhost:8000), 8 sahne, sunucu → ile ilerler; sunumun tamamı bu ekrandır. Ayrıntılı metin `docs/sunum.md` → "Demo metni".
+Demo ve sunum aynı ekrandır: hikaye arayüzü (`ui/story/`, http://localhost:8000), 8 sahne, sunucu → ile ilerler; sunumun tamamı bu ekrandır. Ayrıntılı metin `docs/sunum.md` → "Demo metni".
 
 1. **Sorun ve ilke:** açılış ("Sitenin girişi arka sokaktan"), gerçek Beykoz verisiyle sorun, ardından ilke (kaydırmıyoruz, sınırı esnetiyoruz) ve ajanlar + tek maliyet. Sorun kısmı: 18 sabit bölge → yeni yapının dinamik bölgeleri (daha az kurye, daha az yol) → ertesi gün bölgeler yeniden çizilir → geçmişe bakmadan atamada durakların çoğu kuryeye yabancı sokakta.
 2. **Sabah (gün 32, kampanya, +%31 hacim):** Orkestratör günü planlar; her araç adımı canlı izde ve haritada: hacim → kapasite açığı 2 → "kim gitsin" (Onur, Gökhan; Melis değil) → çekirdek bölgeli atama → teslim zamanı bulguları → rota kontrolleri → müdüre öneri.

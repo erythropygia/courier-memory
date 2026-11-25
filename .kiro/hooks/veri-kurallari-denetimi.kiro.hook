@@ -8,8 +8,8 @@
     "patterns": [
       "**/agents/prompts/**/*.md",
       "**/ui/**",
-      "**/ui-story/js/**",
-      "**/ui-flow/**",
+      "**/ui/story/js/**",
+      "**/ui/flow/**",
       "**/docs/**/*.md",
       "**/deploy/agentcore/runtime/cm/prompt.py"
     ]

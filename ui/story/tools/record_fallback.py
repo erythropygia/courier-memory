@@ -1,10 +1,10 @@
 """Sahne 3–7'nin kayıtlı yanıtlarını üretir: API'ye ulaşılamazsa arayüz bunları "API yok · kayıtlı yanıt" etiketiyle kullanır.
 
   CM_LLM_MODE=mock uvicorn api.main:app --port 8000      (ayrı pencerede; 8080 kullanılmaz)
-  python ui-story/tools/record_fallback.py [http://127.0.0.1:8000]
+  python ui/story/tools/record_fallback.py [http://127.0.0.1:8000]
 
 Demo akışını sırayla oynatır (canlı hafıza önce ve sonra sıfırlanır) ve yanıtları `data/fallback.json`'a yazar.
-Anahtar biçimi `ui-story/js/common.js → CM.api` ile aynıdır: "GET /api/..." ya da "POST /api/...#name".
+Anahtar biçimi `ui/story/js/common.js → CM.api` ile aynıdır: "GET /api/..." ya da "POST /api/...#name".
 Demo seçimleri (`demo`) kurallıdır ve burada hesaplanır:
   note_address   Gökhan'ın (O02) gün 32 rotasında, bölgeye yabancı, kapı notu olmayan, en az 8. sıradaki ve sonraki
               günlerde (33–39) başka bir kuryenin gittiği adres; en erken gün, sonra en küçük sıra.

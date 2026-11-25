@@ -1,6 +1,6 @@
-"""Çevrimdışı harita: OpenFreeMap (OpenMapTiles şeması) vektör karolarını ve Noto Sans glyph'lerini ui-story/ altına indirir.
+"""Çevrimdışı harita: OpenFreeMap (OpenMapTiles şeması) vektör karolarını ve Noto Sans glyph'lerini ui/story/ altına indirir.
 
-  python ui-story/tools/download_tiles.py
+  python ui/story/tools/download_tiles.py
 Ana kapsam (Beykoz + Boğaz) z8–14 (OpenFreeMap en çok z14 verir; üstü MapLibre'de büyütülür), bağlam z7–10 geniş alan.
 Var olan dosya atlanır. ~23 MB. Atıf: OpenFreeMap © OpenMapTiles © OpenStreetMap katkıcıları.
 """

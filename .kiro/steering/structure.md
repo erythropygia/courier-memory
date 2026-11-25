@@ -44,16 +44,17 @@ agents/                   Ajanlar (spec: ajanlar)
   tests/
 api/main.py               FastAPI (spec: api-arayuz; /api/orchestrator/*, /api/route, /api/harvest/*, /api/learning, /api/time/*, /api/time/{gün}/alternatives; /api/morning/{gün}, /api/morning/scan)
 api/tests/
-ui/                       Eski tek sayfa demo (index.html, app.js, style.css); /legacy adresinde ayrıntı ekranı
-ui-story/                Hikaye arayüzü (demo + sunumun tamamı, 8 sahne; spec api-arayuz Gereksinim 7); / → /story/
+ui/                       Arayüzler (hepsi API'den sunulur)
+ui/legacy/                Eski tek sayfa demo (index.html, app.js, style.css); /legacy adresinde ayrıntı ekranı
+ui/story/                 Hikaye arayüzü (demo + sunumun tamamı, 8 sahne; spec api-arayuz Gereksinim 7); / → /story/
   js/stage.js common.js chart.js   Harita/durum altyapısı, API (kayıt yedekli), ajan izi, ses, SVG grafikler
   js/narration.js           Her adımın açıklama satırı: Ne oluyor · Ekranda · Veri (A tuşu)
   js/scene1.js … scene8.js            Sorun · Sabah · Onay · Kapıda · Hasat · Öğrenme · Değer · Kapanış
   data/                   scene1.json (gerçek veri istisnası, veri-kurallari.md), scene2.json, sim_mapping.json, trace_fallback.json, fallback.json
   tools/                  prepare.py (sahne verisi), record_trace.py (Sahne 2 yedeği), record_fallback.py (Sahne 3–7 yedeği), download_tiles.py
   vendor/ tiles/ fonts/   MapLibre, yerel vektör karolar, yazı tipleri (internetsiz)
-ui-flow/                  "Nasıl çalışır" arayüzü (/flow/): bir günün akışı 8 adımda, ajan izi ve API çağrıları (spec: akis-arayuzu)
-ui-yon/                   Tasarım yönü demosu (tek dosya)
+ui/flow/                  "Nasıl çalışır" arayüzü (/flow/): bir günün akışı 8 adımda, ajan izi ve API çağrıları (spec: akis-arayuzu)
+ui/direction/             Tasarım yönü demosu (tek dosya)
 deploy/agentcore/         Amazon Bedrock AgentCore Runtime (spec: agentcore-runtime)
   runtime/main.py         Giriş noktası: BedrockAgentCoreApp, tembel _get_agent, akış döndüren @app.entrypoint
   runtime/cm/             Strands araçları (tools.py), kimlik sınırı kancası (scope.py), istem, AgentCore Memory, model
@@ -82,7 +83,7 @@ runs/                     Simülasyon çıktıları: yayımlanan iki çalıştı
   - Sabah: `morning` (sabah akışı), `sorting` (ayrıştırma), `scan` (okutma), `shelf` (raf), `departure` (şubeden çıkış), `presorted` (ayrıştırması indirme okutmasına gömülü)
   - Ölçüm: `fails` (başarısız teslim sayısı), `preventable` (bilgiyle önlenebilir), `counterfactual` (karşı-olgu), `calibration` (kalibrasyon), `learning` (Hedef 1 deneyi), `ablation` (ablasyon), `sweep` (sağlamlık taraması), `economics` (ekonomi)
   - Senaryolar: `leave_wave` (izin dalgası), `turnover` (ayrılan kıdemli + yeni kurye), `borrowed_courier` (ödünç kurye), `volume_shock` (hacim şoku), `hiring` (işe alım), `long_term` (uzun dönem), `normal`
-  - Arayüz: `ui-story/` (hikaye arayüzü, `/story/`), `ui-flow/` (nasıl çalışır, `/flow/`), `ui/` (eski tek sayfa, `/legacy`), `scene` (sahne), `fallback` (kayıtlı yanıt)
+  - Arayüz: `ui/story/` (hikaye arayüzü, `/story/`), `ui/flow/` (nasıl çalışır, `/flow/`), `ui/legacy/` (eski tek sayfa, `/legacy`), `scene` (sahne), `fallback` (kayıtlı yanıt)
   - `card` (durak kartı), `moment` (`approaching` / `at_door`), `approach` (yaklaşma tetiği), `feed` (ajan akışı), `review` (Değerlendirme Ajanı), `region` (Bölge Ajanı), `real_day` (gerçek gün)
   - AgentCore: `actorId` (istek kimliği: kurye, müdür ya da konuk), `scope` (kimlik sınırı), `runtime` (AgentCore çalışma ortamı)
 - **Takma bölge adları:** "B01", "B02"… Gerçek bölge kodları kullanılmaz.

@@ -1,5 +1,5 @@
 /* Harita stili: LÖSEV haritasının yapısı (OpenMapTiles şeması, fill-extrusion binalar), bu projeye göre daha sakin palet.
-   Kaynak önce yerel karolar (ui-story/tiles, z7–14); yoksa çevrimiçi OpenFreeMap. */
+   Kaynak önce yerel karolar (ui/story/tiles, z7–14); yoksa çevrimiçi OpenFreeMap. */
 (function (CM) {
   const C = {
     land: '#EFE8DC', residential: '#EAE2D4', park: '#D5E3C2', wood: '#C9DCB4', sand: '#EFE2C2',

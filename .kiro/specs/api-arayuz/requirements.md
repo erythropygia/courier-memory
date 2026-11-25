@@ -11,7 +11,7 @@ FastAPI, ajanları ve çalıştırma klasörünü tek sayfalık demo arayüzüne
 3. Hafıza dosyası atomik yazılmalıdır (geçici dosya + `os.replace`). Bozuk dosya okunursa hafıza yeniden tohumlanır.
 4. `/api/summary` → `calibration.rows` içinden `target` alanı çıkarılmalıdır; şirket içi toplu özet arayüze gönderilmez.
 5. `/api/speech`: `CM_POLLY=1` ve mod `mock` değilse Polly `tr-TR` mp3 döner, aksi halde 501.
-6. `/` adresi hikaye arayüzüne (`/story/`, Gereksinim 7) yönlenmeli; eski tek sayfa `/legacy` adresinde `ui/index.html` olarak kalmalı; `/ui/*` ve `/story/*` statik dosyaları servis etmelidir. (`ui-story/` yoksa `/` eski tek sayfayı verir.)
+6. `/` adresi hikaye arayüzüne (`/story/`, Gereksinim 7) yönlenmeli; eski tek sayfa `/legacy` adresinde `ui/index.html` olarak kalmalı; `/ui/*` ve `/story/*` statik dosyaları servis etmelidir. (`ui/story/` yoksa `/` eski tek sayfayı verir.)
 7. `api/tests/test_api.py` ve `api/tests/test_concurrency.py` yeşil olmalıdır.
 8. Orkestratör uç noktaları (`/api/orchestrator/*`, `/api/plan/{day}`) `.kiro/specs/orkestrator/` Gereksinim 5'e göre uygulanmalı; `api/tests/test_orchestrator_api.py` yeşil olmalıdır.
 9. **Rota, aday ve hasat uç noktaları** (yanıt biçimleri `docs/sozlesmeler.md` §4 ve §6; burada yalnız veri ve uç nokta gereksinimi vardır):
@@ -119,7 +119,7 @@ FastAPI, ajanları ve çalıştırma klasörünü tek sayfalık demo arayüzüne
 5. **Parametreler:** kaydırıcılar (kurye günlük maliyeti 2.000–6.000, kur 30–60, başarısız deneme diğer 0–100, km 2–12, senaryo sorusu 0–10). "tahmini" etiketi, "Sıfırla" düğmesi, 250 ms gecikme (eski istek yenisinin üstüne yazamaz).
 6. **Ölçek:** 1/10/100 şube için operasyon tasarrufu, ajansız ek maliyet, LLM, Hafıza + Brifing net; altında model karşılaştırma çubukları.
 
-## Gereksinim 7: Hikaye arayüzü (`ui-story/`, `/story/`)
+## Gereksinim 7: Hikaye arayüzü (`ui/story/`, `/story/`)
 
 Demo ve sunum aynı ekrandır: sunucu → ile adım adım ilerler, her adım canlı API'ye bağlıdır. Eski tek sayfanın (Gereksinim 2–6) içerikleri sahnelere taşınmıştır. Eski sayfa `/legacy`'de yalnız **serbest keşif** için kalır: herhangi bir gün/kurye seçimi, A ↔ D harita karşılaştırması, durak şeridi ve oynatma hızı, demo ↔ uzun dönem KPI geçişi, "hafıza birikiyor" eğrisi, Atama Ajanı'nın tek başına öneri/soru ekranı (hikayede Orkestratör üstlenir), TL/gün ↔ TL/yıl geçişi ve getiri şelalesi.
 

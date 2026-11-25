@@ -22,9 +22,9 @@ inclusion: always
 
 ## Gerçek harita: hikaye arayüzünün konumları (ekip kararı)
 
-- **Ne:** `ui-story/data/scene1.json` gerçek Beykoz verisinden türetilmiştir: 18 sabit bölge poligonu, yeni yapının 4–5 Mayıs 2026 dinamik bölgeleri ve o günlerin teslim noktaları (koordinatlar 4 haneye, ~10 m, yuvarlanmış). Sahne 2–5'te sim adresleri gerçek Beykoz teslim noktalarına deterministik eşlenir (`data/sim_mapping.json`, `data/scene2.json`): harita konumları gerçek, sonuçlar simülasyondur.
+- **Ne:** `ui/story/data/scene1.json` gerçek Beykoz verisinden türetilmiştir: 18 sabit bölge poligonu, yeni yapının 4–5 Mayıs 2026 dinamik bölgeleri ve o günlerin teslim noktaları (koordinatlar 4 haneye, ~10 m, yuvarlanmış). Sahne 2–5'te sim adresleri gerçek Beykoz teslim noktalarına deterministik eşlenir (`data/sim_mapping.json`, `data/scene2.json`): harita konumları gerçek, sonuçlar simülasyondur.
 - **Neden:** Sorunun sahadaki karşılığı (sabit bölge ↔ dinamik bölge, yabancı sokak payı) yalnız gerçek haritada inandırıcı.
-- **Sınır:** Barkod, kurye kimliği/hash'i, bölge kodu, şube kimliği, iç servis adresi ve şirket içi sistem adları bu dosyalara girmez (`ui-story/tools/prepare.py` ayıklar; `sim/tests/test_forbidden_content.py` ad ve kimlikleri denetler, koordinatları denetlemez). Sahne 1 atfı "Gerçek veri", diğer sahneler "konumlar Beykoz saha verisi, sonuçlar simülasyon" der.
+- **Sınır:** Barkod, kurye kimliği/hash'i, bölge kodu, şube kimliği, iç servis adresi ve şirket içi sistem adları bu dosyalara girmez (`ui/story/tools/prepare.py` ayıklar; `sim/tests/test_forbidden_content.py` ad ve kimlikleri denetler, koordinatları denetlemez). Sahne 1 atfı "Gerçek veri", diğer sahneler "konumlar Beykoz saha verisi, sonuçlar simülasyon" der.
 
 ## Uygulama verisi ilkeleri
 

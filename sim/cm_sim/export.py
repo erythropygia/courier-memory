@@ -433,7 +433,7 @@ def memory_routing_summary(res: SimResult) -> dict:
 # eşit maliyetli iki konum arasında seçimi simülatörden ayırabiliyordu (ör. gün 22'de 407/408).
 ND_COORD = 7
 
-# Hikayenin anı (ui-story Sahne 2–5 ve docs/sunum.md gün 32'yi ve Gökhan'ı anlatır). Sezgisel seçim veri değişince
+# Hikayenin anı (ui/story Sahne 2–5 ve docs/sunum.md gün 32'yi ve Gökhan'ı anlatır). Sezgisel seçim veri değişince
 # kayabilir (ör. başka bir güne ya da kuryeye kayıp Sahne 4'te başka kuryenin rakamını gösterebilir); bu an D kolunda varsa önceliklidir.
 STORY_MOMENT = {"day": 32, "courier": "O02"}
 

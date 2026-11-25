@@ -10,7 +10,7 @@
 - `/api/time/{day}/alternatives` `RoutePlanner.day_alternatives`'ni çağırır; `/api/time/example` `example.route`, `constraint`, `example_constraint` (`meta.time_example_constraint`) alanlarını ekler; `/api/route` `time_unshiftable[]` ve `comparison.route_constraint` taşır.
 - `/` → `/story/` yönlendirmesi; eski tek sayfa `/legacy`. Hikaye arayüzünün tasarımı aşağıda.
 
-**Eski tek sayfa (`ui/`, `/legacy`):**
+**Eski tek sayfa (`ui/legacy/`, `/legacy`):**
 - Ortak durum: `meta`, `day`, `blocks`, `summary`.
 - Sekmeler tembel çizilir; gün değişince açık sekme yeniden çizilir.
 - Harita bileşeni bir sınıftır: altlık ızgara bir kez çizilir; katmanlar rota, durak ve vurgu. Yakınlaştırma `viewBox` ile. Karşılaştırma görünümünde iki harita eşzamanlı yakınlaşır.
@@ -22,7 +22,7 @@
   - Yükleme sırasında önceki görüntü soluk kalır.
 - Görsel hedef: `docs/ekran_goruntuleri/*.png`.
 
-**Hikaye arayüzü (`ui-story/`, `/story/`; Gereksinim 7):**
+**Hikaye arayüzü (`ui/story/`, `/story/`; Gereksinim 7):**
 - Dosyalar: `index.html`, `story.css`; `js/expression.js` (MapLibre ifadeleri + 2D yorumlayıcı), `js/style.js` (harita stili), `js/stage.js` (ara değerli durum `CM.S`, harita sarmalayıcı `CM.H`, işaretler, rakam/mesaj/eylem/kart), `js/common.js` (`CM.api` kayıt yedekli istemci, `CM.traceRow/writeTrace` ajan izi, `CM.speech`, `CM.board`/`CM.side`, sim adresi → konum), `js/chart.js` (çizgi + bant, şelale, aralık şeridi, teslim zamanı grafiği; ipucu ve "Tablo"), `js/scene1.js` … `js/scene7.js`, `js/main.js` (sunucu denetimi).
 - Sahne nesnesi: `{no, name, title, attribution, stepCount, enter(), step(i, previous), leaving(), pending?}`; Sahne 2 kendi `next/back`'sini kullanır (iz geldikçe vuruş vuruş). Her `step` çağrısı sahne sayacını artırır; geç gelen API yanıtı sayaç değiştiyse çizilmez.
 - Harita: animasyon sırasında veriye bağlı boya ifadesi değiştirilmez; dalga etkisi için özellikler gecikmeye göre "kutu" katmanlarına ayrılır (`stage.js` notu). Gizlenen HTML işaretleri görünürlükle de gizlenir (MapLibre opaklığı kendisi yazar).

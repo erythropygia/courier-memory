@@ -1,6 +1,6 @@
 # Tasarım: "Nasıl çalışır" arayüzü
 
-- **Dosya:** `ui-flow/index.html` (HTML + CSS + JS tek dosya); `api/main.py` `/flow` altında sunar. Yazı tipleri `ui-story/fonts` klasöründen göreli yolla gelir.
+- **Dosya:** `ui/flow/index.html` (HTML + CSS + JS tek dosya); `api/main.py` `/flow` altında sunar. Yazı tipleri `ui/story/fonts` klasöründen göreli yolla gelir.
 - **Yerleşim:** üstte başlık, mod rozeti ve düğmeler; altında mimari şerit ve veri akışı satırı; üç sütun: adımlar · iz · sonuç + şube hafızası + ajan akışı.
 - **Adım tanımı** (`STEPS`): başlık, ajan, kod ve API listesi, açıklama, vurgulanacak parçalar, veri akışı satırı ve `run()`. Yeni adım eklemek tek nesne eklemektir.
 - **API tabanı:** `BASE`, sayfa yolundaki `/proxy/<port>` önekinden çıkarılır; yoksa kök. Bütün istekler `BASE + yol`.

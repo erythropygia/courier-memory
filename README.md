@@ -27,9 +27,9 @@ Varsayılan mod `mock`: AWS gerekmez, her şey çalışır. Windows'ta komut ç�
 | Orkestratör | `agents/orchestrator.py`, `trace.py`, `route.py` | Günü yöneten ajan: hacim → kapasite açığı → komşu şubeden "kim gitsin" (sınır sokak tanıklığıyla adaylar eşitsiz) → çekirdek bölgeli atama → hafızalı rota → müdüre gerekçeli öneri → insan onayı. Her adım canlı iz (SSE). Hesap deterministik araçlarda; rota, simülatörle aynı `cm_sim/routing_memory.py` fonksiyonlarını kullanır. |
 | Ajanlar | `agents/` | Atama, Hafıza, Brifing ve Hasat ajanları (Hasat: kıdemlinin bilgisini hedefli sorularla toplar, `harvest.py`). Teslim zamanı analizi (`delivery_time.py`): kayıtlardan "bu adreste şu saatte kimse yok" örüntüsü, Orkestratör hangi bulgunun rotaya gireceğine karar verir. Onarım rotayı uzatmaz (süre ve km artmaz, fazla mesai yok, vardiya bitişi aşılmaz); kısıt yüzünden kaydırılamayan durak için müdüre alternatif önerilir (başka kuryeye aktarma / ertesi gün / akşam teslim noktası + alıcıya SMS), karar müdürdedir. Bedrock'ta Claude; `mock / live / record / replay` modları. Rotayı etkilemeyen bilgi türleri (park, bina erişimi, adres tarifi, hayvan, diğer; şifre asla kaydedilmez), durak bilgi kartları ve konuma göre "şimdi söyle" tetiği (`cards.py`). Değerlendirme Ajanı (sabah öz-değerlendirme, geri alınabilir düzeltmeler, `review.py`), Bölge Ajanı (durak · küme · şube, `region_agent.py`), ajan akışı (`feed.py`). Gerçek 5 Mayıs servisi (`real_day.py`: hafıza kapsamı, kurye aktarımı). Token ölçümü ve ekonomi hesabı (`cost.py`, `economics.py`, `economics.yaml`). |
 | API | `api/` | FastAPI: simülasyon verisi, ajanlar, orkestratör (SSE iz), hasat, rota, teslim zamanı, ekonomi, durak kartları, Değerlendirme/Bölge ajanları, ajan akışı, gerçek 5 Mayıs |
-| Hikaye arayüzü | `ui-story/` | Demo + sunumun tamamı tek ekranda, 8 sahne (Sorun · Sabah · Onay · Kapıda · Hasat · Öğrenme · Değer · Kapanış); sunucu → ile ilerler, her adım canlı API'ye bağlı. MapLibre + yerel karolar (internetsiz), API yoksa kayıtlı yanıtlar (`data/trace_fallback.json`, `data/fallback.json`). Sahne 1 gerçek veri (yukarıdaki istisna) |
-| Nasıl çalışır | `ui-flow/` (`/flow/`) | Bir günün akışı 8 adımda (plan → müdür onayı → brifing → kurye notu → kapıda kart → hasat → ertesi sabah değerlendirme → bölge raporu); her adım canlı API çağrısı, ajanın kararları ve araç çağrıları sırasıyla iz olarak, araç sonuçlarının JSON'u, mimari şeritte veri akışı, şube hafızası ve ajan akışı yanda. Kodun nasıl çalıştığını adım adım gösterir |
-| Eski tek sayfa | `ui/` (`/legacy`) | Şube, Kurye, Simülasyon, Değer sekmeleri; ayrıntı ekranı, dış bağımlılık yok |
+| Hikaye arayüzü | `ui/story/` | Demo + sunumun tamamı tek ekranda, 8 sahne (Sorun · Sabah · Onay · Kapıda · Hasat · Öğrenme · Değer · Kapanış); sunucu → ile ilerler, her adım canlı API'ye bağlı. MapLibre + yerel karolar (internetsiz), API yoksa kayıtlı yanıtlar (`data/trace_fallback.json`, `data/fallback.json`). Sahne 1 gerçek veri (yukarıdaki istisna) |
+| Nasıl çalışır | `ui/flow/` (`/flow/`) | Bir günün akışı 8 adımda (plan → müdür onayı → brifing → kurye notu → kapıda kart → hasat → ertesi sabah değerlendirme → bölge raporu); her adım canlı API çağrısı, ajanın kararları ve araç çağrıları sırasıyla iz olarak, araç sonuçlarının JSON'u, mimari şeritte veri akışı, şube hafızası ve ajan akışı yanda. Kodun nasıl çalıştığını adım adım gösterir |
+| Eski tek sayfa | `ui/legacy/` (`/legacy`) | Şube, Kurye, Simülasyon, Değer sekmeleri; ayrıntı ekranı, dış bağımlılık yok |
 | AgentCore Runtime | `deploy/agentcore/` | Strands ajanı Amazon Bedrock AgentCore Runtime'da: 9 `@tool` (alan fonksiyonlarını çağırır), kurye bazlı kimlik sınırı (`BeforeToolCallEvent`), AgentCore Memory, CloudWatch izleri. Alan kodu yüklenemezse yalnız veri dosyalarıyla çalışan çekirdek takım (6 araç). `bootstrap.sh` `agentcore create` iskelesine yerleştirir, `verify.sh` dağıtımı, araç çağrısını ve izleri denetler. Spec: `agentcore-runtime` |
 | Kiro | `.kiro/` | 11 spec, 7 steering dosyası, 4 skill, 5 hook, projenin MCP sunucusu (`deploy/mcp/`). Özet: `AGENTS.md` |
 | Hazır veri | `data/demo_run/` | Demo çalıştırması, uzun dönem (60 gün), sağlamlık taraması, kalibrasyon, token ve ekonomi |
@@ -66,9 +66,9 @@ curl -s localhost:8000/api/morning/32             # ayrıştırma planı (raf, y
 curl -s -X POST localhost:8000/api/morning/scan -H 'content-type: application/json' -d '{"day": 32, "shipment": "G32-38507-1"}'   # indirme okutması → raf talimatı
 python -m agents.evaluate --n 60             # Hafıza Ajanı doğruluğu (gizli karşılıkla)
 CM_LLM_MODE=record python -m agents.record      # demo akışını kayıt-oynat için kaydet
-python ui-story/tools/prepare.py                               # hikaye sahne verisi (pip install -e ".[story]"; veri yeniden üretilince ŞART)
-python ui-story/tools/record_trace.py http://127.0.0.1:8000     # (mock API açıkken) Sahne 2 kayıtlı iz
-python ui-story/tools/record_fallback.py http://127.0.0.1:8000  # (mock API açıkken) Sahne 3–7 kayıtlı yanıtlar + demo seçimleri
+python ui/story/tools/prepare.py                               # hikaye sahne verisi (pip install -e ".[story]"; veri yeniden üretilince ŞART)
+python ui/story/tools/record_trace.py http://127.0.0.1:8000     # (mock API açıkken) Sahne 2 kayıtlı iz
+python ui/story/tools/record_fallback.py http://127.0.0.1:8000  # (mock API açıkken) Sahne 3–7 kayıtlı yanıtlar + demo seçimleri
 ```
 
 Rakamları yeniden üretme sırası (kod ya da parametre değişince):
@@ -81,7 +81,7 @@ python -m cm_sim.ablation --seeds 3
 python -m cm_sim.sweep --seeds 2
 python -m cm_sim.publish
 python -m agents.cost && python -m agents.economics && python -m agents.presentation_figures
-python ui-story/tools/prepare.py   # sonra mock API açıkken: tools/record_fallback.py ve tools/record_trace.py
+python ui/story/tools/prepare.py   # sonra mock API açıkken: tools/record_fallback.py ve tools/record_trace.py
 ```
 
 ## Ortam değişkenleri

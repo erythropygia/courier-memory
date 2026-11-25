@@ -33,13 +33,13 @@ Her veri dosyası nereden gelir, kim okur, gerçek mi uygulama verisi mi, git'te
 | `data/map/osrm_real.json` | Gerçek günün durak→durak yol bacakları (polyline6, metre) | üretici araç (repoda yok) (herkese açık OSRM sunucusu, yalnız koordinat) | `agents.real_day.RealDay.path` | üçüncü taraf yol verisi (© OpenStreetMap katkıcıları) | izli |
 | `data/usage.jsonl` | Canlı token günlüğü | `CM_LLM_MODE=live\|record` | `agents.cost` | ölçüm | yok (canlı modda oluşur), `.gitignore`'da |
 | `cassettes/` | Kayıt-oynat LLM yanıtları | `CM_LLM_MODE=record` | `replay` modu | ölçüm | yok (kayıt modunda oluşur) |
-| `ui-story/data/scene1.json` | 18 sabit bölge, dinamik bölgeler, 4–5 Mayıs teslim noktaları, Sahne 1 rakamları | `ui-story/tools/prepare.py` ← paket | Sahne 1 | **GERÇEK** (kimlik, barkod, bölge kodu yok; koordinat 4 hane) | izli |
-| `ui-story/data/sim_mapping.json` | Sim adresi → gerçek Beykoz teslim noktası (deterministik) | `prepare.py` | Sahne 2–5 | **gerçek konum** | izli |
-| `ui-story/data/scene2.json` | Gün 32 kol D kümeleri ve durakları, olağan Çarşamba (gün 26) durakları | `prepare.py` ← `data/demo_run/snapshots` + paket sınırı | Sahne 2–3 | gerçek konum, uygulama verisi sonucu | izli |
-| `ui-story/data/trace_fallback.json` | Sahne 2 kayıtlı orkestratör izi | `ui-story/tools/record_trace.py` (mock API) | Sahne 2 (API yoksa) | uygulama verisi | izli |
-| `ui-story/data/fallback.json` | Sahne 3–7 kayıtlı yanıtları + demo seçimleri (`demo`) | `ui-story/tools/record_fallback.py` (mock API) | `CM.api` (API yoksa), `CM.demo` | uygulama verisi | izli |
-| `ui-story/tiles/`, `fonts/`, `vendor/` | Vektör karolar, yazı tipleri, MapLibre | `tools/download_tiles.py`, elle | hikaye | üçüncü taraf (karolar © OpenMapTiles © OpenStreetMap katkıcıları, atıf her sahnede; Inter ve Barlow Condensed OFL, lisansları `fonts/`'ta; Noto Sans glyph'leri OFL; MapLibre BSD-3) | izli |
-| `ui-yon/index.html` | Tasarım yönü demosu, gömülü API çıktısı | elle (bir kez) | — | uygulama verisi, **dondurulmuş** (eski rakamlar; güncellenmez) | izli |
+| `ui/story/data/scene1.json` | 18 sabit bölge, dinamik bölgeler, 4–5 Mayıs teslim noktaları, Sahne 1 rakamları | `ui/story/tools/prepare.py` ← paket | Sahne 1 | **GERÇEK** (kimlik, barkod, bölge kodu yok; koordinat 4 hane) | izli |
+| `ui/story/data/sim_mapping.json` | Sim adresi → gerçek Beykoz teslim noktası (deterministik) | `prepare.py` | Sahne 2–5 | **gerçek konum** | izli |
+| `ui/story/data/scene2.json` | Gün 32 kol D kümeleri ve durakları, olağan Çarşamba (gün 26) durakları | `prepare.py` ← `data/demo_run/snapshots` + paket sınırı | Sahne 2–3 | gerçek konum, uygulama verisi sonucu | izli |
+| `ui/story/data/trace_fallback.json` | Sahne 2 kayıtlı orkestratör izi | `ui/story/tools/record_trace.py` (mock API) | Sahne 2 (API yoksa) | uygulama verisi | izli |
+| `ui/story/data/fallback.json` | Sahne 3–7 kayıtlı yanıtları + demo seçimleri (`demo`) | `ui/story/tools/record_fallback.py` (mock API) | `CM.api` (API yoksa), `CM.demo` | uygulama verisi | izli |
+| `ui/story/tiles/`, `fonts/`, `vendor/` | Vektör karolar, yazı tipleri, MapLibre | `tools/download_tiles.py`, elle | hikaye | üçüncü taraf (karolar © OpenMapTiles © OpenStreetMap katkıcıları, atıf her sahnede; Inter ve Barlow Condensed OFL, lisansları `fonts/`'ta; Noto Sans glyph'leri OFL; MapLibre BSD-3) | izli |
+| `ui/direction/index.html` | Tasarım yönü demosu, gömülü API çıktısı | elle (bir kez) | — | uygulama verisi, **dondurulmuş** (eski rakamlar; güncellenmez) | izli |
 | `docs/ekran_goruntuleri/` | Eski tek sayfanın referans görüntüleri; `story/` altında hikaye sahneleri | elle / başsız tarayıcı | spec, yeniden kurulum | uygulama verisi + gerçek konum | izli |
 | `../courier-memory-paket/` (depo kökü) | Ham saha verisi, şirket içi adlar, karşılaştırma sayfası ve betikleri | — | yalnız `prepare.py` | **HAM GERÇEK** | izli; izinle repoyla paylaşılabilir (24 Kasım 2026) |
 
@@ -55,10 +55,10 @@ python -m cm_sim.ablation --seeds 3
 python -m cm_sim.sweep --seeds 2
 python -m cm_sim.publish                       # → data/demo_run/
 python -m agents.cost && python -m agents.economics && python -m agents.presentation_figures
-pip install -e ".[story]" && python ui-story/tools/prepare.py      # → sahne1/sahne2/sim_eslesme (paket gerekir)
+pip install -e ".[story]" && python ui/story/tools/prepare.py      # → sahne1/sahne2/sim_eslesme (paket gerekir)
 CM_LLM_MODE=mock uvicorn api.main:app --port 8000 &                   # temiz sunucu
-python ui-story/tools/record_fallback.py http://127.0.0.1:8000          # → fallback.json (+ demo seçimleri)
-python ui-story/tools/record_trace.py http://127.0.0.1:8000             # → trace_fallback.json
+python ui/story/tools/record_fallback.py http://127.0.0.1:8000          # → fallback.json (+ demo seçimleri)
+python ui/story/tools/record_trace.py http://127.0.0.1:8000             # → trace_fallback.json
 git checkout -- data/live_memory.json
 ```
 

@@ -69,7 +69,7 @@
       <p><b>Telefonunuzla okutun</b>Ajanlar ne aldı, ne düşündü, ne verdi: sunumdaki canlı koşu adım adım</p></div>` : '', 'qr');
     CM.message(['Kuryeyi kaydırmıyoruz,', 'sınırı esnetiyoruz.', 'Bilgi kişiden <span class="blue">adrese</span> taşınır.']);
     const m = extra && extra.headline;
-    CM.figure(m ? [{ v: CM.count(m.savings_tl_year / 1e6, 1) + ' mn', boy: 'mid', l: 'TL/yıl · şube başına' }, { v: `${m.quality.fails_per_day_current} → ${m.quality.fails_per_day_memory}`, boy: 'mid', l: 'başarısız teslim/gün' }] : [],
+    CM.figure(m ? [{ v: CM.count(m.savings_tl_year / 1e6, 1) + ' mn', boy: 'mid', l: 'TL/yıl · Beykoz bölgesi' }, { v: `${m.quality.fails_per_day_current} → ${m.quality.fails_per_day_memory}`, boy: 'mid', l: 'başarısız teslim/gün' }] : [],
       'Dinamik planlamaya ajansız geçmek maliyeti artırır; Courier Memory ile aynı geçiş kaliteyi korur');
   }
 

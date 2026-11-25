@@ -15,14 +15,14 @@
 
   function headline(e, next = true) {
     const m = e.headline;
-    CM.figure([{ v: TL(m.savings_tl_day), l: 'TL/gün daha düşük operasyon maliyeti' }, { v: million(m.savings_tl_year), boy: 'mid', l: 'TL/yıl · şube başına' },
+    CM.figure([{ v: TL(m.savings_tl_day), l: 'TL/gün daha düşük operasyon maliyeti' }, { v: million(m.savings_tl_year), boy: 'mid', l: 'TL/yıl · Beykoz bölgesi' },
       { v: `${m.quality.fails_per_day_current} → ${m.quality.fails_per_day_memory}`, boy: 'mid', l: 'başarısız teslim/gün' }],
       `Bugünkü yapıya göre · ajansız aynı geçiş günde ${TL(m.agentless_extra_cost_tl_day)} TL artırırdı · LLM maliyetinin tasarrufa oranı %${CM.count(m.llm_share * 100, 1)} · kurye-gün ve başarısız teslim maliyeti tahminidir`);
   }
   function waterfall(container, e) {
     const s = e.operation.waterfall;
     const { body } = CM.chartShell(container, {
-      title: 'Operasyon maliyeti, TL/gün · şube başına',
+      title: 'Operasyon maliyeti, TL/gün · Beykoz bölgesi',
       alt: 'Bugünden yeni yapıya: dinamik planlamanın kurye tasarrufu ajansız geçişte bilgi kaybıyla geri gider; ajanlar geri kazanır',
       legend: [{ name: 'azalış', color: '#2C7A4B', type: 'frame' }, { name: 'artış', color: '#D2261C', type: 'frame' }],
       table: { titles: ['Adım', 'TL/gün'], rows: s.map((a) => [a.step, (a.type === 'decrease' || a.type === 'increase') && a.tl_day > 0 ? '+' + TL(a.tl_day) : TL(a.tl_day)]) },
@@ -51,20 +51,20 @@
     CM.figure([]);
   }
 
-  // Eski "Değer" sekmesinden: ölçek (1/10/100 şube) ve model karşılaştırması
+  // Eski "Değer" sekmesinden: ölçek (1/10/100 bölge) ve model karşılaştırması
   function scale() {
     const O = extra.operation.scale || [], N = extra.scale || [];
     const net = new Map(N.map((r) => [r.branch, r]));
     const mk = extra.model_comparison || [], most = Math.max(...mk.map((m) => m.llm_tl_day)) || 1;
     CM.board(`<div class="two"><div class="chart"><div class="g-head"><div><div class="g-title">Ölçek: yıllık, TL</div>
-      <div class="g-alt">Şube başına değerlerin doğrusal çarpımı (şubeler arası fark modellenmedi) · kurye-gün maliyeti tahminidir</div></div></div>
-      <table class="status"><thead><tr><th>Şube</th><th class="s">Operasyon tasarrufu</th><th class="s">Ajansız geçişin ek maliyeti</th><th class="s">LLM maliyeti</th><th class="s">Hafıza + Brifing net (C'ye göre)</th></tr></thead>
+      <div class="g-alt">Beykoz bölgesi değerinin doğrusal çarpımı (bölgeler arası fark modellenmedi) · kurye-gün maliyeti tahminidir</div></div></div>
+      <table class="status"><thead><tr><th>Bölge</th><th class="s">Operasyon tasarrufu</th><th class="s">Ajansız geçişin ek maliyeti</th><th class="s">LLM maliyeti</th><th class="s">Hafıza + Brifing net (C'ye göre)</th></tr></thead>
       <tbody>${O.map((r) => { const n = net.get(r.branch) || {}; return `<tr><td>${r.branch}</td><td class="s accent">${million(r.savings_tl_year)}</td><td class="s">+${million(r.agentless_extra_cost_tl_year)}</td><td class="s">${n.llm_tl_year != null ? million(n.llm_tl_year) : ''}</td><td class="s">${n.net_tl_year_vs_C != null ? million(n.net_tl_year_vs_C) : ''}</td></tr>`; }).join('')}</tbody></table></div>
       <div class="chart"><div class="g-head"><div><div class="g-title">Tüm ajanlar tek modelle: LLM TL/gün</div>
       <div class="g-alt">Önbelleksiz · getiri: Hafıza + Brifing'in C'ye göre katkısı / LLM maliyeti</div></div></div>
       <table class="kirilim">${mk.map((m) => `<tr><td>${CM.escape(m.name)}</td><td class="bar-fill"><i style="width:${(m.llm_tl_day / most) * 100}%"></i></td><td class="s b">${CM.count(m.llm_tl_day, m.llm_tl_day < 10 ? 1 : 0)}</td><td class="s">${CM.count(m.per_shipment_kurus, 2)} kuruş/gönderi</td><td class="s">getiri ${CM.count(m.return_multiple_vs_C, 1)}×</td></tr>`).join('')}</table></div></div>`, 'full mid');
     const b = O[0];
-    CM.figure(b ? [{ v: million(b.savings_tl_year), boy: 'mid', l: 'TL/yıl · 1 şube' }, { v: million((O[O.length - 1] || b).savings_tl_year), boy: 'mid', l: `TL/yıl · ${(O[O.length - 1] || b).branch} şube` }] : [],
+    CM.figure(b ? [{ v: million(b.savings_tl_year), boy: 'mid', l: 'TL/yıl · Beykoz bölgesi' }, { v: million((O[O.length - 1] || b).savings_tl_year), boy: 'mid', l: `TL/yıl · ${(O[O.length - 1] || b).branch} bölge` }] : [],
       'Gerçek büyüklüğü 4 haftalık tek şube A/B pilotu ölçer');
   }
 
@@ -144,7 +144,7 @@
 
   const S7 = {
     no: 7, name: 'Değer', stepCount: 6,
-    title: 'Değer: yüzde değil para · şube başına operasyon maliyeti',
+    title: 'Değer: yüzde değil para · Beykoz bölgesi operasyon maliyeti',
     attribution: '<b>Uygulama verisi · 1 aylık geçmiş</b> · tahmini maliyet parametreleri (agents/economics.yaml)',
     async enter() {
       no++;

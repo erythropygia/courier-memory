@@ -2129,7 +2129,7 @@
         h(
           'div',
           { class: 'headline-sentence' },
-          'Şube başına yılda ',
+          'Beykoz bölgesinde yılda ',
           h('b', { text: million(m.savings_tl_year) }),
           ' daha düşük operasyon maliyeti · gönderi başına ',
           h('b', { text: `${nf(m.per_shipment_before_tl, 1)} → ${nf(m.per_shipment_after_tl, 1)} TL` }),
@@ -2140,7 +2140,7 @@
           'div',
           { class: 'm-boxes' },
           box('Günlük tasarruf', CM.tl(m.savings_tl_day), `bugüne göre ${pct(m.savings_rate, 1)} daha düşük`, 'accent'),
-          box('Yıllık tasarruf', CM.tl(m.savings_tl_year), `şube başına · ${nf(gk)} iş günü`),
+          box('Yıllık tasarruf', CM.tl(m.savings_tl_year), `Beykoz bölgesi · ${nf(gk)} iş günü`),
           box('Gönderi başına maliyet', `${nf(m.per_shipment_before_tl, 2)} → ${nf(m.per_shipment_after_tl, 2)} TL`, 'bugün → Courier Memory ile'),
           box(
             'Başarısız teslim / gün',
@@ -2167,7 +2167,7 @@
       const k = this.yearTimes();
       const year = this.unit === 'year';
       const c = year ? k : 1;
-      $('#opwaterfall-alt').textContent = year ? `şube başına · TL / yıl (${nf(Math.round(k))} iş günü)` : 'şube başına · TL / gün';
+      $('#opwaterfall-alt').textContent = year ? `Beykoz bölgesi · TL / yıl (${nf(Math.round(k))} iş günü)` : 'Beykoz bölgesi · TL / gün';
       const diff = (a, b, area, d) => (K[a] && K[b] ? K[b][area] - K[a][area] : null);
       const marked = (x, d) => (x === null ? '' : (x > 0 ? '+' : '') + nf(x, d));
       const kb = (arm) => this.ownZone(arm);
@@ -2440,7 +2440,7 @@
         h(
           'table',
           { class: 'data-table scale-table' },
-          h('thead', null, h('tr', null, h('th', { text: 'Şube' }), h('th', { text: 'Operasyon tasarrufu', title: 'Bugüne göre, yeni yapı + Courier Memory' }), h('th', { text: 'Ajansız ek maliyet', title: 'Ajansız geçişin bugüne göre ek maliyeti' }), h('th', { text: 'LLM' }), h('th', { text: 'Hafıza + Brifing net', title: 'Uyumlu atamaya göre' }))),
+          h('thead', null, h('tr', null, h('th', { text: 'Bölge' }), h('th', { text: 'Operasyon tasarrufu', title: 'Bugüne göre, yeni yapı + Courier Memory' }), h('th', { text: 'Ajansız ek maliyet', title: 'Ajansız geçişin bugüne göre ek maliyeti' }), h('th', { text: 'LLM' }), h('th', { text: 'Hafıza + Brifing net', title: 'Uyumlu atamaya göre' }))),
           h(
             'tbody',
             null,

@@ -1,15 +1,39 @@
 # Courier Memory: ajanlar ve inceleyenler için kılavuz
 
-> **In one paragraph (English summary).** Courier Memory turns the unwritten address knowledge of last-mile couriers into a shared branch memory and gives it to a courier who does not know the area, at the right moment. It is built spec-first with **Kiro** (11 specs, steering, skills, hooks, a project MCP server) and ships a **Strands** agent to **Amazon Bedrock AgentCore Runtime** with nine `@tool` functions, per-courier identity scoping enforced in code, **AgentCore Memory**, and OpenTelemetry traces to CloudWatch. The evidence table below points to the exact files.
+> **In one paragraph (English summary).** Courier Memory turns the unwritten address knowledge of last-mile couriers into a shared branch memory and gives it to a courier who does not know the area, at the right moment. It is built spec-first with **Kiro** (17 specs, steering, skills, hooks, two MCP servers). Twelve agents run on AWS: seven domain agents (orchestrator, assignment, memory, briefing, harvest, review, region) inside the web app on **Amazon ECS Fargate**, and five agents on **Amazon Bedrock AgentCore Runtime** (a Supervisor and four specialists that call the same domain agents as tools), with identity scoping enforced in code, **AgentCore Memory**, a visible agent-to-agent trace, and **AgentCore Gateway** for **Amazon Quick** and Kiro over MCP. State lives in **Amazon DynamoDB**, history in **Amazon Athena**, voice runs on **Amazon Transcribe** and **Amazon Polly**, and every push to `main` deploys through GitHub Actions with OIDC. The evidence tables below point to the exact files.
+
+## Canlı sistem
+
+`https://d21h79c269fwie.cloudfront.net` (us-east-1, etkinlik hesabı; etkinlik süresince açık)
+
+| Adres | Ne |
+|---|---|
+| `/flow/?sunum=1` | Sunum ekranı: **Günü planla** (7 alan ajanı, 8 adım) ve **AgentCore zinciri** (Supervisor → uzman → araç, 6 adım) |
+| `/flow/` | Aynı zinciri izleyen ekran (QR buraya açılır) |
+| `/story/` · `/demo/` · `/legacy` · `/docs` | Hikaye (8 sahne) · QR demo izi · ayrıntı ekranları · API |
 
 ## Nereden başlanır
 
 | Soru | Yer |
 |---|---|
 | Ürün ne, kime, neden | `.kiro/steering/product.md` |
+| Mimari (ajanlar ve AWS) | `docs/mimari/mimari-akis.gif`, `docs/mimari/aws-altyapi.gif` |
 | Hangi özellik nasıl tanımlandı ve yapıldı | `.kiro/specs/<özellik>/` (`requirements.md`, `design.md`, `tasks.md`) |
-| AgentCore'da ne çalışıyor | `deploy/agentcore/` + `.kiro/specs/agentcore-runtime/` |
-| Parçalar arası sözleşme (API, veri biçimleri) | `docs/sozlesmeler.md` |
+| AgentCore'da ne çalışıyor | `deploy/agentcore/` + `.kiro/specs/agentcore-runtime/`, `agentcore-zinciri/` |
+| AWS'ye nasıl dağıtılıyor | `deploy/web/`, `deploy/quick/`, `deploy/athena/`, `deploy/dynamodb/`, `.github/workflows/ci-cd.yml` + `.kiro/specs/aws-dagitim/` |
+| Parçalar arası sözleşme (API, veri biçimleri, canlı zincir olayları) | `docs/sozlesmeler.md` |
+
+## Mimari: 12 ajan
+
+```
+Web uygulaması (ECS Fargate)              Amazon Bedrock AgentCore Runtime
+ Orkestratör → Atama → hafızalı rota       Supervisor ── ask_planner ──► Planlama → plan_day, morning_review, region_report
+  → Acil Durum Kapısı → Brifing                       ├─ ask_courier_agent ► Kurye  → courier_briefing, stop_cards, approaching_stop
+  → Hafıza → Hasat → Değerlendirme → Bölge            ├─ ask_memory_keeper ► Hafıza → leave_note, harvest_questions, branch_memory_summary
+  (7 alan ajanı, canlı Claude)                        └─ ask_analyst ──────► Analiz → query_history (Athena SQL)
+                                            Uzmanların araçları aynı 7 alan ajanını çağırır; kimlik istekten gelir.
+            └──────────── ortak durum: DynamoDB `courier-memory` ────────────┘
+```
 
 ## Kullanılan özellikler ve kanıtı
 
@@ -17,30 +41,44 @@
 
 | Özellik | Kanıt |
 |---|---|
-| **Specs** (gereksinim → tasarım → görev) | `.kiro/specs/` altında 11 spec: `dunya-simulator`, `ajanlar`, `orkestrator`, `ekonomi`, `sabah-akisi`, `api-arayuz`, `durak-kartlari`, `oz-degerlendirme-bolge`, `gercek-gun`, `akis-arayuzu`, `agentcore-runtime`. Yeni spec'lerde kabul kriterleri EARS kalıbında; görevler gereksinim numarasına bağlı |
-| **Steering** (her oturumda okunan kurallar) | `.kiro/steering/`: `product`, `tech`, `structure`, `veri-kurallari`, `sunum-dili`, `agentcore`, `kiro-calisma-bicimi` (hepsi `inclusion: always`) |
-| **Skills** (istenince çalışan yönergeler) | `.kiro/skills/`: `deploy-courier-memory`, `verify-deployment`, `demo-prova`, `yeni-hafiza-turu` |
-| **Hooks** (kaydetmede otomasyon) | `.kiro/hooks/`: testler, veri ve KVKK denetimi, AgentCore kopyası uyarısı, sözleşme eşitleme, AgentCore şartlarını koruma |
-| **MCP** | `.kiro/settings/mcp.json` → `deploy/mcp/cm_mcp_server.py` (projenin kendi sunucusu: şube hafızası, salt okunur, 5 araç). |
+| **Specs** (gereksinim → tasarım → görev) | `.kiro/specs/` altında 17 spec: `dunya-simulator`, `ajanlar`, `orkestrator`, `ekonomi`, `sabah-akisi`, `api-arayuz`, `durak-kartlari`, `oz-degerlendirme-bolge`, `gercek-gun`, `akis-arayuzu`, `canli-akis`, `demo-izi`, `agentcore-runtime`, `agentcore-zinciri`, `athena-analiz`, `quick-koprusu`, `aws-dagitim`. Kabul kriterleri EARS kalıbında; görevler gereksinim numarasına bağlı |
+| **Steering** (her oturumda okunan kurallar) | `.kiro/steering/`: `product`, `tech`, `structure`, `veri-kurallari`, `sunum-dili`, `agentcore`, `kiro-calisma-bicimi`, `aws-agent-toolkit` |
+| **Skills** (istenince çalışan yönergeler) | `.kiro/skills/`: `deploy-courier-memory` (beş runtime, çok ajanlı sınama), `verify-deployment`, `demo-prova`, `yeni-hafiza-turu` |
+| **Hooks** (kaydetmede otomasyon) | `.kiro/hooks/`: testler, veri ve KVKK denetimi, AgentCore kopyası uyarısı, sözleşme eşitleme, AgentCore şartlarını koruma (beş runtime, politikalar, kimlik) |
+| **MCP** | `.kiro/settings/mcp.json`: `courier-memory` → `deploy/mcp/cm_mcp_server.py` (yerel, salt okunur, 5 araç) · `courier-memory-live` → `deploy/quick/kiro_mcp_proxy.py` (dağıtılmış ajanlara AgentCore Gateway üzerinden; kimlik bilgisi `.env`'den) |
 
 ### Amazon Bedrock AgentCore
 
 | Özellik | Kanıt |
 |---|---|
-| **Runtime** | `deploy/agentcore/runtime/main.py` (`BedrockAgentCoreApp`, tembel `_get_agent`, akış döndüren `@app.entrypoint`); iskele `agentcore create` ile, yerleştirme `deploy/agentcore/bootstrap.sh` |
-| **Araçlar** (Strands `@tool`) | `deploy/agentcore/runtime/cm/tools.py`: 9 araç, deterministik alan fonksiyonlarını çağırır. İki arka uç (`cm/backend.py`): tam (`agents.Services`) ve çekirdek (`cm/core.py`, yalnız veri dosyaları; alan kodu yüklenemezse otomatik düşüş) |
-| **Memory** | `deploy/agentcore/runtime/cm/memory.py`: şablonun `agentMemory` hafızası, ad alanları `actorId` ile ayrılır |
-| **Kimlik sınırı** | `deploy/agentcore/runtime/cm/scope.py`: `BeforeToolCallEvent` kancası; kurye yalnız kendi verisi, müdür araçları yalnız müdür, konuk yalnız herkese açık araçlar |
-| **Observability** | `UNIFIED_TRACES_DESTINATION_ENABLED=true` (`bootstrap.sh` yazar, `verify.sh` denetler); izlerde `cm.actor_role`, `cm.actor_id` |
-| **Gateway**, **sohbet arayüzü (ECS Fargate)** | Sonraki adımlar: spec `agentcore-runtime` gereksinim 9–10, görev 15–16 (yapılmadı) |
+| **Runtime** (5 ajan, tek kod paketi) | `deploy/agentcore/runtime/main.py`; rol `CM_AGENT_ROLE` ile `cm/roles.py`; runtime tanımları ve en az yetkili politikalar `deploy/agentcore/agentcore_config.py`; yerleştirme `bootstrap.sh` |
+| **Çok ajanlı yönlendirme** | `cm/roles.py` (`ask_*` araçları), `cm/delegate.py` (`InvokeAgentRuntime`, ARN adla bulunur, yeniden deneme yok) |
+| **Araçlar** (Strands `@tool`) | `cm/tools.py`: 10 alan aracı (deterministik alan fonksiyonları) · `cm/athena.py`: `query_history` (tek `SELECT`, en çok 200 satır) |
+| **Kimlik sınırı** | `cm/scope.py` (`BeforeToolCallEvent`): kurye yalnız kendi verisi, müdür araçları yalnız müdür; Supervisor'da kimlik kapanıştan gelir, model değiştiremez |
+| **Memory** | `cm/memory.py`: `agentMemory`, ad alanları `actorId` ile ayrılır |
+| **Observability** | `UNIFIED_TRACES_DESTINATION_ENABLED=true` + `cm/trace.py`: `cm_trace` olayları (araç çağrısı, sonuç, yönlendirme, ret) uzmandan Supervisor'a akar; sözleşme `deploy/agentcore/README.md` |
+| **Gateway** | `deploy/quick/`: AgentCore Gateway (MCP, Cognito JWT) → Lambda → Supervisor; Amazon Quick ve Kiro buradan bağlanır |
 
 ### Amazon Bedrock
 
 | Özellik | Kanıt |
 |---|---|
-| Claude, çıkarım profili kimliğiyle | `deploy/agentcore/runtime/cm/model.py` (AgentCore ajanı) · `agents/llm.py` `CM_BEDROCK_CLIENT=invoke` (yerel API) |
-| Araç kullanan beş alan ajanı + iki yeni ajan | `agents/orchestrator.py`, `assignment.py`, `memory.py`, `briefing.py`, `harvest.py`, `review.py`, `region_agent.py`; her biri canlı yol + aynı araçlarla kurallı yedek |
+| Claude (Sonnet 5), çıkarım profili kimliğiyle | `deploy/agentcore/runtime/cm/model.py` · `agents/llm.py` (`CM_BEDROCK_CLIENT=invoke`) |
+| Araç kullanan yedi alan ajanı | `agents/orchestrator.py`, `assignment.py`, `memory.py`, `briefing.py`, `harvest.py`, `review.py`, `region_agent.py`; her biri canlı yol + aynı araçlarla kurallı yedek |
+| Canlı zincir | `api/live.py` (8 adım, SSE) · `api/agentcore_chain.py` (AgentCore zinciri, 6 adım) |
 | Kayıt-oynat güvencesi | `agents/llm.py`: `mock / live / record / replay` |
+
+### Diğer AWS servisleri
+
+| Servis | Kanıt |
+|---|---|
+| CloudFront → ALB → ECS Fargate, ECR | `deploy/web/ecs_deploy.py`, `cloudfront_setup.py`, kökteki `Dockerfile`; ALB yalnız CloudFront'a açık |
+| DynamoDB (ortak durum: hafıza, akış, kullanım) | `agents/storage/` (`CM_STORAGE=dynamodb`), `deploy/dynamodb/create_table.py` |
+| S3 + Glue + Athena (geçmiş veri, salt okunur SQL) | `deploy/athena/athena_setup.py`, `deploy/agentcore/runtime/cm/athena.py` |
+| Transcribe (sesli not) · Polly (kartı okur) | `api/transcribe.py`, `api/transcribe_client.py`, `ui/story/js/listen.js` · `api/main.py` `/api/speech` |
+| Amazon Quick + Cognito + Lambda | `deploy/quick/quick_bridge_setup.py`, `bridge_lambda.py` |
+| IAM en az yetki | `deploy/agentcore/agentcore_config.py`, `deploy/web/ecs_deploy.py`, `deploy/ci/github_oidc_setup.py` |
+| CI/CD (GitHub Actions, OIDC, secret yok) | `.github/workflows/ci-cd.yml`: `main`'e push'ta değişen parça dağıtılır (web, AgentCore, Quick köprüsü) |
 
 ## Bu repoda çalışırken
 
@@ -48,8 +86,8 @@
 - **LLM karar verir, hesap araçta.** Sayı üreten her şey deterministik Python'dur (`.kiro/steering/tech.md`).
 - **Kişisel veri ve kapı şifresi kaydedilmez, söylenmez.** Hafıza kişiyi değil adresi anlatır (`.kiro/steering/veri-kurallari.md`).
 - **Önce spec.** Yeni özellik `.kiro/specs/<özellik>/` olmadan başlamaz; biten görev `tasks.md` içinde işaretlenir, yapılmamış iş işaretsiz kalır.
-- **Test:** `PYTHONUTF8=1 CM_LLM_MODE=mock pytest -q` (AWS gerekmez).
-- **AgentCore'a giden kod repoda düzenlenir**, projedeki kopya değil: `deploy/agentcore/bootstrap.sh` → `agentcore deploy` → `deploy/agentcore/verify.sh CourierMemory --deployed`.
+- **Test:** `PYTHONUTF8=1 CM_LLM_MODE=mock pytest -q` (AWS gerekmez). Pipeline test koşmaz; testler push'tan önce yerelde.
+- **Dağıtım:** `main`'e push CI ile dağıtır. Elle: AgentCore `deploy/agentcore/bootstrap.sh` → `agentcore deploy` → `verify.sh CourierMemory --deployed`; web `deploy/web/ecs_deploy.py`. Ayarlar ve kimlik bilgileri `.env` (şablon `.env.example`).
 
 <!-- BEGIN AWS Agent Toolkit rules -->
 # AWS Guidance for the new AWS experience

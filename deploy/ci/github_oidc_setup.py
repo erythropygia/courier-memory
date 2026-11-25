@@ -21,11 +21,22 @@ ROLE = "courier-memory-github-deploy"
 OIDC_HOST = "token.actions.githubusercontent.com"
 
 
-def trust_policy(account: str, repo: str) -> dict:
+def subjects(repo: str, owner_id: str | None = None, repo_id: str | None = None) -> list[str]:
+    """main dalının OIDC `sub` değerleri. Depoda "immutable subject" açıksa GitHub sahip ve depo kimliklerini ekler:
+    repo:<sahip>@<sahip_id>/<depo>@<depo_id>:ref:refs/heads/main (gh api repos/<repo>/actions/oidc/customization/sub)."""
+    subs = [f"repo:{repo}:ref:refs/heads/main"]
+    if owner_id and repo_id:
+        owner, name = repo.split("/", 1)
+        subs.append(f"repo:{owner}@{owner_id}/{name}@{repo_id}:ref:refs/heads/main")
+    return subs
+
+
+def trust_policy(account: str, repo: str, owner_id: str | None = None, repo_id: str | None = None) -> dict:
     return {"Version": "2012-10-17", "Statement": [{
         "Effect": "Allow", "Action": "sts:AssumeRoleWithWebIdentity",
         "Principal": {"Federated": f"arn:aws:iam::{account}:oidc-provider/{OIDC_HOST}"},
-        "Condition": {"StringEquals": {f"{OIDC_HOST}:aud": "sts.amazonaws.com", f"{OIDC_HOST}:sub": f"repo:{repo}:ref:refs/heads/main"}}}]}
+        "Condition": {"StringEquals": {f"{OIDC_HOST}:aud": "sts.amazonaws.com",
+                                       f"{OIDC_HOST}:sub": subjects(repo, owner_id, repo_id)}}}]}
 
 
 def deploy_policy(account: str, region: str) -> dict:
@@ -64,8 +75,8 @@ def ensure_oidc(iam, account: str) -> str:
     return arn
 
 
-def ensure_role(iam, account: str, region: str, repo: str) -> str:
-    trust = json.dumps(trust_policy(account, repo))
+def ensure_role(iam, account: str, region: str, repo: str, owner_id: str | None = None, repo_id: str | None = None) -> str:
+    trust = json.dumps(trust_policy(account, repo, owner_id, repo_id))
     try:
         arn = iam.get_role(RoleName=ROLE)["Role"]["Arn"]
         iam.update_assume_role_policy(RoleName=ROLE, PolicyDocument=trust)
@@ -82,12 +93,15 @@ def main(argv=None) -> int:
 
     ap = argparse.ArgumentParser(description="GitHub OIDC deploy role")
     ap.add_argument("--repo", default="erythropygia/courier-memory")
+    ap.add_argument("--owner-id", default="65573335", help="immutable subject için sahip kimliği")
+    ap.add_argument("--repo-id", default="1471419900", help="immutable subject için depo kimliği")
     args = ap.parse_args(argv)
     s = boto3.Session()
     region, account = s.region_name or "us-east-1", s.client("sts").get_caller_identity()["Account"]
     iam = s.client("iam")
     ensure_oidc(iam, account)
-    print(f"Hazır. Workflow'daki AWS_ROLE_ARN: {ensure_role(iam, account, region, args.repo)}")
+    arn = ensure_role(iam, account, region, args.repo, args.owner_id, args.repo_id)
+    print(f"Hazır. Workflow'daki AWS_ROLE_ARN: {arn}\n  izinli sub: {subjects(args.repo, args.owner_id, args.repo_id)}")
     return 0
 
 

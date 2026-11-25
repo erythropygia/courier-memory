@@ -23,6 +23,7 @@ Kod değiştirme; yalnız denetle ve raporla. Bir kontrol başarısızsa nedenin
    agentcore traces runtime get <trace-id>      # indirilen JSON'da araç adını ve süresini bul
    ```
 4. Kimlik sınırı: `deploy-courier-memory` skill'inin 7. adımındaki üç çağrı.
+5. Çok ajanlı yapı: `agentcore status` beş runtime'ı (`agent`, `planner`, `courier`, `memory_keeper`, `analyst`) dağıtılmış göstermeli; `deploy-courier-memory` skill'inin 8. adımındaki çağrılarda araç adları doğru uzmanı göstermeli (`ask_planner`, `ask_courier_agent`, `ask_analyst`), O02'nin plan isteği uzman çağrılmadan reddedilmeli.
 
 ## Rapor biçimi
 
@@ -32,5 +33,6 @@ Kod değiştirme; yalnız denetle ve raporla. Bir kontrol başarısızsa nedenin
 | Observability | ✓ / ✗ | `envVars` girdisi + log grubu adı + iz kimliği |
 | Tool | ✓ / ✗ | Akışta çağrılan araç adı ve döndürdüğü verinin bir satırı |
 | Kayıt | ✓ / ✗ | Spec klasörü ve işaretli görevler |
+| Çok ajanlı | ✓ / ✗ | Beş runtime ARN'i + her uzmana giden bir çağrının araç adı |
 
-Ardından sonraki adımların durumunu tek satırla ekle: hafıza (AgentCore Memory), kimlik sınırı, Gateway, sohbet arayüzü.
+Ardından sonraki adımların durumunu tek satırla ekle: hafıza (AgentCore Memory), kimlik sınırı, Athena (`athena-analiz`), Quick köprüsü (`quick-koprusu`), web ve CI/CD ile kalıcı depo (`aws-dagitim`).

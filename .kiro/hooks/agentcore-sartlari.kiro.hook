@@ -8,11 +8,15 @@
     "patterns": [
       "**/agentcore/agentcore.json",
       "**/app/agent/main.py",
-      "**/deploy/agentcore/runtime/main.py"
+      "**/deploy/agentcore/runtime/main.py",
+      "**/deploy/agentcore/agentcore_config.py",
+      "**/deploy/agentcore/runtime/cm/roles.py",
+      "**/deploy/agentcore/runtime/cm/delegate.py",
+      "**/deploy/agentcore/runtime/cm/scope.py"
     ]
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Şunları denetle ve yalnız bozulanı bildir: (1) agentcore/agentcore.json içinde çalışma ortamının envVars listesinde UNIFIED_TRACES_DESTINATION_ENABLED 'true'; (2) agentMemory tanımı duruyor; (3) main.py 'from bedrock_agentcore.runtime import BedrockAgentCoreApp' kullanıyor, ajan _get_agent içinde tembel kuruluyor, işleyici @app.entrypoint ile asenkron üreteç, app.run() yalnız __main__ altında; (4) model kimliği çıkarım profili önekli. Proje kuruluysa deploy/agentcore/verify.sh CourierMemory çıktısını da ekle. Hepsi yerindeyse tek satırla 'şartlar yerinde' de."
+    "prompt": "Şunları denetle ve yalnız bozulanı bildir: (1) agentcore/agentcore.json içinde her runtime'ın envVars listesinde UNIFIED_TRACES_DESTINATION_ENABLED 'true'; (2) agentMemory tanımı duruyor; (3) çok ajanlı yapıda beş runtime var (agent, planner, courier, memory_keeper, analyst), her birinin CM_AGENT_ROLE'u adıyla aynı (agent için supervisor), Supervisor'da CM_RUNTIME_PREFIX ve supervisor-policy.json, analyst'te CM_ATHENA_* ve analyst-policy.json var, başka runtime'a politika eklenmemiş; (4) main.py 'from bedrock_agentcore.runtime import BedrockAgentCoreApp' kullanıyor, ajan _get_agent içinde tembel kuruluyor ve araçları cm.roles.tools_for ile alıyor, işleyici @app.entrypoint ile asenkron üreteç, app.run() yalnız __main__ altında; (5) Supervisor'ın ask_* araçlarında kimlik (actorId) parametre değil, kapanıştan geliyor; (6) model kimliği çıkarım profili önekli. Proje kuruluysa deploy/agentcore/verify.sh CourierMemory çıktısını da ekle. Hepsi yerindeyse tek satırla 'şartlar yerinde' de."
   }
 }

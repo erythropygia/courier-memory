@@ -13,6 +13,6 @@
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Bu dosya AgentCore projesine kopyalanan kodun parçası. AgentCore projesinin (varsayılan ../CourierMemory, CM_WORKSPACE ile değişir) app/agent/ klasöründe karşılığı var mı ve içeriği farklı mı bak (diff). Farklıysa kullanıcıya tek cümleyle söyle: 'AgentCore kopyası eski; deploy/agentcore/bootstrap.sh ve ardından agentcore deploy gerekir.' Proje henüz kurulmamışsa hiçbir şey söyleme. Betiği ya da dağıtımı kendin çalıştırma."
+    "prompt": "Bu dosya AgentCore projesine kopyalanan kodun parçası. AgentCore projesinin (varsayılan ../CourierMemory, CM_WORKSPACE ile değişir) app/agent/ klasöründe karşılığı var mı ve içeriği farklı mı bak (diff). Farklıysa kullanıcıya tek cümleyle söyle: 'AgentCore kopyası eski; main'e push'ta CI yeniden dağıtır, elle dağıtmak için deploy/agentcore/bootstrap.sh ve ardından agentcore deploy (beş runtime birlikte güncellenir).' Proje henüz kurulmamışsa hiçbir şey söyleme. Betiği ya da dağıtımı kendin çalıştırma."
   }
 }

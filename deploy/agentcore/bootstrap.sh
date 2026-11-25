@@ -70,7 +70,8 @@ pyproject, agentcore, toolset = sys.argv[1], sys.argv[2], sys.argv[3]
 # Çekirdek takım yalnız standart kütüphane kullanır; alan kodu numpy, scipy, pydantic ve pyyaml ister.
 NEED = {"numpy": "numpy>=2.0", "scipy": "scipy>=1.13", "pydantic": "pydantic>=2.6", "pyyaml": "pyyaml>=6.0"} if toolset == "full" else {}
 s = open(pyproject, encoding="utf-8").read()
-m = re.search(r"(?ms)^dependencies\s*=\s*\[(.*?)\]", s)
+# The list closes at a "]" on its own line; a non-greedy "\]" would stop inside extras like pkg[extra].
+m = re.search(r"(?ms)^dependencies\s*=\s*\[(.*?)^\]", s)
 if not m:
     sys.exit("pyproject.toml içinde [project].dependencies bulunamadı")
 have = {re.split(r"[<>=!~\[ ]", d.strip().strip('"\','))[0].lower() for d in m.group(1).split("\n") if d.strip().strip(",").strip()}

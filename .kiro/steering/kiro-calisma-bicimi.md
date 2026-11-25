@@ -11,7 +11,7 @@ Bu repo Kiro'nun spec odaklı akışıyla geliştirilir. Kod yazmadan önce niye
 - Yeni spec'lerde kabul kriterleri EARS kalıbındadır: **WHEN** <koşul> **THE SYSTEM SHALL** <davranış>; istenmeyen durum için **IF** <durum> **THEN THE SYSTEM SHALL** <davranış>.
 - Görev bitince `tasks.md` içinde `[x]` yapılır. Yapılmamış iş `[ ]` kalır; "sonra yaparız" diye işaretlenmez.
 - Kod değişikliği olmayan işler (dağıtılmış ajanı sınamak, log okumak) spec gerektirmez; komutu çalıştır ya da Kiro'ya sor.
-- Mevcut spec'ler: `dunya-simulator`, `ajanlar`, `orkestrator`, `ekonomi`, `sabah-akisi`, `api-arayuz`, `durak-kartlari`, `oz-degerlendirme-bolge`, `gercek-gun`, `akis-arayuzu`, `agentcore-runtime`.
+- Mevcut spec'ler: `dunya-simulator`, `ajanlar`, `orkestrator`, `ekonomi`, `sabah-akisi`, `api-arayuz`, `durak-kartlari`, `oz-degerlendirme-bolge`, `gercek-gun`, `akis-arayuzu`, `agentcore-runtime`, `athena-analiz`, `quick-koprusu`, `aws-dagitim`.
 
 ## Steering, skill, hook, MCP
 

@@ -55,12 +55,23 @@ ui/story/                 Hikaye arayüzü (demo + sunumun tamamı, 8 sahne; spe
   vendor/ tiles/ fonts/   MapLibre, yerel vektör karolar, yazı tipleri (internetsiz)
 ui/flow/                  "Nasıl çalışır" arayüzü (/flow/): bir günün akışı 8 adımda, ajan izi ve API çağrıları (spec: akis-arayuzu)
 ui/direction/             Tasarım yönü demosu (tek dosya)
-deploy/agentcore/         Amazon Bedrock AgentCore Runtime (spec: agentcore-runtime)
+deploy/agentcore/         Amazon Bedrock AgentCore Runtime: Supervisor + dört uzman, beş runtime tek kod (spec: agentcore-runtime)
   runtime/main.py         Giriş noktası: BedrockAgentCoreApp, tembel _get_agent, akış döndüren @app.entrypoint
-  runtime/cm/             Strands araçları (tools.py), kimlik sınırı kancası (scope.py), istem, AgentCore Memory, model
+  runtime/cm/             Strands araçları (tools.py), kimlik sınırı kancası (scope.py), istem (prompt.py), AgentCore Memory, model
+    roles.py              CM_AGENT_ROLE → runtime'ın araçları; Supervisor'ın ask_* araçları (kimlik kapanışta)
+    delegate.py           Supervisor → uzman: InvokeAgentRuntime, ARN'yi adla bulma, uzman oturumu, akış ayrıştırma
+    athena.py             Analiz Ajanı'nın query_history aracı: tek SELECT, 200 satır, 60 sn (spec: athena-analiz)
+  agentcore_config.py     agentcore.json dönüşümü: beş runtime, envVars, supervisor-policy.json, analyst-policy.json
   bootstrap.sh verify.sh  `agentcore create` iskelesine kodu yerleştirir · yerel ön kontrol + dağıtımın üç kontrolü
-  tests/                  Betikli sahte modelle uçtan uca testler (Bedrock'a gitmez)
+  tests/                  Betikli sahte model ve sahte AWS istemcisiyle testler (Bedrock'a ve AWS'ye gitmez)
+deploy/athena/            Athena kurulumu: athena_setup.py (S3, çalışma grubu, courier_memory veritabanı, dört tablo) + tests/ (spec: athena-analiz)
+deploy/quick/             Amazon Quick köprüsü: bridge_lambda.py (Gateway hedefi → Supervisor), quick_bridge_setup.py, README.md, tests/ (spec: quick-koprusu)
+deploy/web/               Web container'ı ECS Fargate + ALB'ye: ecs_deploy.py, README.md (spec: aws-dagitim; yapım aşamasında)
+deploy/ci/                github_oidc_setup.py: GitHub Actions için anahtarsız (OIDC) dağıtım rolü (spec: aws-dagitim)
 deploy/mcp/               Projenin MCP sunucusu (şube hafızası, salt okunur); Kiro .kiro/settings/mcp.json ile yükler
+.github/workflows/ci-cd.yml  Her push ve PR'da test; main'de değişen parçaya göre web, AgentCore ve Quick köprüsü dağıtımı
+Dockerfile .dockerignore  FastAPI + arayüzler tek container (python:3.12-slim, kök olmayan kullanıcı, varsayılan mock)
+.env.example              Bütün ortam değişkenleri açıklamalı; gizli değer yok (.env git'e ve image'a girmez)
 .kiro/                    steering/ (her oturumda), specs/ (özellik başına gereksinim · tasarım · görev), skills/ (istenince çalışan
                           yönergeler), hooks/ (kaydetmede/araçta çalışan otomasyon), settings/mcp.json
 data/real_day/ data/map/  Gerçek 5 Mayıs günü ve yol bacakları (docs/veri-haritasi.md)
@@ -85,7 +96,8 @@ runs/                     Simülasyon çıktıları: yayımlanan iki çalıştı
   - Senaryolar: `leave_wave` (izin dalgası), `turnover` (ayrılan kıdemli + yeni kurye), `borrowed_courier` (ödünç kurye), `volume_shock` (hacim şoku), `hiring` (işe alım), `long_term` (uzun dönem), `normal`
   - Arayüz: `ui/story/` (hikaye arayüzü, `/story/`), `ui/flow/` (nasıl çalışır, `/flow/`), `ui/legacy/` (eski tek sayfa, `/legacy`), `scene` (sahne), `fallback` (kayıtlı yanıt)
   - `card` (durak kartı), `moment` (`approaching` / `at_door`), `approach` (yaklaşma tetiği), `feed` (ajan akışı), `review` (Değerlendirme Ajanı), `region` (Bölge Ajanı), `real_day` (gerçek gün)
-  - AgentCore: `actorId` (istek kimliği: kurye, müdür ya da konuk), `scope` (kimlik sınırı), `runtime` (AgentCore çalışma ortamı)
+  - AgentCore: `actorId` (istek kimliği: kurye, müdür ya da konuk), `scope` (kimlik sınırı), `runtime` (AgentCore çalışma ortamı), `agent_role` (runtime'ın rolü), `supervisor` (yönlendiren ajan), `specialist` (uzman ajan: `planner`, `courier`, `memory_keeper`, `analyst`), `delegate` (uzmana yönlendirme), `harvest_questions` (hafıza hasadı aracı)
+  - Analiz ve dağıtım: `query_history` (salt okunur SQL aracı), `workgroup` (Athena çalışma grubu), `bridge` (Quick köprüsü), `storage` (çalışma durumunun deposu: `file` / `dynamodb`)
 - **Takma bölge adları:** "B01", "B02"… Gerçek bölge kodları kullanılmaz.
 
 ## Gizli gerçek ile gözlemlenebilir veri ayrımı

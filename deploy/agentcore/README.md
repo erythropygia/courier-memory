@@ -100,4 +100,6 @@ PYTHONUTF8=1 pytest -q deploy/agentcore/tests
 
 ## Durum
 
-Kod ve betikler yerelde, gerçek `strands-agents` ve `bedrock-agentcore` paketleriyle ve sahte bir iskele üzerinde sınandı. `agentcore deploy` ve canlı Bedrock çağrısı henüz yapılmadı.
+Kod ve betikler yerelde, gerçek `strands-agents` ve `bedrock-agentcore` paketleriyle ve sahte bir iskele üzerinde sınanır.
+Dağıtım `us-east-1`'de yapıldı: beş runtime ve `agentMemory` çalışıyor, `verify.sh CourierMemory --deployed` üç kontrolü geçiyor,
+Supervisor üzerinden planner, courier ve analyst canlı yanıt veriyor. `main`'e push'ta CI (`.github/workflows/ci-cd.yml`) yeniden dağıtır.

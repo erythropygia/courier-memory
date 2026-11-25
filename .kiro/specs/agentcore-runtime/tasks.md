@@ -1,6 +1,6 @@
 # Uygulama planı: AgentCore Runtime'da Courier Memory ajanı
 
-1–8b repoda yapıldı ve Bedrock'a gitmeden sınandı. 9–14 dağıtım hesabında yapılır.
+1–8j repoda yapıldı ve Bedrock'a gitmeden sınandı. 9–14 dağıtım hesabında yapılır.
 
 - [x] 1. Yük ayrıştırma ve alan servislerinin tembel kurulumu (`cm/payload.py`, `cm/backend.py`, `role_of`)
   - _Gereksinimler: 4.2, 4.4, 5.1_
@@ -16,25 +16,45 @@
   - _Gereksinimler: 2.3, 4.1–4.6_
 - [x] 7. Testler: betikli sahte modelle uçtan uca (`deploy/agentcore/tests/test_runtime.py`)
   - _Gereksinimler: 8.4_
-- [x] 8. `bootstrap.sh` ve `verify.sh`; sahte iskele üzerinde denendi (kopya kendi başına çalışıyor, tekrar çalıştırma güvenli)
-  - _Gereksinimler: 1.4, 2.1, 8.1–8.3_
+- [x] 8. `bootstrap.sh` ve `verify.sh`; sahte iskele üzerinde denendi (kopya kendi başına çalışıyor, tekrar çalıştırma güvenli); varsayılan çalışma alanı reponun üst klasörü (`CM_WORKSPACE` ile değişir)
+  - _Gereksinimler: 1.1, 1.3, 2.1, 8.1–8.3_
 - [x] 8a. Çekirdek araç takımı (`cm/core.py`) ve arka uç seçimi (`cm/backend.py`: `CM_TOOLSET`, `auto` düşüşü); testler iki takım için parametreli (21 test)
   - _Gereksinimler: 11.1–11.7_
 - [x] 8b. Projenin MCP sunucusu (`deploy/mcp/cm_mcp_server.py`), ve çalışma alanı ayarı (`.kiro/settings/mcp.json`)
   - _Gereksinimler: 12.1–12.3_
-- [ ] 9. İskele ve yerleştirme: `deploy/agentcore/bootstrap.sh` (içinde `agentcore create --name CourierMemory --template agent-python-strands`); `.cm/main.template.py` ile `main.py` karşılaştırılır, şablonun hafıza ya da yük kablolaması farklıysa uyarlanır; `verify.sh` yeşil
-  - _Gereksinimler: 1.1, 8.1_
-- [ ] 10. Model kimliği: güncel Claude Sonnet kimliğini keşfet, `app/agent/model/load.py` içinde çıkarım profili önekiyle doğrula
-  - _Gereksinimler: 7.1_
+- [x] 8c. Hafıza hasadı aracı `harvest_questions` (tam takımda Hasat Ajanı, en çok 15 soru; çekirdekte açıklayıcı hata); `MANAGER_TOOLS`'a eklendi, tek runtime on araç
+  - _Gereksinimler: 3.1, 5.2, 11.1, 11.3, 16.1–16.5_
+- [x] 8d. Ajan rolleri (`cm/roles.py`: `CM_AGENT_ROLE`, `SPECIALIST_TOOLS`, `tools_for`); rol başına istem (`cm/prompt.py` → `AGENT_SECTIONS`); iz özniteliği `cm.agent_role`
+  - _Gereksinimler: 2.3, 13.1, 13.2, 13.8_
+- [x] 8e. Supervisor'ın dört yönlendirme aracı (kimlik ve oturum kapanışta) ve uzman çağrısı (`cm/delegate.py`: ARN'yi önek + rol adıyla bulma, uzman oturumu, akış ayrıştırma, yeniden denemesiz hata)
+  - _Gereksinimler: 13.3–13.7, 14.1, 14.2_
+- [x] 8f. Supervisor'da erken ret (`cm/scope.py`: `ask_planner`, `ask_analyst` yalnız müdür; `ask_courier_agent` kimlik ister); uzmanlarda kimlik sınırı aynı kancayla
+  - _Gereksinimler: 5.2, 5.3, 14.3–14.5_
+- [x] 8g. `agentcore_config.py`: beş runtime aynı kodla, `CM_RUNTIME_PREFIX`, analiste Athena ortamı, `supervisor-policy.json` ve `analyst-policy.json`, `CM_MULTI_AGENT=0` ile tek runtime'a dönüş; `bootstrap.sh` çağırır; `test_agentcore_config.py` (6 test)
+  - _Gereksinimler: 7.5, 8.1, 8.2, 13.1, 13.9, 15.1–15.4_
+- [x] 8h. Testler: `test_multi_agent.py` (17 test: rol bölüşümü, kimlik taklidi, erken ret, uzman hatası, ARN seçimi); `test_athena.py` içinde analist runtime'ı ve `harvest_questions`
+  - _Gereksinimler: 8.4, 13.2–13.7, 14.1–14.5, 16.1–16.3_
+- [x] 8i. Runtime modeli: izinli çıkarım profili `global.anthropic.claude-sonnet-5` seçildi (`.env.example` → `CM_AGENT_MODEL_ID`); test ve demo Opus ile yapılmaz
+  - _Gereksinimler: 7.1, 7.4_
+- [x] 8j. `bootstrap.sh`: `CM_AGENT_MODEL_ID` verilirse şablonun `model/load.py` dosyasındaki `model_id` bu değerle yazılır; biçim (`global.` / bölge öneki) denetlenir
+  - _Gereksinimler: 7.3, 7.6_
+- [x] 9. İskele ve yerleştirme: `deploy/agentcore/bootstrap.sh` (içinde `agentcore create --name CourierMemory --template agent-python-strands`); `agentcore/agentcore.json` beş runtime'ı ve iki politikayı gösterir; `.cm/main.template.py` ile `main.py` karşılaştırılır, şablonun hafıza ya da yük kablolaması farklıysa uyarlanır; `verify.sh` yeşil
+  - _Gereksinimler: 1.1, 8.1, 13.1_
+- [x] 10. Model kimliği: `app/agent/model/load.py` içinde `global.anthropic.claude-sonnet-5` (ya da `CM_AGENT_MODEL_ID`) doğrulanır; `aws bedrock list-foundation-models --by-provider Anthropic` ile hesapta etkin olduğu görülür
+  - _Gereksinimler: 7.1, 7.4_
 - [ ] 11. Yerel deneme: `agentcore dev --port 8081` + `agentcore invoke --runtime agent --local --port 8081` (kurye, müdür, konuk)
   - _Gereksinimler: 3.5, 5.1–5.4_
-- [ ] 12. Dağıtım: `agentcore deploy`; `agentcore status` çalışma ortamını ve `agentMemory`'yi dağıtılmış gösterir
-  - _Gereksinimler: 1.2, 6.1_
-- [ ] 13. Dağıtımın üç kontrolü: `deploy/agentcore/verify.sh CourierMemory --deployed` (durum · araç çağrısı · log grubu ve izler)
+- [x] 12. Dağıtım: `agentcore deploy`; `agentcore status` beş runtime'ı ve `agentMemory`'yi dağıtılmış gösterir; runtime adları `CourierMemory_default_<rol>`
+  - _Gereksinimler: 1.2, 6.1, 13.4_
+- [ ] 12a. CI'dan dağıtım: `main`'e push'ta `deploy-agentcore` işi geçici çalışma alanında `bootstrap.sh` + `verify.sh` + `agentcore deploy` çalıştırır (`aws-dagitim` Gereksinim 5.5)
+  - _Gereksinimler: 1.2, 7.6, 8.1_
+- [x] 13. Dağıtımın üç kontrolü: `deploy/agentcore/verify.sh CourierMemory --deployed` (durum · araç çağrısı · log grubu ve izler)
   - _Gereksinimler: 1.2, 2.1, 2.2, 3.5_
 - [ ] 14. Kimlik ve hafıza sınaması dağıtılmış ajanda: O02 kendi brifingi · O02'nin K07 isteği reddedilir, oturum sürer · iki oturumlu hatırlama (`agentcore memory record list`)
   - _Gereksinimler: 5.1–5.4, 6.2, 6.4_
+- [ ] 14a. Çok ajanlı sınama dağıtılmış ajanda: MUDUR-01 planı Supervisor → `planner` · O02 brifingi Supervisor → `courier` · O02'nin `ask_planner` isteği uzman çağrılmadan reddedilir · uzman doğrudan (`agentcore invoke --runtime planner`) · `agentcore traces runtime list` uzman izlerini `cm.agent_role` ile gösterir
+  - _Gereksinimler: 2.3, 13.3, 13.4, 14.2, 14.4_
 - [ ] 15. (Sonraki adım) Kalıcı adres hafızası: DynamoDB + Lambda, MCP Gateway hedefi; araçlar Gateway üzerinden, kimlik sınırı korunur
   - _Gereksinimler: 9.1–9.3_
-- [ ] 16. (Sonraki adım) Sohbet arayüzü: Amazon ECS Fargate üzerinde; kimlik seçici
+- [ ] 16. (Sonraki adım) Sohbet arayüzü: Amazon ECS Fargate üzerinde; kimlik seçici (müdür sohbeti bugün Amazon Quick köprüsüyle: `quick-koprusu`)
   - _Gereksinimler: 10.1, 10.2_

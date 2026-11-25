@@ -1,0 +1,28 @@
+# Uygulama planı: Orkestratör
+
+- [x] 1. `agents/trace.py`: `Trace` (emit, since, dinleyici); `test_trace_listener_streams_in_order`
+  - _Gereksinimler: 2.3, 2.5_
+- [x] 2. `agents/route.py`: `RouteConstraint`, `ConstraintSource`, `NoConstraints`, `EtaModel`, `RoutePlanner`; `test_route_constraint_hook`
+  - _Gereksinimler: 1.5, 1.6_
+- [x] 3. `agents/orchestrator.py` → `DayTools`: `read_volume`, `capacity_gap`, `neighbor_candidates`, `core_assignment` (dağıtım dahil), `compute_route`, `evaluate_plan`; `test_tool_contracts`
+  - _Gereksinimler: 1.1–1.7_
+- [x] 4. `llm.py` `run_agent(on_text=)`; `Orchestrator.plan` canlı + kurallı yedek; `prompts/orchestrator.md`; `test_plan_flow_on_busy_day`, `test_quiet_day_borrows_nobody`, `test_mock_trace_is_deterministic`, `test_live_path_produces_same_trace_format`, `test_replay_without_cassette_falls_back_with_trace`
+  - _Gereksinimler: 2.1–2.7_
+- [x] 5. `Orchestrator.ask` (iki seçenek, çok isim, "yerine"); `test_whatif_gives_meaningful_difference`
+  - _Gereksinimler: 3.1–3.4_
+- [x] 6. `apply_decision`, `Session`, `SessionStore`; `Services.orchestrator/sessions`; `test_human_approval`
+  - _Gereksinimler: 4.1–4.3_
+- [x] 7. API: `/api/orchestrator/start|plan|session/{id}|session/{id}/stream|session/{id}/decision|session/{id}/ask`, `/api/plan/{day}`; `api/tests/test_orchestrator_api.py`
+  - _Gereksinimler: 5.1–5.4_
+- [x] 8. `agents/record.py`: orkestratör planı + öneriyle gelen iki senaryo sorusu kaydedilir
+  - _Gereksinimler: 2.4_
+- [x] 9. Faz 2: `route.py` `MemoryConstraints` + hafızalı `RoutePlanner.apply` (planda erteleme ≥ 2 kaynak, servis düzeltmesi, pencere onarımı); `compute_route` çıktısına `comparison` ve `same_as_sim`; `cm_sim.routing_memory` ile tek fonksiyon (entegrasyon noktası)
+  - _Gereksinimler: 1.5, 1.8_
+- [x] 10. `neighbor_candidates`: sınır sokak tanıklığıyla eşitsiz adaylar (gün 32); `GET /api/orchestrator/candidates/{day}`; orkestratör planı = simülatör planı testi
+  - _Gereksinimler: 1.3, 1.8_
+- [x] 11. `cost.py` token tahminine `orchestrator` ve `ask_orchestrator` çağrıları; `agents/tests/test_orchestrator.py` + `agents/tests/test_phase2.py` yeşil
+  - _Gereksinimler: 1.5_
+- [x] 12. Faz 2b: `delivery_time_analysis` ve `apply_time_constraint` araçları (`core_assignment`'dan sonra, `compute_route`'dan önce); mock kurallı yedek aynı sırayla; `RoutePlanner(time="auto")` zaman onarımı (408/408 rota simülatörle aynı); 1 tabanlı sıra numaraları; `proposal.time_constraints`; `prompts/orchestrator.md`
+  - _Gereksinimler: 1.9, 1.10_
+- [x] 13. Faz 2c: `time_alternatives` aracı (`apply_time_constraint`'dan sonra, `compute_route`'dan önce); mock kurallı yedek aynı sırayla; kısıt kuralı iz'de "karar" cümlesi; `proposal.time_alternatives`, riskler; `prompts/orchestrator.md`; `agents/tests/test_phase2_c.py`
+  - _Gereksinimler: 1.11, 1.12_

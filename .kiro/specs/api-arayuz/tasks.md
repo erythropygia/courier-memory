@@ -1,0 +1,22 @@
+# Uygulama planı: API ve arayüz
+
+- [x] 1. `api/main.py`: statik veri uç noktaları (`status` [ajan başına modeller dahil], `meta`, `summary` [uzun dönem + kalibrasyon, hedefsiz], `blocks`, `couriers`, `day`); kilitli `sv()`
+- [x] 2. Ajan uç noktaları (atama öner/sor/onayla, brifing, not, hafıza, geri bildirim, sıfırla), `economics` (senaryo + varsayım parametreleri, sınırlar), `speech`; `api/tests/*` yeşil
+- [x] 3. `ui/common.js` + `ui/index.html` + `ui/style.css`: iskelet, dört sekme, gün seçici, mod rozeti, veri etiketi
+- [x] 4. `ui/map.js` (SVG blok altlığı, rotalar, duraklar, yakınlaştırma) ve `ui/chart.js` (çizgi, çubuk, nokta, tablo görünümü)
+- [x] 5. Şube ekranı (öneri, kendi bölgesinde payı, gerekçe, sohbet, onay, "Ajan ne yaptı?")
+- [x] 6. Kurye ekranı (brifing + ses, rota oynatma, kapı kartı + `records` geri bildirimi, not bırakma)
+- [x] 7. Simülasyon ekranı (demo/uzun dönem geçişi, KPI, net mesaj kartı, hafıza birikiyor, nedenler, öğrenme eğrisi, sağlamlık, kalibrasyon)
+- [x] 8. Değer ekranı (manşet, operasyon şelalesi, üç durum tablosu, LLM senaryo kartları, maliyet kırılımı/getiri, varsayımlar, ölçek)
+- [x] 9. 1600×1000 kaydırmasız kontrol (`docs/ekran_goruntuleri/` ile karşılaştır); dil denetimi; `pytest` yeşil
+- [x] 10. Orkestratör uç noktaları (`start`, `plan`, `session/{id}`, `session/{id}/stream` SSE, `session/{id}/decision`, `session/{id}/ask`, `plan/{day}`): spec `orchestrator` Gereksinim 5; `api/tests/test_orchestrator_api.py`
+- [x] 11. Faz 2 uç noktaları (yalnız API; arayüz Faz 3'e): `GET /api/route/{day}/{courier}`, `GET /api/orchestrator/candidates/{day}`, `POST /api/harvest/plan`, `GET /api/harvest/{day}`, `POST /api/harvest/answer`, `POST /api/harvest/simulate-answer`, `GET /api/learning`; `/api/summary` yeni alanları; `api/tests/test_phase2_api.py`
+- [x] 12. Faz 2b uç noktaları: `GET /api/time/example`, `GET /api/time/{day}`, `GET /api/time/{day}/address/{address}`; `/api/route` yeni alanlar, `/api/harvest/answer` zaman dalı, `/api/memory/reset` zaman sıfırlama, `/api/summary` → `time`; `api/tests/test_phase2_b_api.py` (3 hızlı)
+- [x] 13. Faz 2c: `GET /api/time/{day}/alternatives`; `/api/time/example` yeni `example.route`, `constraint`, `example_constraint`; `/api/route` `time_unshiftable[]`, `comparison.route_constraint`, `diff.time_unshiftable`; `api/tests/test_phase2_c_api.py` (3 hızlı)
+- [x] 14. Faz 3a: tasarım yönü demosu (`ui-yon/index.html`): harita stili, tipografi, renk, rakam bloğu
+- [x] 15. Faz 3b: `ui-story/` altyapısı (MapLibre yerel, karolar, yazı tipleri, 2D yedek), Sahne 1 (gerçek veri) ve Sahne 2 (orkestratör canlı iz); `tools/prepare.py`, `tools/record_trace.py`, `tools/download_tiles.py`; `api/main.py` `/story` bağlantısı
+- [x] 16. Faz 3c: Sahne 3–7 (`js/scene3.js` … `js/scene7.js`), `js/common.js`, `js/chart.js`; eski tek sayfanın demo etkileşimleri sahnelere taşındı (serbest soru, not + bas-konuş, hâlâ geçerli, LLM senaryoları, varsayım kaydırıcıları); `tools/record_fallback.py` → `data/fallback.json`; `/` → `/story/`, eski sayfa `/legacy`
+- [x] 17. Faz 3c (devam): eski tek sayfanın kalan içerikleri hikayeye (Sahne 6: dört yapı gün gün + başarısızlık nedenleri, kalibrasyon tablosu; Sahne 7: ölçek + model karşılaştırması, ajan başına model/önbellek seçici); hikaye verisi güncel çalıştırmayla yeniden üretildi (`scene2.json` küme kimlikleri, `trace_fallback.json`), `docs/veri-haritasi.md`
+- [x] 18. Faz 4: sunumun kalan slaytları hikayede: Sahne 1'e açılış, ilke (kendi bölgesinde payı) ve ajanlar + tek maliyet adımları; yeni Sahne 8 Kapanış (AWS + Kiro, sorumlu yapay zekâ, pilot, tek cümle); `main.js` 1–8; `docs/sunum.md` akış tablosu sahne/adım sütunu
+- [x] 19. Faz 5: açıklama satırı (`js/narration.js`, `#narration`, A tuşu); alttaki paneller `--alt` değişkeniyle satırın üstüne kayar
+  - _Gereksinimler: 7.1_

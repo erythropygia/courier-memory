@@ -14,3 +14,5 @@
   - _Gereksinimler: 4.3_
 - [ ] 7. Canlı (Bedrock) koşuyla yeniden üret: düşünceler şablon değil Claude'un kendi metni olur
   - _Gereksinimler: 2.1_
+- [x] 8. Hikaye kapanış QR'ı canlı akışa (`/flow/`) gider; QR tarayıcıda sayfanın kökünden üretilir (`.kiro/specs/canli-akis/`). `/demo/` adresi geçmiş koşu sayfası olarak kalır
+  - _Gereksinimler: 4.3_

@@ -2,8 +2,10 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Courier Memory · Nasıl çalışır</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="only light">
+<meta name="theme-color" content="#FBF8F2">
+<title>Courier Memory · Canlı akış</title>
 <link rel="icon" href="data:,">
 <style>
 @font-face { font-family: "Inter"; font-weight: 400; src: url(../story/fonts/inter-latin-400-normal.woff2) format("woff2"); }
@@ -19,25 +21,32 @@
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: #EFE8DC; color: var(--ink); font: 14px/1.45 "Inter", system-ui, sans-serif; }
-body { display: grid; grid-template-rows: auto auto 1fr; height: 100vh; overflow: hidden; }
+html, body { margin: 0; height: 100%; background: #EFE8DC; color: var(--ink); font: 14px/1.45 "Inter", system-ui, sans-serif; -webkit-text-size-adjust: 100%; }
+body { display: grid; grid-template-rows: auto auto auto 1fr; height: 100vh; height: 100dvh; overflow: hidden; }
 h1, h2, h3 { font-family: "Barlow C", "Inter", sans-serif; font-weight: 600; margin: 0; letter-spacing: .01em; }
 button { font: inherit; cursor: pointer; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); padding: 6px 12px; border-radius: 3px; }
 button.primary { background: var(--ink); color: var(--paper); }
 button:disabled { opacity: .4; cursor: default; }
 code, .mono { font-family: var(--mono); font-size: 12px; }
+[hidden] { display: none !important; }
 
 /* üst çubuk */
-header { display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: var(--paper); border-bottom: 1px solid var(--line); }
+header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 10px 20px; background: var(--paper); border-bottom: 1px solid var(--line); }
 header h1 { font-size: 22px; }
 header .sub { color: var(--faded); }
 header .sp { flex: 1; }
-.badge { font: 600 11px/1 "Inter"; text-transform: uppercase; letter-spacing: .06em; padding: 4px 7px; border-radius: 2px; background: var(--paper-2); color: var(--ink-2); }
-.badge.mock { background: #E9E2D3; }
+.badge { font: 600 11px/1 "Inter"; text-transform: uppercase; letter-spacing: .06em; padding: 5px 8px; border-radius: 2px; background: var(--paper-2); color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .badge.live { background: var(--green); color: #fff; }
+.badge.on { background: var(--red); color: #fff; }
+.badge.on::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: pulse 1.1s ease-in-out infinite; }
+.badge.done { background: var(--green); color: #fff; }
+.badge.err { background: #F8DDDB; color: var(--red); }
+@keyframes pulse { 50% { opacity: .25; } }
+#plan { font: 600 15px/1 "Inter"; padding: 10px 18px; }
+#watch { border-color: var(--red); color: var(--red); }
 
 /* mimari şerit */
-#arch { display: flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--paper-2); border-bottom: 1px solid var(--line); overflow-x: auto; white-space: nowrap; }
+#arch { display: flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--paper-2); border-bottom: 1px solid var(--line); overflow-x: auto; white-space: nowrap; scrollbar-width: thin; }
 #arch .node { padding: 6px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--paper); color: var(--faded); transition: all .25s; font-size: 13px; }
 #arch .node b { display: block; font: 600 15px/1.1 "Barlow C"; color: var(--ink-2); }
 #arch .node.on { border-color: var(--ink); color: var(--ink); box-shadow: 0 0 0 2px var(--accent); }
@@ -47,30 +56,34 @@ header .sp { flex: 1; }
 #flowline { padding: 4px 20px 6px; font-size: 12px; color: var(--ink-2); background: var(--paper-2); border-bottom: 1px solid var(--line); min-height: 24px; }
 
 /* üç sütun */
-main { display: grid; grid-template-columns: 300px 1fr 340px; min-height: 0; }
+main { display: grid; grid-template-columns: 290px 1fr 340px; min-height: 0; }
 main > section { min-height: 0; overflow-y: auto; padding: 14px 16px; }
 #steps { background: var(--paper); border-right: 1px solid var(--line); }
-#center { background: #fff; }
+#center { background: #fff; display: flex; flex-direction: column; padding-bottom: 0; }
 #side { background: var(--paper); border-left: 1px solid var(--line); }
 .coltitle { font: 600 11px/1 "Inter"; text-transform: uppercase; letter-spacing: .08em; color: var(--faded); margin: 0 0 10px; }
 
-.step { border: 1px solid var(--line); border-radius: 3px; padding: 9px 10px; margin-bottom: 8px; cursor: pointer; background: var(--paper); }
-.step:hover { border-color: var(--ink-2); }
+.step { border: 1px solid var(--line); border-radius: 3px; padding: 9px 10px; margin-bottom: 8px; background: var(--paper); }
+.step.seen { cursor: pointer; }
+.step.seen:hover { border-color: var(--ink-2); }
 .step.active { border-color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); }
 .step .hd { display: flex; gap: 8px; align-items: baseline; }
 .step .no { font: 600 18px/1 "Barlow C"; color: var(--faded); width: 18px; }
 .step.done .no { color: var(--green); }
+.step.fail .no { color: var(--red); }
 .step .t { font-weight: 600; }
 .step .who { font-size: 12px; color: var(--ink-2); margin: 3px 0 0 26px; }
 .step .code { font-size: 11px; color: var(--faded); margin: 4px 0 0 26px; font-family: var(--mono); line-height: 1.5; }
-.step .st { margin-left: auto; font-size: 11px; color: var(--faded); }
-.step.running .st { color: var(--accent); }
+.step .st { margin-left: auto; font-size: 11px; color: var(--faded); white-space: nowrap; }
+.step.running .st { color: var(--red); font-weight: 600; }
 .step.done .st { color: var(--green); }
+.step.fail .st { color: var(--red); }
 
 /* iz */
+#stephead { flex: none; }
 #stephead h2 { font-size: 26px; }
 #stephead p { margin: 4px 0 12px; color: var(--ink-2); max-width: 760px; }
-#trace { list-style: none; margin: 0; padding: 0; }
+#trace { list-style: none; margin: 0; padding: 0 0 14px; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 #trace li { display: grid; grid-template-columns: 74px 1fr; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); animation: in .25s ease-out; }
 @keyframes in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 #trace .k { font: 600 10px/1.9 "Inter"; text-transform: uppercase; letter-spacing: .06em; }
@@ -81,24 +94,26 @@ main > section { min-height: 0; overflow-y: auto; padding: 14px 16px; }
 #trace .decision .k span { background: var(--ink); color: var(--paper); }
 #trace .fallback .k span, #trace .error .k span { background: #F8DDDB; color: var(--red); }
 #trace .human .k span { background: var(--accent); color: var(--ink); }
-#trace .v { min-width: 0; }
-#trace .v .src { float: right; font-size: 10px; color: var(--faded); text-transform: uppercase; letter-spacing: .05em; }
+#trace .v { min-width: 0; overflow-wrap: anywhere; }
+#trace .v .src { float: right; font-size: 10px; color: var(--faded); text-transform: uppercase; letter-spacing: .05em; margin-left: 6px; }
 #trace .tname { font-family: var(--mono); font-weight: 600; }
 #trace .args { font-family: var(--mono); font-size: 12px; color: var(--ink-2); word-break: break-word; }
 #trace details summary { cursor: pointer; color: var(--faded); font-size: 12px; }
-#trace pre { margin: 4px 0 0; max-height: 260px; overflow: auto; background: var(--paper); padding: 8px; font: 11px/1.4 var(--mono); border: 1px solid var(--line); }
+#trace pre { margin: 4px 0 0; max-height: 260px; overflow: auto; background: var(--paper); padding: 8px; font: 11px/1.4 var(--mono); border: 1px solid var(--line); white-space: pre-wrap; word-break: break-word; }
 #trace .decision .v { font-style: italic; }
-.empty { color: var(--faded); padding: 30px 0; }
+.wait { color: var(--ink-2); padding: 18px 0; display: flex; gap: 10px; align-items: center; }
+.wait i { width: 7px; height: 7px; background: var(--ink); display: inline-block; animation: pulse 1s infinite ease-in-out; }
+.wait i:nth-child(2) { animation-delay: .15s; } .wait i:nth-child(3) { animation-delay: .3s; }
 
 /* sağ sütun */
-.card { border: 1px solid var(--line); border-radius: 3px; background: #fff; padding: 10px 12px; margin-bottom: 12px; }
+.card { border: 1px solid var(--line); border-radius: 3px; background: #fff; padding: 10px 12px; margin-bottom: 12px; overflow-wrap: anywhere; }
 .card h3 { font-size: 17px; margin-bottom: 6px; }
 .card ul { margin: 6px 0 0; padding-left: 18px; }
 .card li { margin: 3px 0; }
 .say { font-size: 15px; border-left: 3px solid var(--accent); padding: 6px 10px; background: var(--paper); margin: 6px 0; }
-.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 13px; }
+.say s { color: var(--red); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 13px; align-items: baseline; }
 .kv b { font: 600 20px/1.1 "Barlow C"; }
-.big { font: 600 34px/1 "Barlow C"; }
 .muted { color: var(--faded); font-size: 12px; }
 .chip { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 2px; background: var(--paper-2); margin: 2px 3px 0 0; }
 .chip.red { background: #F8DDDB; color: var(--red); }
@@ -106,46 +121,92 @@ main > section { min-height: 0; overflow-y: auto; padding: 14px 16px; }
 #feed .ev { font-size: 12px; padding: 5px 0; border-top: 1px solid var(--line); }
 #feed .ev .a { font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: .05em; color: var(--ink-2); }
 #feed .ev.flash { background: #FFF5DE; }
+body.qr-pad #side { padding-bottom: 250px; }
+
+/* QR: sunum ekranında sağ altta, adres sayfanın kendi kökünden */
+#qr { position: fixed; right: 16px; bottom: 16px; z-index: 5; background: #fff; border: 1px solid var(--ink); padding: 10px 10px 8px; width: 186px; text-align: center; box-shadow: 0 6px 24px rgba(26, 23, 20, .18); }
+#qr .q svg { width: 164px; height: 164px; display: block; margin: 0 auto; }
+#qr b { display: block; font: 600 17px/1.1 "Barlow C"; margin-bottom: 6px; }
+#qr small { display: block; font: 11px/1.3 var(--mono); color: var(--ink-2); margin-top: 4px; word-break: break-all; }
+
+/* telefon: tek sütun, sayfa kayar; iz kendi kutusunda canlı akar */
+@media (max-width: 760px) {
+  html, body { height: auto; }
+  body { display: block; height: auto; overflow: auto; }
+  header { padding: 8px 12px; gap: 6px 10px; }
+  header h1 { font-size: 19px; }
+  header .sub { flex-basis: 100%; order: 9; font-size: 12px; }
+  #arch { padding: 8px 12px; gap: 4px; }
+  #arch .node { font-size: 11px; padding: 4px 7px; }
+  #arch .node b { font-size: 13px; }
+  #flowline { padding: 4px 12px 6px; }
+  main { display: block; }
+  main > section { overflow: visible; padding: 12px; }
+  #steps { border-right: 0; border-bottom: 1px solid var(--line); padding: 10px 0 6px; }
+  #steps > .coltitle, #steps > .muted { padding: 0 12px; }
+  #steps > .muted { display: none; }
+  #steplist { display: flex; gap: 8px; overflow-x: auto; padding: 0 12px 6px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+  .step { flex: 0 0 auto; width: 158px; margin: 0; scroll-snap-align: start; }
+  .step .code { display: none; }
+  .step .who { margin-left: 26px; }
+  #center { display: block; padding-bottom: 12px; }
+  #stephead h2 { font-size: 22px; }
+  #stephead p { font-size: 13px; }
+  #trace { max-height: 62vh; max-height: 62dvh; border: 1px solid var(--line); border-radius: 3px; padding: 0 10px 10px; background: #fff; }
+  #trace li { grid-template-columns: 58px 1fr; gap: 8px; }
+  #trace .k { font-size: 9px; }
+  #side { border-left: 0; border-top: 1px solid var(--line); }
+  #qr { display: none; }
+  button { padding: 8px 12px; }
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Courier Memory · Nasıl çalışır</h1>
-  <span class="sub" id="ctx">bir günün akışı, adım adım</span>
+  <h1>Courier Memory · Canlı akış</h1>
+  <span class="sub" id="ctx">ajan zinciri, adım adım</span>
   <span class="sp"></span>
-  <span class="badge" id="mode">…</span>
-  <button id="reset" title="Hafıza, ajan akışı ve öğrenilen ayarlar baştan">Baştan</button>
-  <button id="runall">Hepsini oynat</button>
-  <button id="next" class="primary">Sıradaki adım ▶</button>
+  <span class="badge" id="state">bağlanıyor…</span>
+  <span class="badge" id="mode" hidden></span>
+  <button id="watch" hidden title="Canlı adıma dön">Canlıya dön</button>
+  <button id="plan" class="primary" hidden>Günü planla ▶</button>
 </header>
 <div id="arch"></div>
 <div id="flowline"></div>
 <main>
   <section id="steps"><p class="coltitle">Akış</p><div id="steplist"></div>
-    <p class="muted" style="margin-top:14px">Her adım canlı API çağrısıdır. Ortadaki iz, ajanın kararlarını ve çağırdığı araçları sırasıyla gösterir; araç sonuçlarının tam JSON'u açılır.</p>
+    <p class="muted" style="margin-top:14px">Her adım sunucuda gerçek bir ajan çağrısıdır. Ortadaki iz, ajanın kararlarını ve çağırdığı araçları sırasıyla gösterir; biten adıma dokunup izine geri dönebilirsiniz.</p>
     <p class="muted"><a href="../story/">Hikaye arayüzü</a> · <a href="../docs">API belgesi</a></p>
   </section>
   <section id="center">
-    <div id="stephead"><p class="coltitle">İz</p><h2>Başlamak için “Sıradaki adım”</h2>
-      <p>Gün 32, yoğun bir Çarşamba. Komşu şubeden ödünç gelen kurye bölgeyi bilmiyor; sistem ona şubenin hafızasını taşıyor.</p></div>
+    <div id="stephead"></div>
     <ol id="trace"></ol>
   </section>
   <section id="side">
     <p class="coltitle">Sonuç</p><div id="result"><div class="card muted">Adımın çıktısı burada.</div></div>
-    <p class="coltitle">Şube hafızası</p><div id="memory" class="card"></div>
-    <p class="coltitle">Ajan akışı</p><div id="feed" class="card"></div>
+    <p class="coltitle">Şube hafızası</p><div id="memory" class="card"><span class="muted">Akış başlayınca dolar.</span></div>
+    <p class="coltitle">Ajan akışı</p><div id="feed" class="card"><span class="muted">Hafıza, Değerlendirme ve Bölge ajanlarının işleri buraya düşer.</span></div>
   </section>
 </main>
+<aside id="qr" hidden><b>Telefonda canlı izleyin</b><div class="q"></div><small></small></aside>
 
+<script src="../story/vendor/qrcode.js"></script>
 <script>
 "use strict";
+// Canlı akış: sekiz adımlık zincir sunucuda bir kez koşar (api/live.py), bu sayfa olayları SSE ile alır.
+//   /flow/            izleyici (QR): yalnız izler, koşu başlatamaz
+//   /flow/?sunum=1    sunum ekranı: "Günü planla" koşuyu başlatır; &start=1 açılışta başlatır; &qr=1 QR'a yer bırakır
 // API tabanı: sayfa bir ters vekilin arkasındaysa (ör. /proxy/<port>/flow/) o önek; yoksa kök.
-const BASE = (location.pathname.match(/^(.*?\/proxy\/\d+)\//) || [])[1] || '';
+const BASE = (location.pathname.match(/^(.*?\/proxy\/\d+)\//) || [])[1] || "";
+const Q = new URLSearchParams(location.search);
+const PRESENTER = Q.has("sunum");
+const EMBED = window.top !== window;
 const $ = (s) => document.querySelector(s);
-const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmt = (o) => JSON.stringify(o, null, 2);
 const short = (o) => { const s = JSON.stringify(o); return s.length > 160 ? s.slice(0, 157) + "…" : s; };
+const secret = (s) => esc(s).replace(/(kapı şifresi \d+)/gi, "<s>$1</s>");   // ham nottaki şifre üstü çizili; hafızaya yazılmaz
+const mobile = matchMedia("(max-width: 760px)");
 
 // ------------------------------------------------------------------ mimari
 const NODES = [
@@ -156,37 +217,101 @@ const NODES = [
 ];
 $("#arch").innerHTML = NODES.map(([id, t, s], i) =>
   (i ? '<span class="arrow">›</span>' : "") + `<div class="node${id === "memory" ? " mem" : ""}" data-n="${id}"><b>${t}</b>${s}</div>`).join("");
+function center(box, el) { if (el) box.scrollTo({ left: el.offsetLeft - box.clientWidth / 2 + el.clientWidth / 2, behavior: "smooth" }); }
 function lightArch(ids, line) {
   document.querySelectorAll("#arch .node").forEach((n) => n.classList.toggle("on", ids.includes(n.dataset.n)));
-  $("#flowline").innerHTML = line ? "Veri akışı: " + line : "";
+  $("#flowline").innerHTML = line ? "Veri akışı: " + esc(line) : "";
+  center($("#arch"), document.querySelector("#arch .node.on"));
 }
 
-// ------------------------------------------------------------------ durum
 const KIND = { back_entry: "arka giriş", saturday_closed: "cumartesi kapalı", lunch_break: "öğle arası", safety: "site güvenliği", bell: "zil",
   position_wrong: "konum hatalı", reception: "resepsiyon", temporary_closed: "geçici kapalı", roadwork: "yol çalışması", park: "park",
   building_access: "bina erişimi", directions: "adres tarifi", animal: "hayvan", other_info: "not" };
 const kindTr = (k) => KIND[k] || k;
 const CONF = { confirmed: "teyitli", single_source: "tek kaynak", needs_confirmation: "teyit gerekli" };
-const S = { day: 32, courier: "O02", name: "Gökhan", session: null, status: null, stop: null, cardIds: [], cur: -1, done: new Set(), busy: false };
 
-// ------------------------------------------------------------------ API + iz
+// ------------------------------------------------------------------ adımlar (çalıştıran sunucu; burada yalnız tanım ve sonuç kartı)
+const STEPS = [
+  { t: "Gün planlanır", s: "Plan", who: "Orkestratör Ajanı", code: ["agents/orchestrator.py", "agents/route.py", "POST /api/orchestrator/start"],
+    desc: "Hacmi okur, kapasite açığını bulur, komşu şubeden kimin geleceğini seçer, kümelere kurye atar, hafızalı rotayı hesaplar ve gerekçeli planı çıkarır; acil durum yoksa plan temassız kesinleşir. Hesaplar araçlarda; ajan sırayı ve kararı verir.",
+    arch: ["records", "orch", "memory", "manager"], line: "Teslim kayıtları + hafıza → Orkestratör (araçlar) → plan (acil durumda müdüre)",
+    render: (o) => { const p = o.proposal; return `<h3>${o.status === "finalized" ? "Plan kesinleşti (temassız)" : "Acil durum: müdüre öneri"}</h3>
+      ${o.escalation.length ? `<ul>${o.escalation.map((x) => `<li>${esc(x.text)}</li>`).join("")}</ul>` : ""}
+      ${p ? `<div class="kv"><b>${esc(p.courier_count ?? "–")}</b><span>kurye · ödünç: ${esc(p.borrowed.join(", ") || "yok")}</span>
+      <b>%${Math.round(100 * (p.own_zone_share || 0))}</b><span>kurye kendi bölgesinde</span>
+      <b>${esc(p.expected_fails ?? "–")}</b><span>beklenen başarısız (geçmişe bakmadan ${esc(p.history_blind ?? "–")})</span></div>
+      <ul>${p.rationale.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+      ${p.risks.length ? `<p class="muted">Riskler</p><ul>${p.risks.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}` : ""}`; } },
+  { t: "Acil durum denetimi", s: "Acil durum", who: "Kural (müdür yalnız acil durumda)", code: ["agents/orchestrator.py · Orchestrator.escalation", "POST /api/orchestrator/session/{id}/decision (yalnız eskalasyonda)"],
+    desc: "Zincir temassızdır: kapasite açığı kapanıyorsa, ciddi fazla mesai yoksa ve plan geçmişe bakmayan atamadan iyiyse plan müdüre gitmeden kesinleşir. Müdür yalnız acil durumda (açık kapanmıyor, ciddi fazla mesai, ajan planı çıkaramadı ya da müdür acil durum bildirdi) yetkilidir. Eşikler deterministik koddadır.",
+    arch: ["orch", "manager"], line: "Kesinleşen plan → sonraki adımların girdisi (müdür yalnız acil durumda)",
+    render: (o) => o.auto
+      ? `<h3>Temassız</h3><p>Acil durum yok: plan müdüre gitmeden kesinleşti. ${esc(o.name)} için planın kümesi ve rotası artık Brifing Ajanı'nın girdisi.</p>`
+      : `<h3>Acil durumda müdür onayladı</h3><p>Durum: <b>${esc(o.status)}</b>. ${esc(o.name)} için onaylı planın kümesi ve rotası artık Brifing Ajanı'nın girdisi.</p>` },
+  { t: "Kuryeye sabah brifingi", s: "Brifing", who: "Brifing Ajanı", code: ["agents/briefing.py", "GET /api/briefing/{day}/{courier}"],
+    desc: "Ödünç kurye bölgeyi bilmiyor. Ajan rotasındaki riskleri ve hafızadaki notları okur; kuryeye sesli okunacak kısa bir sabah özeti yazar.",
+    arch: ["memory", "briefing", "courier"], line: "Onaylı plan + hafıza → Brifing Ajanı → kurye",
+    render: (o) => `<h3>${esc(o.courier_name)} · sabah</h3><div class="say">${esc(o.morning_briefing)}</div>
+      <div class="kv"><b>${esc(o.estimated_return)}</b><span>tahmini dönüş</span><b>${esc(o.door_count)}</b><span>durakta kapı cümlesi hazır</span></div>
+      ${o.warnings.map((w) => `<div class="chip red">${esc(w)}</div>`).join("")}` },
+  { t: "Kurye kapıda not bırakır", s: "Not", who: "Hafıza Ajanı", code: ["agents/memory.py", "agents/guardrails.py", "agents/memorybook.py", "POST /api/note"],
+    desc: "Kuryenin serbest notu adrese bağlanır, türü çıkarılır. Kişisel veri ve kapı şifresi araç düzeyinde ayıklanır; hafızaya yalnız adresi anlatan bilgi yazılır.",
+    arch: ["courier", "memagent", "memory"], line: "Kurye notu → Hafıza Ajanı (adres, tür, ayıklama) → hafıza",
+    render: (o) => `<h3>Not işlendi</h3><p class="muted">Kuryenin yazdığı</p><div class="say" style="border-color:var(--faded)">${secret(o.text)}</div>
+      <p class="muted">Hafızaya yazılan (${esc(kindTr(o.type))})</p><div class="say">${esc(o.hint || "–")}</div>
+      <span class="chip ${o.redacted ? "red" : ""}">${o.redacted ? "şifre / kişisel veri ayıklandı" : "temiz"}</span>
+      <span class="chip green">${esc({ saved: "kaydedildi", updated: "güçlendi", noise: "kaydedilmedi", uncertain: "adres belirsiz", rejected: "reddedildi" }[o.status] || o.status)}</span><p class="muted">${esc(o.summary)}</p>` },
+  { t: "Sonraki kurye aynı kapıya yaklaşır", s: "Durak kartı", who: "Durak kartları (kural, LLM yok)", code: ["agents/cards.py · StopCards.approach", "POST /api/approach"],
+    desc: "Kartın anı vardır: park bilgisi durağa 400 m kala, kapı bilgisi 60 m kala söylenir. Uygulama konumu gönderir, sunucu o an söylenecek kartı döndürür; bir kart iki kez söylenmez.",
+    arch: ["memory", "cards", "courier"], line: "Hafıza → durak kartı → kuryeye sesli (konuma göre)",
+    render: (o) => `<h3>Kuryenin duyduğu</h3>
+      <p class="muted">${esc(o.a.distance_m)} m</p><div class="say" style="border-color:var(--line)">—</div>
+      <p class="muted">${esc(o.b.distance_m)} m · yaklaşırken</p><div class="say">${esc(o.b.to_speak || "—")}</div>
+      <p class="muted">${esc(o.c.distance_m)} m · kapıda</p><div class="say">${esc(o.c.to_speak || "— (park kartı zaten söylendi)")}</div>
+      ${o.b.cards.map((k) => `<span class="chip">${esc(k.title)} · ${esc(CONF[k.confidence] || k.confidence)} · ${k.affects_route ? "rotayı etkiler" : "rotayı etkilemez"}</span>`).join("")}` },
+  { t: "Kıdemliye hedefli soru", s: "Hasat", who: "Hasat Ajanı", code: ["agents/harvest.py", "POST /api/harvest/plan"],
+    desc: "Yarın bölgeye yabancı kurye gidecek ama hafızası boş adresleri bulur; oraya en son giden kıdemliye kısa soru sorar. Cevap yine Hafıza Ajanı'ndan geçer.",
+    arch: ["records", "memory", "harvest", "courier"], line: "Hafıza boşlukları + teslim kayıtları → Hasat Ajanı → kıdemli kuryeye soru",
+    render: (o) => `<h3>${esc(o.count)} soru</h3><p>${esc(o.summary)}</p>
+      <ul>${o.questions.map((q) => `<li><b>${esc(q.courier_name)}</b>: ${esc(q.question)}</li>`).join("")}</ul>` },
+  { t: "Ertesi sabah: sistem kendini değerlendirir", s: "Değerlendirme", who: "Değerlendirme Ajanı", code: ["agents/review.py", "agents/feed.py", "POST /api/review/run"],
+    desc: "Son 5 günü önceki 5 günle karşılaştırır. Kuryeyi değil sistemin kararlarını değerlendirir: ipucuna rağmen başarısız olan kaydı teyide alır, hafızası boş soruna soru açar, süre tahminini ayarlar. Atama değişikliği yalnız öneridir; her eylem geri alınabilir.",
+    arch: ["records", "memory", "review", "manager"], line: "Dünkü sonuçlar + hafıza → Değerlendirme Ajanı → düzeltme (geri alınabilir) / müdüre öneri",
+    render: (o) => `<h3>Sabah raporu</h3><p>${esc(o.summary)}</p>
+      ${o.going_well.map((x) => `<span class="chip green">${esc(x)}</span>`).join("")}
+      ${o.going_badly.map((x) => `<span class="chip red">${esc(x)}</span>`).join("")}
+      <p class="muted" style="margin-top:8px">Süre tahmini: genel sapma ${esc(o.general_bias_min)} dk · yabancı durak başına +${esc(o.unfamiliar_stop_extra_min)} dk</p>` },
+  { t: "Şube raporu ve hafıza boşlukları", s: "Bölge", who: "Bölge Ajanı", code: ["agents/region.py", "agents/region_agent.py", "POST /api/region/run"],
+    desc: "Blokların zorluğunu (bilgi nedenli başarısızlık ÷ şube ortalaması) hesaplar; zor ama hafızası boş bloklar için kıdemliye soru açar (günde ≤ 5), müdüre kısa rapor sunar.",
+    arch: ["records", "memory", "region", "manager"], line: "Blok istatistikleri + hafıza → Bölge Ajanı → müdüre rapor, kıdemliye soru",
+    render: (o) => `<h3>Müdüre</h3><ul>${o.manager_summary.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+      <p class="muted">${esc(o.count)} soru açıldı</p>${o.questions.map((q) => `<div class="say">${esc(q)}</div>`).join("")}` },
+];
+
+// ------------------------------------------------------------------ durum
+let es = null, autostart = PRESENTER && Q.has("start");
+const S = { run: 0, status: "idle", cur: -1, view: -1, follow: true, items: [], results: {}, errors: {}, ctx: null, feedMax: 0, online: false };
+
+// ------------------------------------------------------------------ iz satırları
 const trace = $("#trace");
+const scroller = () => (mobile.matches ? trace : $("#center"));
+const json = new Map();               // ayrıntı JSON'u yalnız açılınca yazılır (telefonda DOM hafif kalsın)
+let jn = 0;
+function details(label, data) { json.set(++jn, data); return `<details data-j="${jn}"><summary>${label}</summary><pre></pre></details>`; }
+document.addEventListener("toggle", (e) => {
+  const d = e.target;
+  if (d.tagName === "DETAILS" && d.open && d.dataset.j) { const pre = d.querySelector("pre"); if (!pre.textContent) pre.textContent = fmt(json.get(+d.dataset.j)); }
+}, true);
+
 function row(kind, label, html, src) {
+  const sc = scroller();
+  const near = sc.scrollHeight - sc.scrollTop - sc.clientHeight < 140;
   const li = document.createElement("li");
   li.className = kind;
   li.innerHTML = `<div class="k"><span>${label}</span></div><div class="v">${src ? `<span class="src">${src === "rule" ? "kural" : src === "llm" ? "LLM" : esc(src)}</span>` : ""}${html}</div>`;
   trace.appendChild(li);
-  li.scrollIntoView({ block: "nearest" });
-}
-async function api(method, path, body) {
-  row("http", method, `<span class="tname">${esc(path)}</span>${body ? ` <span class="args">${esc(short(body))}</span>` : ""}`);
-  const t0 = performance.now();
-  const r = await fetch(BASE + path, { method, headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
-  const data = await r.json().catch(() => ({}));
-  row("http", "yanıt", `<span class="args">${r.status} · ${Math.round(performance.now() - t0)} ms</span>
-    <details><summary>yanıtın JSON'u</summary><pre>${esc(fmt(data))}</pre></details>`);
-  if (!r.ok) throw new Error(data.detail || r.status);
-  return data;
+  if (near) sc.scrollTop = sc.scrollHeight;
+  return li;
 }
 // Ajan izi olayı (agents/trace.py): start, decision, tool, result, error, fallback, proposal, escalation, auto_decision, awaiting_approval, human_decision, done
 function event(e) {
@@ -196,7 +321,7 @@ function event(e) {
     case "decision": return row("decision", "karar", esc(e.text), s);
     case "tool": return row("tool", "araç", `<span class="tname">${esc(e.tool)}</span>(<span class="args">${esc(short(e.input || {}))}</span>)`, s);
     case "result": return row("result", "sonuç", `<span class="tname">${esc(e.tool)}</span> → ${esc(e.summary)}
-      ${e.data !== undefined ? `<details><summary>aracın döndürdüğü veri</summary><pre>${esc(fmt(e.data))}</pre></details>` : ""}`, s);
+      ${e.data !== undefined ? details("aracın döndürdüğü veri", e.data) : ""}`, s);
     case "error": return row("error", "hata", `${esc(e.tool || "")} ${esc(e.text)}`, s);
     case "fallback": return row("fallback", "yedek", esc(e.text), s);
     case "proposal": return row("decision", "öneri", "Gerekçeli plan hazır (sağda); acil durum denetimi yapılıyor.", s);
@@ -208,213 +333,186 @@ function event(e) {
     default: return row("start", esc(e.type), `<span class="args">${esc(short(e))}</span>`, s);
   }
 }
-async function play(events, ms = 110) { for (const e of events) { event(e); await sleep(ms); } }
-const note = (html) => row("decision", "not", html, "arayüz");
+function item(x) {
+  switch (x.t) {
+    case "http": return row("http", esc(x.method), `<span class="tname">${esc(x.path)}</span>${x.body ? ` <span class="args">${esc(short(x.body))}</span>` : ""}`);
+    case "http_done": return row(x.status < 400 ? "http" : "error", "yanıt", `<span class="args">${esc(x.status)} · ${esc(x.ms)} ms</span> ${details("yanıtın JSON'u", x.data)}`);
+    case "ev": return event(x.e);
+    case "note": return row("decision", "not", secret(x.text), "arayüz");
+    case "step_error": return row("error", "hata", esc(x.text));
+  }
+}
 
-// ------------------------------------------------------------------ sağ sütun
+// ------------------------------------------------------------------ çizim
 function result(html) { $("#result").innerHTML = `<div class="card">${html}</div>`; }
-let feedMax = 0;
-async function refreshSide() {
-  const [m, f] = await Promise.all([fetch(`${BASE}/api/memory/summary?day=${S.day}`).then((r) => r.json()), fetch(BASE + "/api/feed").then((r) => r.json())]);
-  const dist = Object.entries(m.type_distribution || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  $("#memory").innerHTML = `<div class="kv"><b>${m.total}</b><span>aktif adres kaydı</span></div>
-    <div style="margin-top:4px">${dist.map(([k, n]) => `<span class="chip">${esc(kindTr(k))} ${n}</span>`).join("")}</div>
-    ${(m.last || []).slice(0, 3).map((e) => `<div class="muted" style="margin-top:6px">yeni · ${esc(kindTr(e.kind))}: “${esc(e.text)}”</div>`).join("")}`;
-  const ev = (f.events || []).slice(-8).reverse();
-  $("#feed").innerHTML = ev.length ? ev.map((e) => `<div class="ev${e.n > feedMax ? " flash" : ""}"><span class="a">${esc(e.agent)} · ${esc(e.type)} · ${esc(e.status)}</span><br>${esc(e.summary)}</div>`).join("")
-    : '<span class="muted">Henüz olay yok. Hafıza, Değerlendirme ve Bölge ajanlarının işleri buraya düşer.</span>';
-  feedMax = Math.max(feedMax, ...(f.events || []).map((e) => e.n), 0);
+function renderResult(i) {
+  if (i in S.results) { try { result(STEPS[i].render(S.results[i])); } catch (e) { result(`<span class="muted">Sonuç gösterilemedi.</span>`); } }
+  else if (i in S.errors) result(`<span class="chip red">${esc(S.errors[i])}</span>`);
+  else if (i === S.cur && S.status === "running") result('<div class="wait"><i></i><i></i><i></i> ajan çalışıyor…</div>');
+  else result('<span class="muted">Adımın çıktısı burada.</span>');
 }
-
-// ------------------------------------------------------------------ adımlar
-const STEPS = [
-  {
-    t: "Gün planlanır", who: "Orkestratör Ajanı", code: ["agents/orchestrator.py", "agents/route.py", "POST /api/orchestrator/start"],
-    desc: "Hacmi okur, kapasite açığını bulur, komşu şubeden kimin geleceğini seçer, kümelere kurye atar, hafızalı rotayı hesaplar ve gerekçeli planı çıkarır; acil durum yoksa plan temassız kesinleşir. Hesaplar araçlarda; ajan sırayı ve kararı verir.",
-    arch: ["records", "orch", "memory", "manager"], line: "Teslim kayıtları + hafıza → Orkestratör (araçlar) → plan (acil durumda müdüre)",
-    async run() {
-      const k = await api("POST", "/api/orchestrator/start", { day: S.day });
-      S.session = k.session_id;
-      let n = 0, status = k.status;
-      for (let i = 0; i < 400; i++) {
-        const r = await fetch(`${BASE}/api/orchestrator/session/${S.session}?after=${n}`).then((x) => x.json());
-        await play(r.events, 140);
-        n += r.events.length;
-        status = r.status;
-        if (status !== "running" && n >= r.total_event) {
-          S.status = status;
-          const p = r.proposal;
-          if (p) result(`<h3>${status === "finalized" ? "Plan kesinleşti (temassız)" : "Acil durum: müdüre öneri"}</h3>
-            ${(r.escalation || []).length ? `<ul>${r.escalation.map((x) => `<li>${esc(x.text)}</li>`).join("")}</ul>` : ""}
-            <div class="kv"><b>${p.total?.courier_count ?? "–"}</b><span>kurye · ödünç: ${p.borrowed.map((b) => esc(b.name)).join(", ")}</span>
-            <b>%${Math.round(100 * p.own_zone_share)}</b><span>kurye kendi bölgesinde</span>
-            <b>${p.total?.expected_fails ?? "–"}</b><span>beklenen başarısız (geçmişe bakmadan ${p.comparison?.history_blind_expected_fails ?? "–"})</span></div>
-            <ul>${p.rationale.slice(0, 4).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-            ${p.risks?.length ? `<p class="muted">Riskler</p><ul>${p.risks.slice(0, 2).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}`);
-          break;
-        }
-        await sleep(250);
-      }
-    },
-  },
-  {
-    t: "Acil durum denetimi", who: "Kural (müdür yalnız acil durumda)", code: ["agents/orchestrator.py · Orchestrator.escalation", "POST /api/orchestrator/session/{id}/decision (yalnız eskalasyonda)"],
-    desc: "Zincir temassızdır: kapasite açığı kapanıyorsa, ciddi fazla mesai yoksa ve plan geçmişe bakmayan atamadan iyiyse plan müdüre gitmeden kesinleşir. Müdür yalnız acil durumda (açık kapanmıyor, ciddi fazla mesai, ajan planı çıkaramadı ya da müdür acil durum bildirdi) yetkilidir. Eşikler deterministik koddadır.",
-    arch: ["orch", "manager"], line: "Kesinleşen plan → sonraki adımların girdisi (müdür yalnız acil durumda)",
-    async run() {
-      if (!S.session) throw new Error("Önce 1. adım");
-      if (S.status === "finalized") {
-        note("Acil durum yok: plan temassız kesinleşti; müdüre onay isteği gitmedi.");
-        result(`<h3>Temassız</h3><p>Acil durum yok: plan müdüre gitmeden kesinleşti. ${S.name} için planın kümesi ve rotası artık Brifing Ajanı'nın girdisi.</p>`);
-        return;
-      }
-      const r = await api("POST", `/api/orchestrator/session/${S.session}/decision`, { decision: "approval" });
-      const evs = (r.events || []).filter((e) => ["human_decision", "done", "decision"].includes(e.type)).slice(-3);
-      await play(evs);
-      result(`<h3>Acil durumda müdür onayladı</h3><p>Durum: <b>${esc(r.status)}</b>. ${S.name} için onaylı planın kümesi ve rotası artık Brifing Ajanı'nın girdisi.</p>`);
-    },
-  },
-  {
-    t: "Kuryeye sabah brifingi", who: "Brifing Ajanı", code: ["agents/briefing.py", "GET /api/briefing/{day}/{courier}"],
-    desc: "Ödünç kurye bölgeyi bilmiyor. Ajan rotasındaki riskleri ve hafızadaki notları okur; kuryeye sesli okunacak kısa bir sabah özeti yazar.",
-    arch: ["memory", "briefing", "courier"], line: "Onaylı plan + hafıza → Brifing Ajanı → kurye",
-    async run() {
-      const b = await api("GET", `/api/briefing/${S.day}/${S.courier}`);
-      await play((b.steps || []).flatMap((x) => [{ type: "tool", tool: x.tool, input: x.input, source: b.mode === "mock" ? "rule" : "llm" },
-        { type: "result", tool: x.tool, summary: x.summary, source: b.mode === "mock" ? "rule" : "llm" }]));
-      result(`<h3>${esc(b.courier_name)} · sabah</h3><div class="say">${esc(b.morning_briefing)}</div>
-        <div class="kv"><b>${b.estimated_return}</b><span>tahmini dönüş</span><b>${(b.door_sentences || []).length}</b><span>durakta kapı cümlesi hazır</span></div>
-        ${(b.warnings || []).map((w) => `<div class="chip red">${esc(w)}</div>`).join("")}`);
-    },
-  },
-  {
-    t: "Kurye kapıda not bırakır", who: "Hafıza Ajanı", code: ["agents/memory.py", "agents/guardrails.py", "agents/memorybook.py", "POST /api/note"],
-    desc: "Kuryenin serbest notu adrese bağlanır, türü çıkarılır. Kişisel veri ve kapı şifresi araç düzeyinde ayıklanır; hafızaya yalnız adresi anlatan bilgi yazılır.",
-    arch: ["courier", "memagent", "memory"], line: "Kurye notu → Hafıza Ajanı (adres, tür, ayıklama) → hafıza",
-    async run() {
-      const L = await api("GET", `/api/cards/${S.day}/${S.courier}?all=true`);
-      S.stop = L.stops.find((x) => !x.cards.length) || L.stops[0];
-      note(`Rotanın ${S.stop.order}. durağı (${esc(S.stop.label)}) hafızada kartsız. Kurye buraya not bırakıyor:`);
-      const text = "sitenin önünde park yeri yok, aracı arka sokaktaki otoparka bırakıp yürüyün. B blok kapı şifresi 2580";
-      const r = await api("POST", "/api/note", { day: S.day, courier: S.courier, lat: S.stop.lat, lng: S.stop.lng, text });
-      await play((r.steps || []).flatMap((x) => [{ type: "tool", tool: x.tool, input: x.input, source: r.mode === "mock" ? "rule" : "llm" },
-        { type: "result", tool: x.tool, summary: x.summary, source: r.mode === "mock" ? "rule" : "llm" }]));
-      result(`<h3>Not işlendi</h3><p class="muted">Kuryenin yazdığı</p><div class="say" style="border-color:var(--faded)">${esc(text)}</div>
-        <p class="muted">Hafızaya yazılan (${esc(kindTr(r.type))})</p><div class="say">${esc(r.hint || "–")}</div>
-        <span class="chip ${r.personal_data_redacted ? "red" : ""}">${r.personal_data_redacted ? "şifre / kişisel veri ayıklandı" : "temiz"}</span>
-        <span class="chip green">${esc({ saved: "kaydedildi", updated: "güçlendi", noise: "kaydedilmedi", uncertain: "adres belirsiz", rejected: "reddedildi" }[r.status] || r.status)}</span><p class="muted">${esc(r.summary)}</p>`);
-    },
-  },
-  {
-    t: "Sonraki kurye aynı kapıya yaklaşır", who: "Durak kartları (kural, LLM yok)", code: ["agents/cards.py · StopCards.approach", "POST /api/approach"],
-    desc: "Kartın anı vardır: park bilgisi durağa 400 m kala, kapı bilgisi 60 m kala söylenir. Uygulama konumu gönderir, sunucu o an söylenecek kartı döndürür; bir kart iki kez söylenmez.",
-    arch: ["memory", "cards", "courier"], line: "Hafıza → durak kartı → kuryeye sesli (konuma göre)",
-    async run() {
-      if (!S.stop) throw new Error("Önce 4. adım");
-      const base = { day: S.day, courier: S.courier, next_order: S.stop.order };
-      note("Kurye durağa ~660 m uzakta:");
-      const a = await api("POST", "/api/approach", { ...base, lat: S.stop.lat + 0.006, lng: S.stop.lng });
-      note(`${a.stop?.distance_m} m → henüz söylenecek kart yok; bekleyen ${a.pending}.`);
-      note("~220 m kala:");
-      const b = await api("POST", "/api/approach", { ...base, lat: S.stop.lat + 0.002, lng: S.stop.lng });
-      note(`An: <b>${b.moment === "approaching" ? "yaklaşırken" : esc(b.moment)}</b> · söylenecek: “${esc(b.to_speak)}”`);
-      note("Kapıda (söylenen kart tekrar söylenmez):");
-      const c = await api("POST", "/api/approach", { ...base, lat: S.stop.lat, lng: S.stop.lng, shown: b.cards.map((k) => k.id) });
-      result(`<h3>Kuryenin duyduğu</h3>
-        <p class="muted">${a.stop?.distance_m} m</p><div class="say" style="border-color:var(--line)">—</div>
-        <p class="muted">${b.stop?.distance_m} m · yaklaşırken</p><div class="say">${esc(b.to_speak || "—")}</div>
-        <p class="muted">${c.stop?.distance_m} m · kapıda</p><div class="say">${esc(c.to_speak || "— (park kartı zaten söylendi)")}</div>
-        ${b.cards.map((k) => `<span class="chip">${esc(k.title)} · ${esc(CONF[k.confidence] || k.confidence)} · ${k.affects_route ? "rotayı etkiler" : "rotayı etkilemez"}</span>`).join("")}`);
-    },
-  },
-  {
-    t: "Kıdemliye hedefli soru", who: "Hasat Ajanı", code: ["agents/harvest.py", "POST /api/harvest/plan"],
-    desc: "Yarın bölgeye yabancı kurye gidecek ama hafızası boş adresleri bulur; oraya en son giden kıdemliye kısa soru sorar. Cevap yine Hafıza Ajanı'ndan geçer.",
-    arch: ["records", "memory", "harvest", "courier"], line: "Hafıza boşlukları + teslim kayıtları → Hasat Ajanı → kıdemli kuryeye soru",
-    async run() {
-      const r = await api("POST", "/api/harvest/plan", { day: S.day });
-      await play(r.trace, 90);
-      result(`<h3>${r.questions.length} soru</h3><p>${esc(r.summary)}</p>
-        <ul>${r.questions.slice(0, 3).map((q) => `<li><b>${esc(q.courier_name)}</b>: ${esc(q.question)}</li>`).join("")}</ul>`);
-    },
-  },
-  {
-    t: "Ertesi sabah: sistem kendini değerlendirir", who: "Değerlendirme Ajanı", code: ["agents/review.py", "agents/feed.py", "POST /api/review/run"],
-    desc: "Son 5 günü önceki 5 günle karşılaştırır. Kuryeyi değil sistemin kararlarını değerlendirir: ipucuna rağmen başarısız olan kaydı teyide alır, hafızası boş soruna soru açar, süre tahminini ayarlar. Atama değişikliği yalnız öneridir; her eylem geri alınabilir.",
-    arch: ["records", "memory", "review", "manager"], line: "Dünkü sonuçlar + hafıza → Değerlendirme Ajanı → düzeltme (geri alınabilir) / müdüre öneri",
-    async run() {
-      const r = await api("POST", "/api/review/run", { day: S.day });
-      await play(r.trace, 90);
-      const rep = r.report || {};
-      result(`<h3>Sabah raporu</h3><p>${esc(rep.summary)}</p>
-        ${(rep.going_well || []).map((x) => `<span class="chip green">${esc(x)}</span>`).join("")}
-        ${(rep.going_badly || []).map((x) => `<span class="chip red">${esc(x)}</span>`).join("")}
-        <p class="muted" style="margin-top:8px">Süre tahmini: genel sapma ${r.params.general_bias_min} dk · yabancı durak başına +${r.params.unfamiliar_stop_extra_min} dk</p>`);
-    },
-  },
-  {
-    t: "Şube raporu ve hafıza boşlukları", who: "Bölge Ajanı", code: ["agents/region.py", "agents/region_agent.py", "POST /api/region/run"],
-    desc: "Blokların zorluğunu (bilgi nedenli başarısızlık ÷ şube ortalaması) hesaplar; zor ama hafızası boş bloklar için kıdemliye soru açar (günde ≤ 5), müdüre kısa rapor sunar.",
-    arch: ["records", "memory", "region", "manager"], line: "Blok istatistikleri + hafıza → Bölge Ajanı → müdüre rapor, kıdemliye soru",
-    async run() {
-      const r = await api("POST", "/api/region/run", { day: S.day });
-      await play(r.trace, 90);
-      result(`<h3>Müdüre</h3><ul>${r.manager_summary.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-        <p class="muted">${r.questions.length} soru açıldı</p>${r.questions.slice(0, 2).map((q) => `<div class="say">${esc(q.question)}</div>`).join("")}`);
-    },
-  },
-];
-
-function renderSteps() {
-  $("#steplist").innerHTML = STEPS.map((s, i) => `<div class="step${i === S.cur ? " active" : ""}${S.done.has(i) ? " done" : ""}${i === S.cur && S.busy ? " running" : ""}" data-i="${i}">
-    <div class="hd"><span class="no">${i + 1}</span><span class="t">${esc(s.t)}</span><span class="st">${S.done.has(i) ? "✓" : i === S.cur && S.busy ? "çalışıyor" : ""}</span></div>
-    <div class="who">${esc(s.who)}</div><div class="code">${s.code.map(esc).join("<br>")}</div></div>`).join("");
-  document.querySelectorAll(".step").forEach((el) => (el.onclick = () => !S.busy && run(+el.dataset.i)));
-  $("#next").disabled = $("#runall").disabled = $("#reset").disabled = S.busy;
-  $("#next").textContent = S.cur >= STEPS.length - 1 && S.done.has(STEPS.length - 1) ? "Bitti" : "Sıradaki adım ▶";
-}
-
-async function run(i) {
-  if (S.busy || i < 0 || i >= STEPS.length) return;
-  const s = STEPS[i];
-  S.cur = i; S.busy = true; renderSteps();
+function idleHead() {
+  lightArch([], "");
   trace.innerHTML = "";
+  const msg = PRESENTER
+    ? ["Başlamak için “Günü planla”", "Gün 32, yoğun bir Çarşamba. Komşu şubeden ödünç gelen kurye bölgeyi bilmiyor; sistem ona şubenin hafızasını taşıyor. Butona basınca sekiz ajan adımı sırayla, canlı çalışır; QR ile bağlanan herkes aynı akışı telefonunda izler."]
+    : ["Sunum başlayınca akış burada canlı görünür", "Bu sayfa yalnız izler. Sunucu “Günü planla”ya bastığında Orkestratör, Brifing, Hafıza, Hasat, Değerlendirme ve Bölge ajanlarının her kararı, çağırdığı araç ve sonucu sırayla buraya akar."];
+  $("#stephead").innerHTML = `<p class="coltitle">İz</p><h2>${msg[0]}</h2><p>${msg[1]}</p>${!PRESENTER && S.online ? '<div class="wait"><i></i><i></i><i></i> sunum bekleniyor</div>' : ""}`;
+  result('<span class="muted">Adımın çıktısı burada.</span>');
+}
+function showStep(i) {
+  S.view = i;
+  const s = STEPS[i];
   $("#stephead").innerHTML = `<p class="coltitle">İz · adım ${i + 1}/${STEPS.length} · ${esc(s.who)}</p><h2>${esc(s.t)}</h2><p>${esc(s.desc)}</p>`;
   lightArch(s.arch, s.line);
-  result('<span class="muted">çalışıyor…</span>');
-  try {
-    await s.run();
-    S.done.add(i);
-  } catch (e) {
-    row("error", "hata", esc(e.message));
-    result(`<span class="chip red">${esc(e.message)}</span>`);
-  }
-  S.busy = false; renderSteps();
-  refreshSide();
+  trace.innerHTML = "";
+  json.clear();
+  for (const x of S.items[i] || []) item(x);
+  scroller().scrollTop = trace.scrollHeight;
+  renderResult(i);
+  renderSteps();
+}
+function renderSteps() {
+  $("#steplist").innerHTML = STEPS.map((s, i) => {
+    const run = i === S.cur && S.status === "running" && !(i in S.results) && !(i in S.errors);
+    const cls = [i === S.view ? "active" : "", i in S.results ? "done" : "", i in S.errors ? "fail" : "", run ? "running" : "", S.items[i] ? "seen" : ""].join(" ");
+    const st = i in S.errors ? "hata" : i in S.results ? "✓" : run ? "● canlı" : "";
+    return `<div class="step ${cls}" data-i="${i}">
+      <div class="hd"><span class="no">${i + 1}</span><span class="t">${esc(mobile.matches ? s.s : s.t)}</span><span class="st">${st}</span></div>
+      <div class="who">${esc(s.who)}</div><div class="code">${s.code.map(esc).join("<br>")}</div></div>`;
+  }).join("");
+  document.querySelectorAll(".step.seen").forEach((el) => (el.onclick = () => {
+    const i = +el.dataset.i;
+    S.follow = i === S.cur;
+    showStep(i);
+    setState();
+  }));
+  center($("#steplist"), document.querySelector(".step.active"));
+}
+function setState() {
+  const b = $("#state");
+  const t = { idle: ["bekleniyor", ""], running: ["canlı", "on"], done: ["bitti", "done"], error: ["hata", "err"] }[S.status] || [S.status, ""];
+  b.textContent = S.online ? t[0] : "bağlantı yeniden kuruluyor…";
+  b.className = "badge " + (S.online ? t[1] : "err");
+  $("#watch").hidden = !(S.status === "running" && !S.follow);
+  $("#plan").hidden = !PRESENTER;
+  $("#plan").disabled = S.status === "running" || !S.online;
+  $("#plan").textContent = S.status === "idle" ? "Günü planla ▶" : "Günü yeniden planla ▶";
+}
+function setCtx(c) {
+  if (!c) return;
+  S.ctx = c;
+  $("#ctx").textContent = `gün ${c.day} · ödünç kurye ${c.name} (${c.courier}) · uygulama verisi · 1 aylık geçmiş`;
+  const m = $("#mode");
+  m.hidden = !c.mode;
+  m.textContent = c.mode === "mock" ? "mock · kurallı yedek" : c.mode === "live" ? "canlı · Bedrock" : c.mode;
+  m.className = "badge " + (c.mode === "live" ? "live" : "");
+}
+function side(x) {
+  const m = x.memory || {};
+  const dist = Object.entries(m.type_distribution || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  $("#memory").innerHTML = `<div class="kv"><b>${esc(m.total)}</b><span>aktif adres kaydı</span></div>
+    <div style="margin-top:4px">${dist.map(([k, n]) => `<span class="chip">${esc(kindTr(k))} ${esc(n)}</span>`).join("")}</div>
+    ${(m.last || []).map((e) => `<div class="muted" style="margin-top:6px">yeni · ${esc(kindTr(e.kind))}: “${esc(e.text)}”</div>`).join("")}`;
+  const ev = (x.feed || []).slice().reverse();
+  $("#feed").innerHTML = ev.length ? ev.map((e) => `<div class="ev${e.n > S.feedMax ? " flash" : ""}"><span class="a">${esc(e.agent)} · ${esc(e.type)} · ${esc(e.status)}</span><br>${esc(e.summary)}</div>`).join("")
+    : '<span class="muted">Henüz olay yok. Hafıza, Değerlendirme ve Bölge ajanlarının işleri buraya düşer.</span>';
+  S.feedMax = Math.max(S.feedMax, ...(x.feed || []).map((e) => e.n || 0), 0);
 }
 
-$("#next").onclick = () => run(S.done.has(S.cur) || S.cur < 0 ? S.cur + 1 : S.cur);
-$("#runall").onclick = async () => { for (let i = Math.max(0, S.cur + (S.done.has(S.cur) ? 1 : 0)); i < STEPS.length; i++) { await run(i); await sleep(600); } };
-$("#reset").onclick = async () => {
-  S.busy = true; renderSteps();
-  await fetch(BASE + "/api/demo/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ day: S.day }) });
-  Object.assign(S, { session: null, status: null, stop: null, cur: -1, done: new Set(), busy: false });
-  feedMax = 0; trace.innerHTML = ""; lightArch([], "");
-  $("#stephead").innerHTML = '<p class="coltitle">İz</p><h2>Başlamak için “Sıradaki adım”</h2>';
-  result('<span class="muted">Adımın çıktısı burada.</span>');
-  renderSteps(); refreshSide();
-};
-document.addEventListener("keydown", (e) => { if (e.key === "ArrowRight") $("#next").click(); });
+// ------------------------------------------------------------------ olaylar (api/live.py)
+function on(x) {
+  switch (x.t) {
+    case "hello":
+      S.online = true;
+      setCtx(x.ctx);
+      if (!x.run_id) { S.status = "idle"; idleHead(); }
+      else S.status = x.status;
+      setState();
+      if (autostart) { autostart = false; if (x.status !== "running") start(); }
+      break;
+    case "run":
+      Object.assign(S, { run: x.run, status: "running", cur: -1, view: -1, follow: true, items: [], results: {}, errors: {}, feedMax: 0 });
+      setCtx({ day: x.day, courier: x.courier, name: x.name, mode: x.mode });
+      idleHead();
+      $("#stephead").innerHTML = `<p class="coltitle">İz</p><h2>Zincir başladı · ${esc(x.started)}</h2><p>Hafıza ve ajan akışı baştan; ilk ajan birazdan çalışır.</p><div class="wait"><i></i><i></i><i></i></div>`;
+      renderSteps(); setState();
+      break;
+    case "step":
+      S.cur = x.i;
+      S.items[x.i] = [];
+      if (S.follow) showStep(x.i); else renderSteps();
+      break;
+    case "result":
+      S.results[x.i] = x.out;
+      if (S.view === x.i) renderResult(x.i);
+      renderSteps();
+      break;
+    case "step_error": {
+      const i = x.i >= 0 ? x.i : S.cur;
+      if (i < 0) break;
+      (S.items[i] ||= []).push(x);
+      S.errors[i] = x.text;
+      if (S.view === i) { item(x); renderResult(i); }
+      renderSteps();
+      break;
+    }
+    case "side": side(x); break;
+    case "end":
+      S.status = x.status;
+      setState(); renderSteps();
+      if (S.view >= 0) renderResult(S.view);
+      $("#flowline").innerHTML = "Zincir tamamlandı · adımlara dokunarak her ajanın ne yaptığına dönebilirsiniz";
+      break;
+    default:                                      // http, http_done, ev, note: canlı adımın izi
+      if (S.cur < 0) break;
+      S.items[S.cur].push(x);
+      if (S.view === S.cur) item(x);
+  }
+}
 
-(async () => {
-  const [st, m] = await Promise.all([fetch(BASE + "/api/status").then((r) => r.json()).catch(() => ({})), fetch(BASE + "/api/meta").then((r) => r.json())]);
-  S.day = m.critical.day; S.courier = m.critical.courier; S.name = m.critical.courier_name || S.name;
-  const mode = st.llm_mode || st.mode || "mock";
-  $("#mode").textContent = mode === "mock" ? "mock · kurallı yedek" : mode;
-  $("#mode").className = "badge " + (mode === "live" ? "live" : "mock");
-  $("#ctx").textContent = `gün ${S.day} · ödünç kurye ${S.name} (${S.courier}) · uygulama verisi · 1 aylık geçmiş`;
-  renderSteps(); refreshSide();
-})();
+function connect() {
+  es = new EventSource(BASE + "/api/live/stream");
+  ["hello", "run", "step", "http", "http_done", "ev", "note", "result", "step_error", "side", "end"].forEach((t) =>
+    es.addEventListener(t, (m) => { try { on(Object.assign(JSON.parse(m.data), { t })); } catch (e) { console.warn(t, e); } }));
+  es.onerror = () => { S.online = false; setState(); };   // tarayıcı kendisi yeniden bağlanır (Last-Event-ID ile kaldığı yerden)
+}
+async function start() {
+  $("#plan").disabled = true;
+  S.follow = true;
+  try {
+    const r = await fetch(BASE + "/api/live/start", { method: "POST" });
+    if (!r.ok && r.status !== 409) throw new Error((await r.json().catch(() => ({}))).detail || r.status);
+  } catch (e) {
+    $("#flowline").textContent = "Başlatılamadı: " + e.message;
+    setState();
+  }
+  if (Q.has("start")) { Q.delete("start"); history.replaceState(null, "", location.pathname + (Q.toString() ? "?" + Q : "")); }
+}
+$("#plan").onclick = start;
+$("#watch").onclick = () => { S.follow = true; if (S.cur >= 0) showStep(S.cur); setState(); };
+mobile.addEventListener("change", () => { renderSteps(); if (S.view >= 0) showStep(S.view); });
+
+// sunum ekranı: QR sağ altta (hikaye içindeyse QR'ı hikaye gösterir); tuşlar hikayeye iletilir
+if (PRESENTER && Q.has("qr")) document.body.classList.add("qr-pad");
+if (PRESENTER && !EMBED && window.qrcode) {
+  const url = location.origin + BASE + "/flow/";
+  const q = qrcode(0, "M"); q.addData(url); q.make();
+  $("#qr .q").innerHTML = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true, alt: "Canlı akış QR kodu" });
+  $("#qr small").textContent = url.replace(/^https?:\/\//, "");
+  $("#qr").hidden = false;
+}
+if (EMBED) {
+  const KEYS = new Set(["ArrowRight", "ArrowLeft", "PageDown", "PageUp", "a", "A", "q", "Q", "1", "2", "3", "4", "5", "6", "7", "8"]);
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || !KEYS.has(e.key)) return;
+    e.preventDefault();
+    parent.postMessage({ cm: "key", key: e.key }, "*");
+  });
+}
+
+idleHead(); renderSteps(); setState();
+connect();
 </script>
 </body>
 </html>

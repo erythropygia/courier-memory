@@ -1,6 +1,6 @@
 /* Anlatım satırı: her adımda alt çubuğun üstünde "Ne oluyor · Ekranda · Veri". Ekrandaki rakamlar veriden gelir; buradaki
    metinler rakam içermez (veri değişince eskimesin), neyin nasıl gösterildiğini anlatır. A tuşu açar/kapatır.
-   Sahne 2 adım değil vuruş (orkestratör aracı) ile ilerler: anahtar vuruşun grubudur (scene2.js → CM.drawNarration(2, grup)). */
+   Sahne 2–3'ün tek adımı var: canlı akış ajanın izini kendi ekranında gösterir (ui/flow/). */
 (function (CM) {
   const A = (ne, screen, data) => ({ ne, screen, data });
   const SIM = 'Uygulama verisi';
@@ -23,39 +23,14 @@
       A('Zorunlu anlar (izin, ayrılma, yeni ya da komşu şubeden kurye, kampanya) için dört ajan ve onları yöneten bir orkestratör.',
         'Şema: ajanlar, araçları ve hepsinin kullandığı tek maliyet.', 'Mimari; araç adları koddakiyle aynı.'),
     ],
-    2: {
-      empty: A('Gün 32, Çarşamba, kampanya günü, saat 09:00. Gönderiler ve kadro belli; orkestratör ajan kendiliğinden çalışmaya başlar, kimsenin düğmeye basması gerekmez.',
-        'Gri noktalar olağan bir Çarşamba\'nın teslim noktaları.', `${SIM}; konumlar saha verisinden.`),
-      read_volume: A('Orkestratör önce günün hacmine bakıyor: kampanya yüzünden gönderi olağanın üstünde.',
-        'Sağda orkestratörün izi: her satır bir düşünce, araç çağrısı ya da sonucu. Haritada günün teslim noktaları; rakam: olağan güne göre fark.', `${SIM}; araç: read_volume.`),
-      capacity_gap: A('Bu hacim için kaç kurye-gün gerektiği hesaplanıyor; şubenin kendi kadrosu yetmiyor.',
-        'Kırmızı rakam eksik kurye; kareler müsait kuryeler ve açık.', `${SIM}; araç: capacity_gap.`),
-      neighbor_candidates: A('Açığı kapatmak için komşu şubeden kim gelsin? Her aday için ayrı plan kurulur; alacağı bölgeyi tanıyan önde.',
-        'Kartlar: aday ve alacağı kümede tanıdığı durak payı; çerçeveli olanlar önerildi.', `${SIM}; tanıdıklık = kuryenin ortak sınır sokaklarını kendi şubesinden dağıtma geçmişi.`),
-      core_assignment: A('Kuryeler kümelere atanıyor: herkes mümkün olduğunca kendi bölgesinde kalır; komşu şubeden gelenler sınır kümelerini alır.',
-        'Renkli alanlar kümeler, kuryesinin renginde; rakam: kurye sayısı ve kendi bölgesindeki durak payı.', `${SIM}; araç: core_assignment (Atama Ajanı).`),
-      time: A('Geçmiş teslim kayıtlarında "bu adreste şu saatte kimse yok" kalıbı aranıyor. Bulunanlar rota uzamadan uygun saate kaydırılır; kaydırılamayan için alternatif (aktarma, ertesi gün + SMS) önerilir.',
-        'Halkalar saati kaydırılan adresler; rakam: kaydırılan adres sayısı.', `${SIM} kayıtları, not gerekmez; araçlar: delivery_time_analysis → apply_time_constraint → time_alternatives.`),
-      compute_route: A('Bölgeye yabancı kuryelerin rotaları hafızayla hesaplanıyor: bilinen kapalı kapı plandan çıkar, püf noktası süreye eklenir, yanlış saatteki durak kaydırılır.',
-        'Odaktaki rota ve durak sırası; izde her rotanın durak, km, dönüş saati ve hafızanın yaptığı değişiklik.', `${SIM}; araç: compute_route (simülatörle aynı fonksiyon, 408/408 aynı rota).`),
-      sorting_plan: A('Gönderiler ve atama araç gelmeden belli. Ayrıştırma indirme okutmasına gömülür: her rota bir raf, yükleme sırası rotanın tersi. Kurye ayrıştırma yapmaz, erken çıkar.',
-        'Rakam: tahmini çıkış saati ve raf sayısı; izde bugünkü süreçle karşılaştırma.', 'Plandan çıkan tablo (LLM yok); sabah süreleri şube beyanı.'),
-      _: A('Orkestratör bir araç çağırdı ve sonucunu okudu.', 'Sağda iz: düşünce, araç çağrısı ve sonucu.', SIM),
-      proposal: A('Plan gerekçesiyle hazır. Acil durum denetimi: açık kapandı, ciddi fazla mesai yok, plan geçmişe bakmayan atamadan iyi. Plan müdüre gitmeden, temassız kesinleşiyor.',
-        'Rakam: kurye sayısı, komşu şubeden gelenler, kendi bölgesindeki pay; buton acil durumda müdür ekranına geçer.', `${SIM}; araç: present_proposal; eşikler deterministik kodda.`),
-    },
+    2: [
+      A('Gün 32, Çarşamba, kampanya günü, saat 09:00. Gönderiler ve kadro belli; komşu şubeden ödünç gelen kurye bölgeyi bilmiyor. "Günü planla" ajan zincirini canlı başlatır.',
+        'Gri noktalar olağan bir Çarşamba\'nın teslim noktaları; sağ altta canlı akışın QR kodu (izleyiciler telefonda izler).', `${SIM}; konumlar saha verisinden.`),
+    ],
     3: [
-      A('Acil durum: müdür yalnız burada yetkili. Normal günde zincir temassızdır; açık kapanmazsa, ciddi fazla mesai olursa, ajan planı çıkaramazsa ya da müdür acil durum bildirirse plan müdüre gelir. Önce önerinin ne olduğu ve neden.',
-        'Koyu kümeler ödünç kuryelerin bölgeleri; sağda gerekçe; rakamın altında beklenen başarısız teslim ↔ geçmişe bakmadan atama.', `${SIM}; orkestratörün önerisi.`),
-      A('Riskler: bazı kuryelerin beklenen süresi vardiya bandını aşıyor; bazı teslim saatleri kural (rota uzamaz) yüzünden kaydırılamadı.',
-        'İşaretli üç küme en uzun rotalar; kırmızı etiketli adres kaydırılamayan teslim; sağda müdüre alternatif ve alıcıya gidecek SMS.', `${SIM}; beklenen süre kuryeye özgü tahmin.`),
-      A('Müdür "Onur gelmezse ne olur?" diye soruyor; ajan iki yolu araçlarıyla yeniden hesaplıyor: yerine başkası gelir ya da kimse gelmez.',
-        'Sağda ajanın izi; kartlarda iki yolun bant üstü süre ve başarısız teslim farkı. Kendi sorunuzu da yazabilirsiniz.', `${SIM}; Atama Ajanı aynı araçları kullanır.`),
-      A('Öneri değişmedi; müdür onaylamak üzere.', 'ONAYLA butonu; onaydan sonra brifing ve rotalar onaylı planı okur.', 'Acil durumda karar insanda.'),
-      A('İnsan onayı: plan kesinleşti. Acil durum yoksa bu adım hiç olmaz.', 'İzde İNSAN satırı ve kapanış olayları.', 'API onay kaydı.'),
-      A('08:30, araç geldi. İndirme okutmasında her gönderi doğrudan kuryesinin rafına gider; kurye kendi gönderisini ayıklamakla uğraşmaz, rafını zimmetleyip yükler ve çıkar.',
-        'Solda raflar (raf = rota; kurye ve gönderi sayısı); sağda okutulan gönderiler ve ekranın söylediği raf; kırmızı satır planda olmayan gönderi (müdüre düşer); altta ortalama çıkış ↔ bugünkü süreç.',
-        `${SIM}; gönderi kimlikleri uygulamanın ürettiği; sabah süreleri şube beyanı.`),
+      A('Zincir canlı: Orkestratör günü planlar, acil durum yoksa plan müdüre gitmeden kesinleşir; Brifing kuryeye anlatır, Hafıza Ajanı kapıdaki notu adrese yazar, durak kartı sonraki kuryeye söyler, Hasat, Değerlendirme ve Bölge ajanları ertesi günü hazırlar.',
+        'Akış ekranı: üstte mimari şerit (o adımda veri hangi parçalardan geçiyor), solda sekiz adım, ortada ajanın izi (karar, araç çağrısı, sonuç), sağda adımın çıktısı, şube hafızası ve ajan akışı. Sağ alttaki QR aynı akışı telefonda açar; telefon yalnız izler.',
+        `${SIM}; ajanlar sunucuda canlı çalışır, her koşu hafızayı baştan alır.`),
     ],
     4: [
       A('Gökhan komşu şubeden geldi, bu bölgeyi bilmiyor. Telefonuna sabah brifingi geliyor: kaç durak, ne zaman döner, nerede dikkat etmeli.',

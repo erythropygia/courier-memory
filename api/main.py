@@ -4,6 +4,7 @@ uvicorn api.main:app --reload     (CM_LLM_MODE=mock|live|record|replay, CM_RUN_D
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import threading
@@ -20,6 +21,7 @@ from pydantic import BaseModel, Field
 
 from agents import Services
 from api import transcribe
+from api.live import LIVE, LiveBusy
 
 ROOT = Path(__file__).resolve().parents[1]
 UI_DIR = ROOT / "ui"
@@ -819,7 +821,81 @@ async def transcribe_audio(request: Request):
     return await transcribe.handle(request)
 
 
+# ------------------------------------------------------------------ canlı akış (sunum ekranı başlatır, QR izleyicileri izler)
+@app.get("/api/live")
+async def live_state(after: int = Query(0, ge=0)):
+    """Canlı akışın durumu ve `after`'dan sonraki olayları (SSE açılamazsa poll)."""
+    return LIVE.snapshot(after)
+
+
+@app.post("/api/live/start")
+async def live_start():
+    """Sekiz adımlık zinciri sunucuda bir kez başlatır; koşu sürerken ikinci başlatma 409."""
+    try:
+        return LIVE.start()
+    except LiveBusy:
+        raise HTTPException(409, "Canlı akış zaten çalışıyor") from None
+
+
+def _live_ctx() -> dict:
+    s = sv()
+    c = s.run.meta["critical"]
+    return {"day": c["day"], "courier": c["courier"], "name": c.get("courier_name", ""), "mode": s.llm.mode}
+
+
+@app.get("/api/live/stream")
+async def live_stream(request: Request):
+    """SSE: önce `hello` {status, run_id}, sonra geçerli koşunun bütün olayları ve yenileri. `id: <koşu>:<sıra>`;
+    yeniden bağlanan tarayıcı Last-Event-ID ile kaldığı yerden sürer. 15 sn'de bir yorum satırı (CloudFront ve ALB bağlantıyı kesmesin).
+    async: izleyici başına iş parçacığı tutulmaz."""
+    run, n = None, 0
+    last = request.headers.get("last-event-id", "")
+    if ":" in last:
+        try:
+            r, i = last.split(":", 1)
+            run, n = int(r), int(i) + 1
+        except ValueError:
+            run, n = None, 0
+
+    try:
+        ctx = await asyncio.to_thread(_live_ctx)
+    except Exception:
+        ctx = None
+
+    async def gen():
+        nonlocal run, n
+        snap = LIVE.snapshot(10**9)
+        yield "retry: 2000\n\n" + _sse("hello", {"status": snap["status"], "run_id": snap["run_id"], "ctx": ctx})
+        beat = time.monotonic()
+        while True:
+            evs, run, n, _ = LIVE.pull(run, n)
+            for e in evs:
+                yield _sse(e["t"], e, f"{e['run']}:{e['n']}")
+            now = time.monotonic()
+            if evs:
+                beat = now
+            elif now - beat > 15:
+                beat = now
+                yield ": ping\n\n"
+            await asyncio.sleep(0.25)
+
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"})
+
+
 # ------------------------------------------------------------------ arayüz
+# Sondaki "/" olmadan gelen istek göreli yönlendirilir. Starlette'in kendi yönlendirmesi mutlak adres kurar: CloudFront
+# arkasında Host ALB'nin adı, şema http olur (https://…/flow → http://…elb.amazonaws.com/flow/). Göreli adres tarayıcıda
+# aynı kökte (HTTPS) kalır ve ters vekil öneki (/proxy/<port>/) altında da çalışır.
+def _slash(name: str):
+    def go():                       # parametresiz: sorgudan hedef alınmaz (açık yönlendirme olmaz)
+        return RedirectResponse(f"{name}/")
+    return go
+
+
+for _name in ("story", "flow", "demo"):
+    app.add_api_route(f"/{_name}", _slash(_name), methods=["GET", "HEAD"], include_in_schema=False)
+
 if UI_DIR.exists():
     app.mount("/ui", StaticFiles(directory=UI_DIR), name="ui")
 if UI_STORY.exists():  # hikaye arayüzü (sunum): /story/

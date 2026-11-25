@@ -330,6 +330,20 @@ Tüm yanıtlar JSON'dur. Ajan yanıtlarında şu alanlar ortaktır:
 - "Kendi bölgesinde durak payı" = `1 − unfamiliar_share`.
 - C ve D kolları çekirdek bölgeli dinamik plandır (`policies/simple.py → AnchoredPlanPolicy`); D, C'nin planını paylaşır ve ipucu alır.
 
+### Canlı akış (`api/live.py`; sunum ekranı başlatır, QR izleyicileri izler)
+
+Sekiz adımlık zincir (Orkestratör → acil durum kapısı → Brifing → Hafıza → durak kartları → Hasat → Değerlendirme → Bölge) sunucuda bir kez koşar; olaylar bellekte tutulur (web tek ECS görevi) ve herkese aynı sırayla yayınlanır. Her koşu `POST /api/demo/reset` ile aynı yerden başlar. Spec: `.kiro/specs/canli-akis/`.
+
+| Uç | Açıklama |
+|---|---|
+| `POST /api/live/start` | Koşuyu başlatır → `{run_id, status: "running"}`; koşu sürerken `409` |
+| `GET /api/live?after=n` | `{run_id, status: idle\|running\|done\|error, total, events[]}` (SSE açılamazsa poll) |
+| `GET /api/live/stream` | SSE. Önce `hello {status, run_id, ctx{day, courier, name, mode}}`, sonra geçerli koşunun bütün olayları ve yenileri; `id: <run>:<n>`, `Last-Event-ID` ile kaldığı yerden; 15 sn'de bir `: ping`. Akış kapanmaz: yeni koşu `run` olayıyla baştan gelir |
+
+Olay: `{run, n, t, ...}`. `t`: `run {day, courier, name, mode, model, steps, started}` · `step {i}` · `http {method, path, body}` · `http_done {status, ms, data}` · `ev {e}` (§5 ajan izi olayı; `data`/`input` kırpılmış: liste 8 öğe, derinlik 3, metin 400) · `note {text}` · `result {i, out}` (adımın sonuç kartı verisi) · `step_error {i, text}` · `side {memory{total, type_distribution, last[]}, feed[]}` · `end {status}`.
+
+Arayüz: `/flow/` izleyici (başlatma düğmesi yok), `/flow/?sunum=1` sunum ekranı ("Günü planla"; `start=1` açılışta başlatır, `qr=1` QR'a yer bırakır). `/story`, `/flow`, `/demo` (sonda `/` yok) göreli `307 <ad>/` döner: mutlak yönlendirme CloudFront arkasında `http://<ALB>/…` olurdu.
+
 ## 5. Ajan izi (orkestratör)
 
 Her olay: `{"i": sıra, "type": ..., "source": "llm|kural|insan", ...alanlar}`. Saat damgası yoktur; mock iz deterministiktir. Canlı yol ile kurallı yedek aynı tipleri aynı sırayla üretir; arayüz yalnız `source` ile ayırt eder.
@@ -479,13 +493,13 @@ Satır: `{address, source, reason, arrival, p_now, good, good_slot, min_extra_mi
 | Sahne | Çağrılar (sırayla) |
 |---|---|
 | 1 Sorun ve ilke | adım 0–5 yok (`data/scene1.json`, gerçek veri istisnası); adım 6 `GET /api/summary` (`long_term.summary.arms.*.unfamiliar_share`) |
-| 2 Sabah | `GET /api/status` → `POST /api/memory/reset {day: 32}` → `POST /api/orchestrator/start {day: 32}` → `GET /api/orchestrator/session/{id}/stream?tempo_ms=0` (SSE; hata → `GET …/session/{id}?after=n` poll; API yok → `data/trace_fallback.json`) |
-| 3 Acil durum | `GET /api/orchestrator/session/{id}` (Sahne 2'nin koşusu yalnız `awaiting_approval` ise; değilse) `POST /api/orchestrator/plan {day: 32, manager_review: true}` → `POST …/session/{id}/ask {soru}` → `POST …/session/{id}/decision {karar: "approval"}` → `GET …/session/{id}?after={total_event}` (insan kararı + kapanış olayları); son adım: `GET /api/morning/{gün}` → `POST /api/morning/scan` (örnek gönderiler + bir istisna) |
+| 2 Sabah | yok (harita `data/scene2.json`); "Günü planla" / → Sahne 3'ü `&start=1` ile açar |
+| 3 Canlı akış | `/flow/?sunum=1&qr=1[&start=1]` (iframe): `GET /api/live/stream` (SSE), `POST /api/live/start` ("Günü planla"; `start=1` açılışta). Ayrıntı §4 "Canlı akış" |
 | 4 Kapıda | `GET /api/briefing/32/O02`, `GET /api/route/32/O02` (durak sırası = `comparison.memory.order`, varış = `expected_arrival`), `POST /api/memory/feedback {day, record, valid}`, `POST /api/note {day, courier, text, lat, lng, minute}`, `GET /api/briefing/{demo.next.day}/{demo.next.courier}`, `GET /api/meta` (`critical.memory_gain`), `GET /api/summary` (`summary.memory_routing.type`), `GET /api/speech?text=` (501 → tarayıcı sesi) |
 | 5 Hasat | `POST /api/harvest/plan {day: 32}` → (soru `demo.harvest_gap.address` / `demo.harvest_time.address` ile bulunur, kimlikle değil) `GET /api/route/32/{courier}` (önce) → `POST /api/harvest/simulate-answer {question_id}` → `GET /api/route/32/{courier}` (sonra); `GET /api/time/example` |
 | 6 Öğrenme | `GET /api/learning`, `GET /api/summary` (`daily.{A,B,C,D}[].{day, first_attempt_rate}`, `summary.arms.*.{label, first_attempt_rate, fail_by_reason}`, `summary.preventable_reasons`, `sweep.rows[].arms.*.first_attempt_rate`, `sweep.headline`, `calibration.{source, rows[].{measure, explanation, value, compatible}}`, `ablation.variants`) |
 | 7 Değer | `GET /api/economics` (`headline`, `operation.{waterfall, arms, scale}`, `scale`, `model_comparison`, `llm_scenarios`, `llm.agents`, `models`, `assumptions`), `GET /api/economics?scenario=optimize`, `GET /api/economics?model_assignment=&model_memory=&model_briefing=&cache=` (model seçici), `GET /api/economics?courier_daily_cost_tl=&fails_other_tl=&second_attempt_min=&km_cost_tl=` (kaydırıcılar), `GET /api/summary` (`long_term.summary.arms.*.unfamiliar_share`) |
-| 8 Kapanış | `GET /api/status` (`mode`, `models`), `GET /api/economics` (`headline`) |
+| 8 Kapanış | `GET /api/status` (`mode`, `models`), `GET /api/economics` (`headline`); son adımda canlı akış QR'ı (`/flow/`, sayfanın kendi kökünden) |
 
 **Kayıtlı yanıtlar (`ui/story/data/fallback.json`, `tools/record_fallback.py`):** düz JSON nesnesi; anahtar `"GET <path+sorgu>"` ya da `"POST <path>#<name>"` (aynı yola farklı gövdeli POST'lar: `ask#onur|gokhan`, `decision#approval`, `note#personal|noise|back`, `geri-bildirim#<kayıt>`, `simule-cevap#<question_id>`; aynı GET'in farklı anı: `route/32/<courier>#before|after-<question_id>`). `GET /api/summary` kırpılmış hâlde saklanır (arayüzün okuduğu alanlar). Ek anahtarlar:
 - `demo`: `{note_address, note_order, next{day, courier, name}, harvest_gap{address, courier, courier_name}, harvest_time{address, courier, courier_name}}`. Kurallar (aracın docstring'i): not adresi O02'nin gün 32 rotasında, bölgeye yabancı, kapı notu yok, 8–20. sıra, sonraki 7 günde başka kuryenin gittiği; en erken gün, sonra en küçük sıra. Hasat: boşluk sorusu O02 rotasında ve simüle cevabı hafızaya yazılıp rotayı değiştiren ilki; saat teyidi cevabı `confirmation` olup o adrese bugün giden kuryenin rotasını değiştiren ilki.

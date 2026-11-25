@@ -63,9 +63,10 @@
   }
 
   function last() {
-    // QR: geçmiş demo koşusunda her ajanın aldığı, düşündüğü ve verdiği (ui/demo/, build.py --url ile üretilir)
-    CM.board(`<div class="demo-qr"><img src="data/demo-qr.svg" alt="Demo izi QR kodu" onerror="this.closest('#board').innerHTML=''">
-      <p><b>Telefonunuzla okutun</b>Ajanlar ne aldı, ne düşündü, ne verdi: geçmiş demo koşusu adım adım</p></div>`, 'qr');
+    // QR: canlı akış (/flow/, izleme modu); adres sayfanın kendi kökünden (js/qr.js). Koşu bittiyse son koşu baştan oynar.
+    const svg = CM.qrSvg(CM.flowUrl(), 'Canlı akış QR kodu');
+    CM.board(svg ? `<div class="demo-qr">${svg}
+      <p><b>Telefonunuzla okutun</b>Ajanlar ne aldı, ne düşündü, ne verdi: sunumdaki canlı koşu adım adım</p></div>` : '', 'qr');
     CM.message(['Kuryeyi kaydırmıyoruz,', 'sınırı esnetiyoruz.', 'Bilgi kişiden <span class="blue">adrese</span> taşınır.']);
     const m = extra && extra.headline;
     CM.figure(m ? [{ v: CM.count(m.savings_tl_year / 1e6, 1) + ' mn', boy: 'mid', l: 'TL/yıl · şube başına' }, { v: `${m.quality.fails_per_day_current} → ${m.quality.fails_per_day_memory}`, boy: 'mid', l: 'başarısız teslim/gün' }] : [],

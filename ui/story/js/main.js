@@ -1,6 +1,7 @@
-/* Sunucu denetimi: → / boşluk / PageDown sonraki adım, ← / PageUp geri, R sahneyi baştan, A açıklama satırı, 1–8 sahne. Adres: #sahne/adım */
+/* Sunucu denetimi: → / boşluk / PageDown sonraki adım, ← / PageUp geri, R sahneyi baştan, A açıklama satırı, Q canlı akış QR'ı, 1–8 sahne.
+   Adres: #sahne/adım. Sahne 3'teki akış ekranı (iframe) odaktayken tuşları postMessage ile buraya iletir. */
 (function (CM) {
-  const NAMES = { 1: 'Sorun', 2: 'Sabah', 3: 'Onay', 4: 'Kapıda', 5: 'Hasat', 6: 'Öğrenme', 7: 'Değer', 8: 'Kapanış' };
+  const NAMES = { 1: 'Sorun', 2: 'Sabah', 3: 'Canlı akış', 4: 'Kapıda', 5: 'Hasat', 6: 'Öğrenme', 7: 'Değer', 8: 'Kapanış' };
   let active = null, step = 0, busy = false;
 
   CM.drawStep = function (n, i) {
@@ -10,7 +11,7 @@
   };
   function writeHash() {
     history.replaceState(null, '', `#${active.no}/${step}`);
-    if (active.no !== 2 && CM.drawNarration) CM.drawNarration(active.no, step);   // Sahne 2 vuruşla ilerler, kendisi çizer
+    if (CM.drawNarration) CM.drawNarration(active.no, step);
   }
 
   async function openScene(no, firstStep = 0) {
@@ -24,6 +25,7 @@
       CM.$('scene-title').textContent = s.title;
       CM.$('attribution').innerHTML = s.attribution;
       document.querySelectorAll('#scenes button').forEach((b) => b.classList.toggle('active', +b.dataset.no === no));
+      if (CM.qrAuto) CM.qrAuto(no === 2 || no === 3);       // canlı akış QR'ı: demo sahnelerinde sağ altta
       await s.enter();
       step = 0;
       if (s.step) {
@@ -60,15 +62,26 @@
     openScene(active.no, 0);
   }
 
+  // tuş → eylem; true: tuş kullanıldı
+  function key(k) {
+    if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'Enter') next();
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') back();
+    else if (k === 'r' || k === 'R') restart();
+    else if ((k === 'a' || k === 'A') && CM.toggleNarration) CM.toggleNarration();
+    else if ((k === 'q' || k === 'Q') && CM.toggleQr) CM.toggleQr();
+    else if (/^[1-8]$/.test(k) && CM.scenes[+k]) openScene(+k);
+    else return false;
+    return true;
+  }
   document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target && e.target.closest && e.target.closest('input, textarea, select')) return; // serbest soru / not yazılırken
-    const k = e.key;
-    if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'Enter') { e.preventDefault(); next(); }
-    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') { e.preventDefault(); back(); }
-    else if (k === 'r' || k === 'R') restart();
-    else if ((k === 'a' || k === 'A') && CM.toggleNarration) CM.toggleNarration();
-    else if (/^[1-8]$/.test(k) && CM.scenes[+k]) openScene(+k);
+    if (key(e.key)) e.preventDefault();
+  });
+  // Sahne 3'ün akış ekranı (aynı kök ya da ?api= kökü) odaktayken gelen tuşlar
+  window.addEventListener('message', (e) => {
+    const ok = e.origin === location.origin || (CM.API && /^https?:/.test(CM.API) && e.origin === new URL(CM.API).origin);
+    if (ok && e.data && e.data.cm === 'key' && typeof e.data.key === 'string') key(e.data.key);
   });
 
   async function start() {

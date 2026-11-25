@@ -385,3 +385,16 @@ body.narration-closed #narration-key { opacity: .5; }
 #board.qr .demo-qr img { display: block; width: 100%; height: auto; }
 #board.qr .demo-qr p { margin: .5rem 0 0; font: 500 .9rem/1.35 "Inter"; }
 #board.qr .demo-qr b { display: block; font-size: 1.05rem; margin-bottom: .15rem; }
+
+/* Sahne 3: canlı akış ekranı (ui/flow/ sunum modu, iframe) */
+#board.live { display: block; left: 2.5rem; right: 2.5rem; top: 5.4rem; bottom: calc(var(--alt) + 1rem); }
+#board.live iframe { display: block; width: 100%; height: 100%; border: 1px solid var(--ink); background: var(--paper); }
+
+/* canlı akış QR'ı: sağ alt (js/qr.js; Sahne 2–3 kendiliğinden, Q ile her sahnede) */
+#qr { position: fixed; right: 2.5rem; bottom: calc(var(--alt) + 1.3rem); z-index: 6; width: 15.5rem; background: #fff; color: var(--ink);
+  border: 1px solid var(--ink); padding: 1rem 1rem .8rem; text-align: center; box-shadow: 0 .6rem 2rem rgba(26, 23, 20, .18); }
+#qr[hidden] { display: none; }
+#qr b { display: block; font: 700 1.2rem/1.15 "Inter"; margin-bottom: .6rem; }
+#qr .q svg { display: block; width: 13.5rem; height: 13.5rem; margin: 0 auto; }
+#qr small { display: block; font: 500 .85rem/1.3 "Inter"; color: var(--ink-2); margin-top: .5rem; word-break: break-all; }
+#board.qr .demo-qr svg { display: block; width: 100%; height: auto; }

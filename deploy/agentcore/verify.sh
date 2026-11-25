@@ -78,7 +78,8 @@ print(','.join(names))")"
 
   echo "Kontrol 3 · Observability: log grubu ve izler"
   AGENT_ID="${ARN##*/}"
-  if aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query "logGroups[].logGroupName" --output text 2>/dev/null | tr '\t' '\n' | grep -q "/${AGENT_ID}-DEFAULT$"; then
+  # MSYS_NO_PATHCONV: Git Bash on Windows would otherwise rewrite "/aws/..." into a Windows path.
+  if MSYS_NO_PATHCONV=1 aws logs describe-log-groups --log-group-name-prefix /aws/bedrock-agentcore/runtimes/ --query "logGroups[].logGroupName" --output text 2>/dev/null | tr '\t' '\n' | grep -q "/${AGENT_ID}-DEFAULT$"; then
     ok "log grubu var: /aws/bedrock-agentcore/runtimes/${AGENT_ID}-DEFAULT"
   else bad "log grubu yok: /aws/bedrock-agentcore/runtimes/${AGENT_ID}-DEFAULT"; fi
   echo "  izler (30–90 sn gecikebilir):"; agentcore traces runtime list --since 15m 2>&1 | head -8 | sed 's/^/    /'

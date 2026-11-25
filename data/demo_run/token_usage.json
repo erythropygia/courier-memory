@@ -1,0 +1,70 @@
+{
+ "app_data": true,
+ "character_token": 3.0,
+ "agents": {
+  "propose_assignment": {
+   "request": 4,
+   "input": 14044,
+   "cached_read": 8638,
+   "cached_write": 5406,
+   "prefix": 1383,
+   "output": 2100,
+   "source": "estimate"
+  },
+  "ask_assignment": {
+   "request": 2,
+   "input": 5974,
+   "cached_read": 1500,
+   "cached_write": 4473,
+   "prefix": 1356,
+   "output": 900,
+   "source": "estimate"
+  },
+  "memory": {
+   "request": 4,
+   "input": 8054,
+   "cached_read": 5846,
+   "cached_write": 2208,
+   "prefix": 1721,
+   "output": 1250,
+   "source": "estimate"
+  },
+  "briefing": {
+   "request": 2,
+   "input": 2665,
+   "cached_read": 622,
+   "cached_write": 2043,
+   "prefix": 588,
+   "output": 850,
+   "source": "estimate"
+  },
+  "orchestrator": {
+   "request": 12,
+   "input": 143128,
+   "cached_read": 117287,
+   "cached_write": 25841,
+   "prefix": 3111,
+   "output": 4500,
+   "source": "estimate"
+  },
+  "ask_orchestrator": {
+   "request": 4,
+   "input": 24628,
+   "cached_read": 13978,
+   "cached_write": 10649,
+   "prefix": 3084,
+   "output": 1500,
+   "source": "estimate"
+  },
+  "harvest": {
+   "request": 7,
+   "input": 45494,
+   "cached_read": 36271,
+   "cached_write": 9224,
+   "prefix": 1464,
+   "output": 2100,
+   "source": "estimate"
+  }
+ },
+ "note": "Çağrı başına token. 'tahmin': temsili çağrı dizisinden; 'olcum': canlı kullanım günlüğünden."
+}

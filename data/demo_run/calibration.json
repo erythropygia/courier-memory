@@ -1,0 +1,104 @@
+{
+ "app_data": true,
+ "source": "Saha verisinin toplulaştırılmış özeti (yuvarlanmış); mevcut yapı, teslimat görevleri",
+ "rows": [
+  {
+   "measure": "shipment_day",
+   "explanation": "Günlük teslimat gönderisi",
+   "target": 2900,
+   "value": 2767.6154,
+   "compatible": true
+  },
+  {
+   "measure": "stop_day",
+   "explanation": "Günlük farklı teslim noktası",
+   "target": 2400,
+   "value": 2344.1538,
+   "compatible": true
+  },
+  {
+   "measure": "shipment_stop",
+   "explanation": "Durak başına gönderi",
+   "target": 1.2,
+   "value": 1.1806,
+   "compatible": true
+  },
+  {
+   "measure": "courier_day",
+   "explanation": "Mevcut yapıda günlük çalışan kurye (ek kuryeler dahil)",
+   "target": 21,
+   "value": 22.0,
+   "compatible": true
+  },
+  {
+   "measure": "failure_rate",
+   "explanation": "Başarısız teslim / deneme (mevcut yapı)",
+   "target": 0.038,
+   "value": 0.0404,
+   "compatible": true
+  },
+  {
+   "measure": "repeat_1_g",
+   "explanation": "Durağın adresine önceki 1 gün içinde gidilmiş olma payı",
+   "target": 0.16,
+   "value": 0.1533,
+   "compatible": true
+  },
+  {
+   "measure": "repeat_5_g",
+   "explanation": "… önceki 5 gün içinde",
+   "target": 0.53,
+   "value": 0.4994,
+   "compatible": true
+  },
+  {
+   "measure": "repeat_12_g",
+   "explanation": "… önceki 12 gün içinde",
+   "target": 0.69,
+   "value": 0.6831,
+   "compatible": true
+  },
+  {
+   "measure": "one_time_address",
+   "explanation": "13 günde yalnız bir kez gidilen adres payı",
+   "target": 0.59,
+   "value": 0.6029,
+   "compatible": true
+  },
+  {
+   "measure": "workload_deviation_fixed",
+   "explanation": "Mevcut yapıda kurye iş yükü değişim katsayısı",
+   "target": 0.43,
+   "value": 0.3269,
+   "compatible": true
+  },
+  {
+   "measure": "workload_deviation_dynamic",
+   "explanation": "Dinamik planda kurye iş yükü değişim katsayısı",
+   "target": 0.24,
+   "value": 0.2155,
+   "compatible": true
+  },
+  {
+   "measure": "dynamic_courier_diff",
+   "explanation": "Dinamik planda kurye-gün farkı (göreli)",
+   "target": -0.17,
+   "value": -0.1182,
+   "compatible": true
+  },
+  {
+   "measure": "band_planned_fixed",
+   "explanation": "Mevcut yapıda planlanan süresi vardiya bandında olan kurye payı",
+   "target": 0.45,
+   "value": 0.5309,
+   "compatible": true
+  },
+  {
+   "measure": "band_planned_dynamic",
+   "explanation": "Dinamik planda planlanan süresi vardiya bandında olan kurye payı",
+   "target": 0.97,
+   "value": 0.9176,
+   "compatible": true
+  }
+ ]
+}

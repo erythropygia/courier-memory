@@ -1,0 +1,22 @@
+# Uygulama planı: Durak bilgi kartları ve yaklaşma tetiği
+
+- [x] 1. `INFO_KINDS`, `MEMORY_KINDS`; `MemoryConstraints` bilgi türlerini süzer
+  - _Gereksinimler: 1.1, 1.2_
+- [x] 2. `find_secret`, `redact_secret`; `MemoryBook.upsert` şifreyi ve boş bilgi metnini reddeder
+  - _Gereksinimler: 2.1, 1.5_
+- [x] 3. `INFO_KEYWORDS`, `classify`, `info_text`; Hafıza Ajanı şemaları ve istemi (`prompts/memory.md`)
+  - _Gereksinimler: 1.3, 1.4, 1.5, 2.2_
+- [x] 4. `agents/cards.py`: kart, an, güven, sıralama, `StopCards`
+  - _Gereksinimler: 3.1–3.5_
+- [x] 5. Yaklaşma tetiği: mesafe eşikleri, `shown`, tetik başına en çok iki kart
+  - _Gereksinimler: 4.1–4.6_
+- [x] 6. API uçları ve hata kodları
+  - _Gereksinimler: 4.7_
+- [x] 7. Testler: `test_cards.py` (5), `test_cards_api.py` (2)
+  - _Gereksinimler: 1.4, 2.1, 2.2, 3.3, 4.1–4.5_
+- [x] 8. Gerçek saha dilinde not örnekleri (hikaye Sahne 4, eski tek sayfa, akış arayüzü); kayıtlı yanıtlar yeniden kaydedildi
+  - _Gereksinimler: 1.1_
+- [ ] 9. Hikaye arayüzünde kartları ve yaklaşmayı göster (Sahne 4 telefon ekranı)
+  - _Gereksinimler: 3.1, 4.1, 4.2_
+- [ ] 10. Canlı Bedrock ile 14 türlü şemayı sına (`write_memory.type`)
+  - _Gereksinimler: 1.1_

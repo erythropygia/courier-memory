@@ -1,0 +1,22 @@
+# Uygulama planı: Değerlendirme Ajanı, Bölge Ajanı ve ajan akışı
+
+- [x] 1. `agents/feed.py`; not ve kapı geri bildirimi akışa yazılır
+  - _Gereksinimler: 1.1, 1.2_
+- [x] 2. `MemoryBook.flag_for_confirmation`, `MemoryBook.undo`
+  - _Gereksinimler: 2.3, 2.8_
+- [x] 3. `ReviewTools`: beş okuma aracı + `apply` (korkuluklar, günlük sınır)
+  - _Gereksinimler: 2.1–2.7_
+- [x] 4. `ReviewStore.morning_review` (canlı + kurallı yol), `decision` (onay, ret, geri al)
+  - _Gereksinimler: 1.3, 2.8, 2.9_
+- [x] 5. `RegionStats`: endeks, blok, özet, küme kartı, şube katmanı
+  - _Gereksinimler: 3.1_
+- [x] 6. `RegionAgent`: küme kartı ve şube raporu, soru sınırları, kurala düşüş
+  - _Gereksinimler: 3.2–3.5_
+- [x] 7. API uçları ve demo sıfırlama
+  - _Gereksinimler: 1.1, 1.3_
+- [x] 8. Testler: `test_review.py` (4), `test_region_agent.py` (5), `test_review_region_api.py` (3)
+  - _Gereksinimler: 2.3, 2.7, 2.8, 3.4, 3.5_
+- [ ] 9. İki ajanı token ve ekonomi hesabına ekle (`agents/cost.py`, `agents/economics.py`)
+  - _Gereksinimler: 2.1, 3.3_
+- [ ] 10. Canlı Bedrock ile sına (`anyOf` şeması dahil)
+  - _Gereksinimler: 2.1, 3.5_

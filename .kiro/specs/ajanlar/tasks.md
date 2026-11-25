@@ -1,0 +1,32 @@
+# Uygulama planı: Ajanlar
+
+- [x] 1. `rundata.py`, `tr.py`, `guardrails.py` + testleri (`find_pii`, `dative`, `num`)
+  - _Gereksinimler: 3.2_
+- [x] 2. `llm.py`: modlar, Bedrock Mantle istemcisi, ajan döngüsü, kayıt-oynat; sahte LLM ile döngü testleri
+  - _Gereksinimler: 1.1–1.7, 5.1_
+- [x] 3. `memorybook.py`: tohumlama, upsert (kişisel veri reddi), geri bildirim, düşürme, özet
+  - _Gereksinimler: 3.4_
+- [x] 4. `assignment.py` + `prompts/assignment.md`: araçlar, öneri ve soru akışları, mock şablonları
+  - _Gereksinimler: 2.1–2.6_
+- [x] 5. `memory.py` + `prompts/memory.md`: araçlar, mock sınıflandırıcı, sonuç biçimi; `evaluate.py`
+  - _Gereksinimler: 3.1–3.5_
+- [x] 6. `briefing.py` + `prompts/briefing.md`: `route_risks`, structured output, mock şablon
+  - _Gereksinimler: 4.1–4.3_
+- [x] 7. `__init__.py` `Services`; `agents/tests/test_agents.py` yeşil
+  - _Gereksinimler: 5.1, 5.2_
+- [x] 8. `memory.py` (`address_id`, `source`, `parse_window`) ve `memorybook.py` (`window`, `source_list`)
+  - _Gereksinimler: 3.4, 3.5_
+- [x] 9. `harvest.py` + `prompts/harvest.md`: `HarvestTools`, `HarvestAgent`, `HarvestStore`, `SeniorSimulator`; kurye başı ≤ 3, şube ≤ 30, hipotez teyitsiz yazılmaz; toplu `save_questions`
+  - _Gereksinimler: 5.1–5.6_
+- [x] 10. `briefing.py`: onaylı plan (`plans`), `compute_route` + `EtaModel` dönüşü, rota değişiklikleri, ipucu süzme, planlanan varış; `prompts/briefing.md`
+  - _Gereksinimler: 4.1, 4.4–4.6_
+- [x] 11. `agents/tests/test_memory_route.py` (6 test) yeşil
+  - _Gereksinimler: 6.3_
+- [x] 12. `delivery_time.py` (`TimeData`, `TimeSource`, `time_source`, `parse_confirmation`); `harvest.py` `time_confirmations` aracı ve `reason: time` sorusu (cevap `TimeSource`'na); `SeniorSimulator` `truth.presence`'ten cevaplar; `prompts/harvest.md`
+  - _Gereksinimler: 7.1–7.5_
+- [x] 13. `agents/tests/test_delivery_time_agent.py` (7 hızlı + 1 yavaş) yeşil
+  - _Gereksinimler: 6.4_
+- [x] 14. `RoutePlanner` `repair_limits(rc)` ile kısıtlı onarım; `plan()` çıktısında `time_unshiftable[]`, `comparison.route_constraint`, `diff.time_unshiftable`; `day_alternatives(day, mapping)`
+  - _Gereksinimler: 8.1–8.2, 8.4_
+- [x] 15. `agents/tests/test_repair_constraint.py` (7 hızlı) yeşil
+  - _Gereksinimler: 6.5_

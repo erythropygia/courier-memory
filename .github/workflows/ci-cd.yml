@@ -119,6 +119,8 @@ jobs:
         env:
           CM_WORKSPACE: ${{ runner.temp }}
           CM_AGENT_MODEL_ID: ${{ env.AGENT_MODEL_ID }}
+          CM_STORAGE: dynamodb
+          CM_DYNAMODB_TABLE: courier-memory
           PYTHONUTF8: "1"
         run: |
           git config --global user.email "ci@courier-memory.local"

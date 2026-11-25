@@ -98,3 +98,6 @@ python ui/story/tools/prepare.py   # sonra mock API açıkken: tools/record_fall
 | `CM_POLLY` | `0` | `1`: `/api/speech` Amazon Polly kullanır |
 | `CM_AUTO_CACHE` | `1` | Otomatik prompt önbelleği (üst düzey `cache_control`) |
 | `CM_USAGE_LOG` | `data/usage.jsonl` | Canlı token kullanım günlüğü |
+| `CM_STORAGE` | `file` | Çalışma durumu deposu: `file` (JSON dosyaları; `CM_MEMORY_FILE`, `agent_feed.json`, `CM_USAGE_LOG`) \| `dynamodb` (canlı hafıza, ajan akışı ve token kullanımı tek DynamoDB tablosunda; web uygulaması ve AgentCore çalışma ortamları aynı durumu paylaşır, kullanım dosyaya da yazılır). Bölge `AWS_REGION` / `AWS_DEFAULT_REGION`. Anahtar düzeni: `agents/storage/dynamo_keys.py` |
+| `CM_DYNAMODB_TABLE` | `courier-memory` | `CM_STORAGE=dynamodb` iken tablo adı. Kurulum, taşıma ve en az yetki politikası: `python deploy/dynamodb/create_table.py [--migrate] [--print-policy]` |
+| `CM_DYNAMODB_SYNC_SECONDS` | `0` | DynamoDB hafıza önbelleğinin sürüm kontrol aralığı; `0` her okumada kontrol eder (süreçler arası tam tutarlı). Örn. `1`: diğer süreçlerin yazımları en çok 1 sn gecikmeyle görünür, okuma başına istek düşer; yazımlar her zaman tazeler |

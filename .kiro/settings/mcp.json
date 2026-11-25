@@ -17,6 +17,22 @@
         "real_day_evidence",
         "demo_context"
       ]
+    },
+    "courier-memory-live": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--no-project",
+        "--with",
+        "mcp",
+        "python",
+        "deploy/quick/kiro_mcp_proxy.py"
+      ],
+      "env": {
+        "PYTHONUTF8": "1"
+      },
+      "disabled": false,
+      "autoApprove": []
     }
   }
 }

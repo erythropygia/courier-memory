@@ -46,3 +46,10 @@ token'dan kimlik eşlemesi gerekir.
 
 Quick her MCP çağrısında 300 sn bekler; supervisor + uzman genelde 10–60 sn sürer. Her soru yeni bir oturumdur
 (konuşma bağlamını Quick'in kendi sohbeti taşır).
+
+## Kiro'dan canlı ajanlar
+
+`.kiro/settings/mcp.json` içindeki `courier-memory-live` sunucusu aynı köprüyü Kiro'ya açar (`kiro_mcp_proxy.py`, stdio MCP).
+Aracı `QUICK_MCP_URL`, `QUICK_CLIENT_ID`, `QUICK_CLIENT_SECRET`, `QUICK_TOKEN_URL`, `QUICK_SCOPE` değerlerini repo kökündeki `.env`
+dosyasından okur (şablon: `.env.example`), jetonu kendisi alıp süresi dolmadan yeniler. `mcp.json`'da gizli değer yoktur.
+Gereken: `uv` (aracı `uv run --no-project --with mcp` ile başlar). Kiro'da araç adı `ask_courier_memory`; cevap müdür yetkisiyle gelir.

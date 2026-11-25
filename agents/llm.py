@@ -21,17 +21,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
+from .storage import usage_sinks
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL = "anthropic.claude-opus-5-5"
 MODES = ("mock", "live", "record", "replay")
 BEDROCK_CLIENTS = ("mantle", "invoke")
 PROFILE_PREFIXES = ("global.", "us.", "eu.", "apac.", "au.", "jp.")
+USAGE_FIELDS = ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
+log = logging.getLogger(__name__)
 
 
 class AgentError(RuntimeError):
@@ -94,6 +99,7 @@ class LLM:
         self.region = region or os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "us-east-1"
         self.cassette_dir = Path(cassette_dir or os.environ.get("CM_CASSETTE_DIR", ROOT / "cassettes"))
         self.usage_log = Path(os.environ.get("CM_USAGE_LOG", ROOT / "data" / "usage.jsonl"))
+        self.usage_sinks = usage_sinks(self.usage_log)      # dosya; CM_STORAGE=dynamodb ise ayrıca tablo
         self.auto_cache = os.environ.get("CM_AUTO_CACHE", "1") == "1"
         self._client = None
 
@@ -152,14 +158,19 @@ class LLM:
         return data
 
     def _log_usage(self, agent: str, u: dict, seconds: float) -> None:
-        """Canlı/kayıt modunda her isteğin token kullanımını data/usage.jsonl'e yazar (maliyet ölçümü için)."""
+        """Canlı/kayıt modunda her isteğin token kullanımını yazar (data/usage.jsonl; dynamodb modunda tabloya da).
+
+        Günlük hatası model çağrısını asla bozmaz: yalnız uyarı yazılır.
+        """
         if self.mode not in ("live", "record") or not u:
             return
-        self.usage_log.parent.mkdir(parents=True, exist_ok=True)
         row = {"agent": agent, "model": self.model, "t": time.strftime("%Y-%m-%dT%H:%M:%S"), "seconds": round(seconds, 2),
-               **{k: int(u.get(k) or 0) for k in ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")}}
-        with self.usage_log.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(row) + "\n")
+               **{k: int(u.get(k) or 0) for k in USAGE_FIELDS}}
+        for sink in self.usage_sinks:
+            try:
+                sink.record(row)
+            except Exception as e:  # noqa: BLE001 - maliyet günlüğü ikincil; ajan döngüsü sürmeli
+                log.warning("Token kullanım kaydı yazılamadı (%s): %s", type(sink).__name__, e)
 
     # ------------------------------------------------------------------ ajan döngüsü
     def run_agent(self, *, agent: str, system: str, user: str | list, tools: list[Tool], finish_tool: str | None = None,

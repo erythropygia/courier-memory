@@ -16,3 +16,5 @@
   - _Gereksinimler: 1.2, 7.1, 7.2_
 - [ ] 7. İz kontrolü: `agentcore traces runtime list` Quick'ten gelen isteği `cm.actor_id = MUDUR-QUICK` ile gösterir; jetonsuz MCP çağrısı Gateway'de reddedilir
   - _Gereksinimler: 2.1, 3.1_
+
+- [x] 8. Kiro'dan erişim: `deploy/quick/kiro_mcp_proxy.py` (stdio MCP aracısı; `.env`'den `QUICK_*`, jeton önbelleği ve yenileme) ve `.kiro/settings/mcp.json` → `courier-memory-live`; `mcp.json`'da gizli değer yok; `deploy/quick/tests/test_kiro_mcp_proxy.py`

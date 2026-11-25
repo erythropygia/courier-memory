@@ -1,7 +1,10 @@
 """bootstrap.sh'in agentcore.json dönüşümü: supervisor + üç uzman runtime, ortam değişkenleri, IAM politikası."""
 import copy
+import importlib.util
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -65,6 +68,43 @@ def test_analyst_gets_athena_env_and_read_only_policy():
                    for a in actions)
     s3_write = next(s for s in p["Statement"] if "s3:PutObject" in s["Action"])
     assert s3_write["Resource"] == [f"arn:aws:s3:::{ATHENA_BUCKET_PREFIX}*/results/*"]     # yazma yalnız sonuç klasörüne
+
+
+def test_dynamodb_storage_reaches_every_runtime_with_table_scoped_policy():
+    from agentcore_config import STORAGE_POLICY_PATH, storage_policy
+
+    cfg, _ = configure(TEMPLATE, "CourierMemory", multi_agent=True, storage="dynamodb", table="courier-memory")
+    for r in cfg["runtimes"]:
+        env = _env(r)
+        assert (env["CM_STORAGE"], env["CM_DYNAMODB_TABLE"], env["CM_DYNAMODB_SYNC_SECONDS"]) == ("dynamodb", "courier-memory", "1")
+        assert STORAGE_POLICY_PATH in r["additionalPolicies"]
+    assert POLICY_PATH in _by_name(cfg)["agent"]["additionalPolicies"]           # mevcut politikalar korunur
+    assert ANALYST_POLICY_PATH in _by_name(cfg)["analyst"]["additionalPolicies"]
+    p = storage_policy("courier-memory")
+    assert p["Statement"][0]["Resource"] == ["arn:aws:dynamodb:*:*:table/courier-memory"]
+    assert not any(a in ("dynamodb:*", "dynamodb:DeleteTable", "dynamodb:Scan") for a in p["Statement"][0]["Action"])
+
+
+def test_storage_actions_match_the_table_setup_script():
+    from agentcore_config import STORAGE_ACTIONS
+
+    pytest.importorskip("agents")
+    src = Path(__file__).resolve().parents[2] / "dynamodb" / "create_table.py"
+    spec = importlib.util.spec_from_file_location("cm_create_table", src)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert tuple(STORAGE_ACTIONS) == tuple(mod.APP_ACTIONS)
+
+
+def test_file_storage_is_the_default_and_removes_dynamodb_settings():
+    from agentcore_config import STORAGE_POLICY_PATH
+
+    dyn, _ = configure(TEMPLATE, "CourierMemory", multi_agent=True, storage="dynamodb")
+    back, _ = configure(dyn, "CourierMemory", multi_agent=True)
+    for r in back["runtimes"]:
+        assert "CM_STORAGE" not in _env(r) and STORAGE_POLICY_PATH not in (r.get("additionalPolicies") or [])
+    single, _ = configure(TEMPLATE, "CourierMemory", multi_agent=False, storage="dynamodb")
+    assert _env(single["runtimes"][0])["CM_STORAGE"] == "dynamodb"
 
 
 def test_idempotent():

@@ -94,7 +94,7 @@ PY
 
 # Çok ajanlı yapı (varsayılan): agent = supervisor + planner, courier, memory_keeper; tek ajan için CM_MULTI_AGENT=0.
 # Her runtime'a UNIFIED_TRACES_DESTINATION_ENABLED=true yazılır (gözlemlenebilirlik).
-python3 "$REPO/deploy/agentcore/agentcore_config.py" "$PROJ/agentcore/agentcore.json" "$NAME" "${CM_MULTI_AGENT:-1}" "${CM_TARGET:-default}"
+python3 "$REPO/deploy/agentcore/agentcore_config.py" "$PROJ/agentcore/agentcore.json" "$NAME" "${CM_MULTI_AGENT:-1}" "${CM_TARGET:-default}" "${CM_STORAGE:-file}" "${CM_DYNAMODB_TABLE:-courier-memory}"
 
 # Model: şablonun model/load.py dosyası hesabın izin listesinde olmayan bir modeli yazabilir; CM_AGENT_MODEL_ID verilirse o kullanılır.
 LOAD="$APP/model/load.py"

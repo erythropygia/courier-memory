@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "API değişince sözleşmeyi eşitle",
+  "description": "api/main.py kaydedilince uç noktalarla docs/sozlesmeler.md §4 tablosunu ve ilgili spec'i karşılaştırır.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/api/main.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "api/main.py içindeki @app.get ve @app.post yollarını docs/sozlesmeler.md §4 tablosuyla karşılaştır. Tabloda olmayan ya da imzası değişmiş uç varsa listele ve tabloya eklenecek satırı öner (istek gövdesi, yanıt alanları, hata kodları). İlgili .kiro/specs/<özellik>/requirements.md içinde kabul kriteri yoksa onu da söyle. Onay almadan belgeyi değiştirme."
+  }
+}

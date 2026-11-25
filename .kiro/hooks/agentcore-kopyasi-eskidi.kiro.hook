@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "AgentCore kopyası eskidi uyarısı",
+  "description": "AgentCore'a kopyalanan kod (çalışma kodu, alan ajanları, simülatör çekirdeği) değişince dağıtımın eskidiğini hatırlatır.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/deploy/agentcore/runtime/**/*.py",
+      "**/agents/*.py",
+      "**/sim/cm_sim/*.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Bu dosya AgentCore projesine kopyalanan kodun parçası. ~/environment/CourierMemory/app/agent/ altında karşılığı var mı ve içeriği farklı mı bak (diff). Farklıysa kullanıcıya tek cümleyle söyle: 'AgentCore kopyası eski; deploy/agentcore/bootstrap.sh ve ardından agentcore deploy gerekir.' Proje henüz kurulmamışsa hiçbir şey söyleme. Betiği ya da dağıtımı kendin çalıştırma."
+  }
+}

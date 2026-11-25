@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "courier-memory": {
+      "command": ".venv/bin/python",
+      "args": [
+        "deploy/mcp/cm_mcp_server.py"
+      ],
+      "env": {
+        "CM_LLM_MODE": "mock",
+        "PYTHONUTF8": "1"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "branch_memory_summary",
+        "address_memory",
+        "courier_stop_cards",
+        "real_day_evidence",
+        "demo_context"
+      ]
+    }
+  }
+}

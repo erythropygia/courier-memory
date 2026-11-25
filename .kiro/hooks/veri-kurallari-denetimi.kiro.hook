@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "name": "Veri ve KVKK kuralı denetimi",
+  "description": "İstem, arayüz ya da belge kaydedilince kişisel veri, kapı şifresi ve şirket içi ad sızıntısına bakar (.kiro/steering/veri-kurallari.md).",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/agents/prompts/**/*.md",
+      "**/ui/**",
+      "**/ui-story/js/**",
+      "**/ui-flow/**",
+      "**/docs/**/*.md",
+      "**/deploy/agentcore/runtime/cm/prompt.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Kaydedilen dosyayı .kiro/steering/veri-kurallari.md ve sunum-dili.md kurallarına göre denetle: (1) gerçek kişi adı, telefon, alıcı bilgisi, kurye kimliği, kapı şifresi var mı; (2) şirket içi sistem adı, iç servis adresi ya da gerçek bölge kodu var mı; (3) kurye için puan, sıralama ya da performans yargısı dili var mı; (4) simülasyon rakamı 'Uygulama verisi · 1 aylık geçmiş' etiketsiz, gerçek veri 'Gerçek veri' etiketsiz gösterilmiş mi. Bulgu yoksa tek satırla 'temiz' de. Bulgu varsa dosya ve satırıyla listele; düzeltmeyi öner ama onay almadan uygulama. Ayrıca sim/tests/test_forbidden_content.py testini çalıştır ve sonucunu ekle."
+  }
+}

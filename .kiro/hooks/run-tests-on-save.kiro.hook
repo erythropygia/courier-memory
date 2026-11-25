@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Kaydedince ilgili testleri çalıştır",
+  "description": "Ajan, API, simülatör ya da AgentCore çalışma kodu kaydedilince hızlı test takımından ilgili dosyaları çalıştırır.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/agents/**/*.py",
+      "**/api/**/*.py",
+      "**/sim/cm_sim/**/*.py",
+      "**/deploy/agentcore/runtime/**/*.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Az önce kaydedilen dosyaya karşılık gelen testleri çalıştır (CM_LLM_MODE=mock PYTHONUTF8=1 pytest -q <ilgili test dosyaları>; agents/ için agents/tests, api/ için api/tests, sim/ için sim/tests, deploy/agentcore/runtime/ için deploy/agentcore/tests). Yalnız sonucu bildir: geçen ve kalan sayısı, kalan varsa ilk hatanın dosyası ve satırı. Kod değiştirme."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "AgentCore şartlarını koru",
+  "description": "agentcore.json ya da giriş noktası değişince dağıtım şartlarının bozulmadığını denetler.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/agentcore/agentcore.json",
+      "**/app/agent/main.py",
+      "**/deploy/agentcore/runtime/main.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Şunları denetle ve yalnız bozulanı bildir: (1) agentcore/agentcore.json içinde çalışma ortamının envVars listesinde UNIFIED_TRACES_DESTINATION_ENABLED 'true'; (2) agentMemory tanımı duruyor; (3) main.py 'from bedrock_agentcore.runtime import BedrockAgentCoreApp' kullanıyor, ajan _get_agent içinde tembel kuruluyor, işleyici @app.entrypoint ile asenkron üreteç, app.run() yalnız __main__ altında; (4) model kimliği çıkarım profili önekli. Proje kuruluysa deploy/agentcore/verify.sh CourierMemory çıktısını da ekle. Hepsi yerindeyse tek satırla 'şartlar yerinde' de."
+  }
+}

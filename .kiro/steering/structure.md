@@ -69,7 +69,7 @@ deploy/quick/             Amazon Quick köprüsü: bridge_lambda.py (Gateway hed
 deploy/web/               Web container'ı ECS Fargate + ALB'ye: ecs_deploy.py, README.md (spec: aws-dagitim; yapım aşamasında)
 deploy/ci/                github_oidc_setup.py: GitHub Actions için anahtarsız (OIDC) dağıtım rolü (spec: aws-dagitim)
 deploy/mcp/               Projenin MCP sunucusu (şube hafızası, salt okunur); Kiro .kiro/settings/mcp.json ile yükler
-.github/workflows/ci-cd.yml  Her push ve PR'da test; main'de değişen parçaya göre web, AgentCore ve Quick köprüsü dağıtımı
+.github/workflows/ci-cd.yml  main'e push'ta değişen parçaya göre (test yok) web, AgentCore ve Quick köprüsü dağıtımı
 Dockerfile .dockerignore  FastAPI + arayüzler tek container (python:3.12-slim, kök olmayan kullanıcı, varsayılan mock)
 .env.example              Bütün ortam değişkenleri açıklamalı; gizli değer yok (.env git'e ve image'a girmez)
 .kiro/                    steering/ (her oturumda), specs/ (özellik başına gereksinim · tasarım · görev), skills/ (istenince çalışan

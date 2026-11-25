@@ -69,7 +69,6 @@ Bütün kaynaklar projenin bölgesindedir (`AWS_REGION`; bugün `us-east-1`). Ag
 
 | İş | Ne zaman | Ne yapar |
 |---|---|---|
-| `test` | her push ve PR | Python 3.12, `pip install -e ".[dev,agentcore]"`, `CM_LLM_MODE=mock pytest -q` |
 | `changes` | PR dışında | `dorny/paths-filter` ile `web`, `agentcore`, `quick` çıktıları |
 | `deploy-web` | `main`, `web` değiştiyse ya da el ile | ECR girişi → `<commit[:12]>` etiketiyle derle, yükle → mevcut görev tanımını yeni image'la kaydet → servisi güncelle, kararlılığı bekle |
 | `deploy-agentcore` | `main`, `agentcore` değiştiyse ya da el ile | AgentCore CLI (sabit sürüm) → `CM_WORKSPACE=<geçici>` + `CM_AGENT_MODEL_ID` ile `bootstrap.sh` → `verify.sh` → `agentcore deploy` |
@@ -135,7 +134,7 @@ Tam liste ve açıklamalar `.env.example`'dadır.
 - Koşullu yazma: aynı kayda iki eşzamanlı güncelleme ikisini de korur (`api/tests/test_concurrency.py` deseni).
 - `CM_STORAGE` geçersiz değer ve ulaşılamayan tablo açılış hatası verir.
 - Image: `docker build` + `docker run` (mock) → `/api/status` 200, `/story/` açılır.
-- Pipeline: PR'da yalnız `test` koşar; `main`'e push'ta yalnız değişen parçanın işi koşar.
+- Pipeline yalnız dağıtım yapar, test koşmaz; testler push'tan önce yerelde çalıştırılır. `main`'e push'ta yalnız değişen parçanın işi koşar.
 - Dağıtım: `ecs_deploy.py` sonrası Gereksinim 11'in dört kontrolü.
 
 ## Açık riskler

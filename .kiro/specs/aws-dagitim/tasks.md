@@ -14,9 +14,9 @@
   - _Gereksinimler: 4.1–4.5_
 - [x] 6. `deploy/ci/github_oidc_setup.py`: OIDC sağlayıcısı, yalnız `main` dalının üstlenebildiği `courier-memory-github-deploy` rolü, pipeline kaynaklarıyla sınırlı izinler
   - _Gereksinimler: 5.7–5.9_
-- [x] 7. `.github/workflows/ci-cd.yml`: her push ve PR'da mock test; `main`'de değişen dosyaya göre `deploy-web`, `deploy-agentcore` (`bootstrap.sh` + `verify.sh` + `agentcore deploy`), `deploy-quick`; testler geçmeden dağıtım yok
+- [x] 7. `.github/workflows/ci-cd.yml`: yalnız dağıtım (test yok, PR tetikleyicisi yok); `main`'de değişen dosyaya göre `deploy-web`, `deploy-agentcore` (`bootstrap.sh` + `verify.sh` + `agentcore deploy`), `deploy-quick`
   - _Gereksinimler: 5.1–5.6_
-- [ ] 8. Pipeline sınaması: PR'da yalnız test; yalnız `ui/` değişince yalnız web; yalnız `deploy/quick/bridge_lambda.py` değişince yalnız köprü; el ile tetiklemede web + AgentCore
+- [ ] 8. Pipeline sınaması: yalnız `ui/` değişince yalnız web; yalnız `deploy/quick/bridge_lambda.py` değişince yalnız köprü; el ile tetiklemede web + AgentCore
   - _Gereksinimler: 5.1–5.3_
 - [ ] 9. Depo arayüzü: `CM_STORAGE` seçimi, dosya deposu (bugünkü dosyalar), açılışta açık hata; `MemoryBook`, `AgentFeed`, `LLM._log_usage` arayüze bağlanır; hızlı takım değişmeden yeşil
   - _Gereksinimler: 6.1–6.4_

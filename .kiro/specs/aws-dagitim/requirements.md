@@ -5,7 +5,7 @@
 Yerel FastAPI süreci (alan ajanları + hikaye, nasıl çalışır ve eski tek sayfa arayüzleri) bugün bir dizüstünde çalışıyor; canlı adres hafızası (`MemoryBook`), ajan akışı (`AgentFeed`) ve kullanım kaydı yerel JSON dosyalarında. Bu spec üç şeyi tanımlar:
 
 1. **Web dağıtımı:** FastAPI ve arayüzler tek bir container'da (kökteki `Dockerfile`), image Amazon ECR'da, servis **Amazon ECS Fargate** üzerinde, önünde bir **Application Load Balancer**. Container'ın kimliği görev rolüdür; yalnız izinli Bedrock modellerini çağırır. İlk plan AWS App Runner'dı; bu hesapta kuruluş politikasıyla kapalı olduğu için ECS kullanılır.
-2. **Sürekli dağıtım:** `main`'e her push'ta GitHub Actions testleri koşar, değişen parçaya göre web'i, AgentCore ajanlarını ve Quick köprüsünü günceller. AWS kimliği OIDC ile gelir; GitHub'da secret yoktur.
+2. **Sürekli dağıtım:** `main`'e her push'ta GitHub Actions değişen parçaya göre web'i, AgentCore ajanlarını ve Quick köprüsünü günceller. AWS kimliği OIDC ile gelir; GitHub'da secret yoktur.
 3. **Kalıcı durum:** çalışma durumu `CM_STORAGE=dynamodb` ile bir **Amazon DynamoDB** tablosuna (`CM_DYNAMODB_TABLE`) taşınır. `CM_STORAGE=file` (varsayılan) bugünkü davranıştır; testler AWS'siz çalışır.
 
 İlke (`tech.md` → Depolama): hafıza katmanı bir arayüz arkasındadır; dosyadan tabloya geçişte ajan kodu değişmez. AgentCore Runtime ayrı bir dağıtımdır (`agentcore-runtime`); bu spec yerel API'nin bulut karşılığıdır.
@@ -61,7 +61,7 @@ Durum: yapım aşamasında. `Dockerfile`, `.dockerignore` ve `.env.example` repo
 #### Kabul kriterleri
 1. WHEN bir push ya da pull request geldiğinde THE SYSTEM SHALL hızlı test takımını mock modda, AWS'siz koşmalıdır.
 2. WHEN `main`'e push edildiğinde THE SYSTEM SHALL değişen dosyalara göre yalnız ilgili işleri çalıştırmalıdır: web (container'a giren kod ve veri), AgentCore (`deploy/agentcore/**`, alan kodu, veri), Quick köprüsü (`deploy/quick/bridge_lambda.py`); el ile tetiklemede web ve AgentCore birlikte dağıtılır.
-3. THE SYSTEM SHALL dağıtım işlerini testler geçmeden başlatmamalıdır.
+3. THE SYSTEM SHALL pipeline'da test koşmamalı; testler push'tan önce yerelde çalıştırılmalıdır (`CM_LLM_MODE=mock pytest -q`).
 4. WHEN web dağıtılırken THE SYSTEM SHALL image'ı commit kimliğiyle etiketlemeli, mevcut görev tanımını yeni image'la yeniden kaydetmeli ve servisin kararlı olmasını beklemelidir.
 5. WHEN AgentCore dağıtılırken THE SYSTEM SHALL projeyi geçici bir çalışma alanında `bootstrap.sh` ile kurmalı (`CM_AGENT_MODEL_ID` ile), `verify.sh` ile denetlemeli ve `agentcore deploy` ile beş runtime'ı ve hafızayı dağıtmalıdır.
 6. WHEN Quick köprüsü değiştiğinde THE SYSTEM SHALL yalnız köprü Lambda'sının kodunu güncellemelidir.

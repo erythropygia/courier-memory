@@ -1,5 +1,4 @@
-# Courier Memory CI/CD
-#   Her push ve PR: testler (mock, AWS'siz).
+# Courier Memory CI/CD (yalnız dağıtım; testler yerelde: PYTHONUTF8=1 CM_LLM_MODE=mock pytest -q)
 #   main'e push: web (ECR → ECS), değişen dosyalara göre AgentCore ajanları ve Quick köprüsü.
 # AWS kimliği OIDC ile (secret yok): deploy/ci/github_oidc_setup.py rolü kurar; rol yalnız bu deponun main dalına açıktır.
 name: CI/CD
@@ -7,7 +6,6 @@ name: CI/CD
 on:
   push:
     branches: [main]
-  pull_request:
   workflow_dispatch:
 
 concurrency:
@@ -26,24 +24,7 @@ env:
   AGENT_MODEL_ID: global.anthropic.claude-sonnet-5
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-      - run: pip install -e ".[dev,agentcore]"
-      - name: pytest (mock)
-        env:
-          CM_LLM_MODE: mock
-          PYTHONUTF8: "1"
-        run: python -m pytest -q
-
   changes:
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       web: ${{ steps.f.outputs.web }}
@@ -75,7 +56,7 @@ jobs:
               - deploy/quick/bridge_lambda.py
 
   deploy-web:
-    needs: [test, changes]
+    needs: [changes]
     if: github.ref == 'refs/heads/main' && (needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -113,7 +94,7 @@ jobs:
           wait-for-service-stability: true
 
   deploy-agentcore:
-    needs: [test, changes]
+    needs: [changes]
     if: github.ref == 'refs/heads/main' && (needs.changes.outputs.agentcore == 'true' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -150,7 +131,7 @@ jobs:
         run: agentcore deploy --region "$AWS_REGION"
 
   deploy-quick:
-    needs: [test, changes]
+    needs: [changes]
     if: github.ref == 'refs/heads/main' && needs.changes.outputs.quick == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -24,8 +24,9 @@ ek izin `--extra-policy politika.json` (ör. DynamoDB).
 
 ## Sonraki dağıtımlar
 
-`main`'e her push'ta GitHub Actions (`.github/workflows/ci-cd.yml`) testleri çalıştırır, image'ı derleyip ECR'a yükler ve ECS
-servisini yeni görev tanımıyla günceller. AWS kimliği OIDC ile gelir (`deploy/ci/github_oidc_setup.py`); GitHub'da secret yoktur.
+`main`'e her push'ta GitHub Actions (`.github/workflows/ci-cd.yml`) image'ı derleyip ECR'a yükler ve ECS
+servisini yeni görev tanımıyla günceller. Pipeline test koşmaz; testler push'tan önce yerelde çalıştırılır
+(`PYTHONUTF8=1 CM_LLM_MODE=mock pytest -q`). AWS kimliği OIDC ile gelir (`deploy/ci/github_oidc_setup.py`); GitHub'da secret yoktur.
 
 ## Yerelde
 

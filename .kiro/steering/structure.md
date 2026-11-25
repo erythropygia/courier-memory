@@ -1,0 +1,97 @@
+---
+inclusion: always
+---
+# Repo yapısı
+
+```
+sim/                      Dünya + simülatör (spec: dunya-simulator)
+  config/default.yaml     Tüm parametreler, gerekçe yorumlarıyla (Faz 5: sabah bölümü)
+  config/scenarios/*.yaml Senaryo katmanları (leave_wave, turnover, borrowed_courier, volume_shock, normal, long_term, hiring)
+  config/sweep.yaml       Sağlamlık taraması ızgarası
+  cm_sim/
+    config.py rng.py world.py couriers.py demand.py planning.py
+    history.py            Gözlemlenebilir geçmiş + HistoryReader
+    outcome.py notes.py estimation.py
+    delivery_time.py      Faz 2b: teslim zamanı analizi (5 dilim, Beta-Binomial büzme, pencere/teyit bulguları); saf, kol D ve agents/delivery_time.py aynısını çağırır
+                          (Faz 2c: + alternative_text, REASON_TEXT, OPTION_NAME)
+    routing_memory.py     Hafıza → rota kısıtı (planda erteleme, servis düzeltmesi, pencere onarımı, zaman onarımı `repair_times`); saf fonksiyonlar, kol D ve agents/route.py aynısını çağırır
+                          Faz 2c: RepairLimits (onarım rotayı uzatmaz), time_blocked, time_alternatives (aktarma / ertesi gün / akşam teslim noktası + SMS)
+    policies/base.py      Arayüzler ve *View tipleri
+    policies/simple.py    BlindPolicy (B), FitAssignPolicy (C/D)
+    policies/memory_oracle.py  Deterministik hafıza (D)
+    engine.py             Isınma → çatallama → dört kol (D: kendi planı, hasat, karşı-olgu); Faz 5: şubeden çıkış (sabah), vardiya bitişinden fazla mesai, current_morning karşı-olgusu
+    export.py run.py sweep.py publish.py
+    learning.py            Hedef 1: işe alım deneyi (senaryo hiring), öğrenme eğrisi
+    ablation.py           Hafızanın katkısı parça parça (ipucu / hasat / rota)
+  tests/
+agents/                   Ajanlar (spec: ajanlar)
+  llm.py                  Bedrock istemcisi + ajan döngüsü + kayıt-oynat
+  rundata.py memorybook.py guardrails.py tr.py
+  assignment.py memory.py briefing.py
+  harvest.py                Hasat Ajanı: HarvestTools, HarvestAgent, HarvestStore, SeniorSimulator (+ prompts/harvest.md)
+  delivery_time.py        Faz 2b: TimeData, TimeSource, parse_confirmation (+ Orkestratör araçları delivery_time_analysis, apply_time_constraint, Faz 2c: time_alternatives; Hasat time_confirmations)
+  orchestrator.py          Orkestratör: DayTools (araçlar; Faz 5: sorting_plan), plan/ask/apply_decision, SessionStore
+  trace.py                   Ajan izi (olay sırası; docs/sozlesmeler.md §5)
+  route.py                 RoutePlanner + EtaModel + MemoryConstraints; cm_sim.routing_memory'yi import eder (tek fonksiyon, iki kullanıcı)
+                          Faz 2c: repair_limits(rc), day_alternatives, time_unshiftable[], comparison.route_constraint
+  cards.py                Faz 2d: durak bilgi kartları ve yaklaşma tetiği (StopCards; bilgi türleri rotaya girmez)
+  feed.py                 Ajan akışı: ajanların her işi zaman sıralı (AgentFeed)
+  review.py               Değerlendirme Ajanı: sabah öz-değerlendirme, geri alınabilir düzeltmeler (ReviewStore)
+  region.py region_agent.py  Bölge Ajanı: blok zorluğu, küme kartı, şube raporu, boşluğa soru
+  real_day.py stop_order.py  Gerçek 5 Mayıs: hafıza kapsamı, küme rotası, kurye aktarımı
+  prompts/*.md            Türkçe sistem istemleri
+  evaluate.py check.py record.py
+  tests/
+api/main.py               FastAPI (spec: api-arayuz; /api/orchestrator/*, /api/route, /api/harvest/*, /api/learning, /api/time/*, Faz 2c: /api/time/{gün}/alternatives; Faz 5: /api/morning/{gün}, /api/morning/scan)
+api/tests/
+ui/                       Eski tek sayfa demo (index.html, app.js, style.css); /legacy adresinde ayrıntı ekranı
+ui-story/                Hikaye arayüzü (demo + sunumun tamamı, 8 sahne; spec api-arayuz Gereksinim 7); / → /story/
+  js/stage.js common.js chart.js   Harita/durum altyapısı, API (kayıt yedekli), ajan izi, ses, SVG grafikler
+  js/narration.js           Her adımın açıklama satırı: Ne oluyor · Ekranda · Veri (A tuşu)
+  js/scene1.js … scene8.js            Sorun · Sabah · Onay · Kapıda · Hasat · Öğrenme · Değer · Kapanış
+  data/                   scene1.json (gerçek veri istisnası, veri-kurallari.md), scene2.json, sim_mapping.json, trace_fallback.json, fallback.json
+  tools/                  prepare.py (sahne verisi), record_trace.py (Sahne 2 yedeği), record_fallback.py (Sahne 3–7 yedeği), download_tiles.py
+  vendor/ tiles/ fonts/   MapLibre, yerel vektör karolar, yazı tipleri (internetsiz)
+ui-flow/                  "Nasıl çalışır" arayüzü (/flow/): bir günün akışı 8 adımda, ajan izi ve API çağrıları (spec: akis-arayuzu)
+ui-yon/                   Faz 3a tasarım yönü demosu (tek dosya)
+deploy/agentcore/         Amazon Bedrock AgentCore Runtime (spec: agentcore-runtime)
+  runtime/main.py         Giriş noktası: BedrockAgentCoreApp, tembel _get_agent, akış döndüren @app.entrypoint
+  runtime/cm/             Strands araçları (tools.py), kimlik sınırı kancası (scope.py), istem, AgentCore Memory, model
+  bootstrap.sh verify.sh  `agentcore create` iskelesine kodu yerleştirir · yerel ön kontrol + Lab 7'nin üç kontrolü
+  tests/                  Betikli sahte modelle uçtan uca testler (Bedrock'a gitmez)
+deploy/mcp/               Projenin MCP sunucusu (şube hafızası, salt okunur); Kiro .kiro/settings/mcp.json ile yükler
+deploy/kiro_sync.sh       .kiro içeriğini çalışma alanı köküne (~/environment/.kiro) taşır
+.kiro/                    steering/ (her oturumda), specs/ (özellik başına gereksinim · tasarım · görev), skills/ (istenince çalışan
+                          yönergeler), hooks/ (kaydetmede/araçta çalışan otomasyon), settings/mcp.json
+data/real_day/ data/map/  Gerçek 5 Mayıs günü ve yol bacakları (docs/veri-haritasi.md)
+data/demo_run/            Hazır çalıştırma (uygulama verisi, 1 aylık geçmiş) (+ sweep.json, learning.json, ablation.json, harvest.json; Faz 2b: delivery_log.json, time.json)
+cassettes/                Kayıt-oynat LLM yanıtları
+docs/                     sozlesmeler.md, sunum.md, sunum_rakamlari.md, veri-haritasi.md
+rebuild/                  Kiro ile yeniden kurulum kiti
+runs/                     Simülasyon çıktıları: yayımlanan iki çalıştırma + deney çıktıları; bir kez bilerek izlendi (c9feaaa), yenileri .gitignore'da (docs/veri-haritasi.md)
+```
+
+## Adlandırma
+
+- **Kod İngilizce:** Değişken, fonksiyon, sınıf, modül ve dosya adları, API yolları, JSON alanları, enum değerleri, CSS sınıfları ve DOM kimlikleri, ortam değişkenleri, senaryo ve yapılandırma anahtarları İngilizcedir (Faz 6'da tüm kod bu kurala çekildi; eski ad → yeni ad: `docs/ad-eslemesi.tsv`).
+- **Türkçe kalanlar:** Kullanıcıya görünen metin, ajan istemleri (`agents/prompts/*.md`; dosya adları ajan adıyla İngilizce), yorumlar ve docstring'ler, dokümanlar (`docs/`, `.kiro/`, `rebuild/*.md`, dosya adlarıyla) ve serbest metinde aranan Türkçe anahtar kelimeler (ör. `agents/memory.py → KEYWORDS` değerleri, `agents/delivery_time.py` teyit kalıpları).
+- **Domain terimleri kodda:**
+  - `courier` (kurye), `stop` (durak = farklı teslim noktası), `shipment` (gönderi), `block` (~300 m blok), `cluster` (günlük dinamik küme), `zone` (sabit bölge), `arm` (simülasyon kolu A–D)
+  - `quirk` (adresin gizli püf noktası), `note` (kurye notu), `memory_entry` (hafıza kaydı), `hint` (kapı ipucu), `fit` (kurye–bölge uyumu), `familiar` / `unfamiliar` (tanıdık / yabancı sokak)
+  - Ajanlar: `assignment` (atama), `memory` (hafıza), `briefing` (brifing), `harvest` (hasat), `orchestrator` (orkestratör); `session` (orkestratör koşusu), `trace` (ajan izi), `tool` (ajan aracı), `decision` (karar), `proposal` (öneri), `approval` (onay), `rationale` (gerekçe)
+  - Plan ve rota: `route` (rota), `band` (vardiya bandı), `overtime` (fazla mesai), `shift_end` (vardiya bitişi), `deferral` (erteleme), `window` (kapalı pencere), `transfer` (aktarma), `next_day` (ertesi gün)
+  - Teslim zamanı (Faz 2b–2c): `delivery_time` (teslim zamanı analizi), `finding` (bulgu), `confirmation` (teyit), `slot` (saat dilimi), `unshiftable` (kısıt yüzünden kaydırılamayan), `presence` (bulunabilirlik)
+  - Sabah (Faz 5): `morning` (sabah akışı), `sorting` (ayrıştırma), `scan` (okutma), `shelf` (raf), `departure` (şubeden çıkış), `presorted` (ayrıştırması indirme okutmasına gömülü)
+  - Ölçüm: `fails` (başarısız teslim sayısı), `preventable` (bilgiyle önlenebilir), `counterfactual` (karşı-olgu), `calibration` (kalibrasyon), `learning` (Hedef 1 deneyi), `ablation` (ablasyon), `sweep` (sağlamlık taraması), `economics` (ekonomi)
+  - Senaryolar: `leave_wave` (izin dalgası), `turnover` (ayrılan kıdemli + yeni kurye), `borrowed_courier` (ödünç kurye), `volume_shock` (hacim şoku), `hiring` (işe alım), `long_term` (uzun dönem), `normal`
+  - Arayüz: `ui-story/` (hikaye arayüzü, `/story/`), `ui-flow/` (nasıl çalışır, `/flow/`), `ui/` (eski tek sayfa, `/legacy`), `scene` (sahne), `fallback` (kayıtlı yanıt)
+  - Faz 2d ve 7: `card` (durak kartı), `moment` (`approaching` / `at_door`), `approach` (yaklaşma tetiği), `feed` (ajan akışı), `review` (Değerlendirme Ajanı), `region` (Bölge Ajanı), `real_day` (gerçek gün)
+  - AgentCore: `actorId` (istek kimliği: kurye, müdür ya da konuk), `scope` (kimlik sınırı), `runtime` (AgentCore çalışma ortamı)
+- **Takma bölge adları:** "B01", "B02"… Gerçek bölge kodları kullanılmaz.
+
+## Gizli gerçek ile gözlemlenebilir veri ayrımı
+
+- `cm_sim` iki tür nesne tutar:
+  - **Gizli gerçek:** kurye becerisi, adres püf noktaları, blok zorluğu.
+  - **Gözlemlenebilir veri:** geçmiş teslimatlar, notlar, ziyaretler.
+- Politikalar ve ajanlar **yalnızca gözlemlenebilir görünümleri** alır. Gizli gerçek sadece sonuç modeli ve değerlendirme metrikleri tarafından okunur.

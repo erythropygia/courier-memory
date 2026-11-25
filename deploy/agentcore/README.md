@@ -63,6 +63,39 @@ Bu iç ajanlar AgentCore'da kurallı yoldan çalışır (`CM_LLM_MODE=mock`); mo
 
 Yanıt sunucu olayları olarak akar (`data: {"event": …}`); metin `contentBlockDelta.delta.text` parçalarındadır. Hata `data: {"error": …}` olarak gelir.
 
+## Canlı zincir izi (`cm_trace`)
+
+Akışta model olaylarının arasında `data: {"cm_trace": {…}}` satırları da gelir: her runtime kendi araç adımlarını,
+supervisor ayrıca uzmandan gelen adımları yazar. Yalnız `event`/`error` okuyan tüketiciler (verify.sh, köprü Lambda,
+`delegate.parse_stream`) bu satırları yok sayar; cevap metni değişmez. Kod: `runtime/cm/trace.py`, test: `tests/test_trace.py`.
+
+| Alan | Anlamı |
+|---|---|
+| `seq` | İstek içinde artan sıra (aktarılan uzman adımları supervisor sırasına yeniden numaralanır) |
+| `agent` | `supervisor` · `planner` · `courier` · `memory_keeper` · `analyst` · `all` |
+| `parent` | `null`; uzmandan aktarılan ve delegasyon olaylarında `"supervisor"` |
+| `type` | `tool_call` · `tool_result` · `delegate_start` · `delegate_end` · `denied` · `error` |
+| `tool` / `input` | Araç adı ve girdisi (yoksa `null`); telefon, hitaplı ad, şifre/kod rakamları maskelenir |
+| `summary` | Kısa Türkçe özet (en çok 400 karakter); `tool_result`'ta JSON sonucun alan/sayı özeti |
+| `ms` / `ok` | Süre ve başarı; yalnız `tool_result` ve `delegate_end`'de, diğerlerinde `null` |
+
+Sıra kuralları:
+- Her araç: `tool_call` → `tool_result`. Kimlik sınırı (`cm/scope.py`) reddederse yalnız `denied` (gerekçe `summary`'de), sonuç satırı yok.
+- Supervisor `ask_*`: `tool_call(ask_…)` → `delegate_start` (girdi `{"question","day"}`) → uzmanın iz satırları (`parent:"supervisor"`)
+  → `delegate_end` (cevabın ilk ~300 karakteri) → `tool_result(ask_…)`. Uzman hatasında `error` + `delegate_end(ok:false)`, ardından araç hatası.
+- İz kuyruğu isteğe aittir (Strands `invocation_state`); araç sürerken (uzman çağrısı) 100 ms'de bir boşaltılır, sunum ekranı zinciri canlı görür.
+
+```
+data: {"cm_trace": {"seq": 1, "agent": "supervisor", "parent": null, "type": "tool_call", "tool": "ask_planner", "input": {"question": "Bugünün planı?", "day": 32}, "summary": "ask_planner çağrılıyor", "ms": null, "ok": null}}
+data: {"cm_trace": {"seq": 2, "agent": "planner", "parent": "supervisor", "type": "delegate_start", "tool": null, "input": {"question": "Bugünün planı?", "day": 32}, "summary": "Planlama Ajanına soruluyor: Bugünün planı?", "ms": null, "ok": null}}
+data: {"cm_trace": {"seq": 3, "agent": "planner", "parent": "supervisor", "type": "tool_call", "tool": "plan_day", "input": {"day": 32}, "summary": "plan_day çağrılıyor", "ms": null, "ok": null}}
+data: {"cm_trace": {"seq": 4, "agent": "planner", "parent": "supervisor", "type": "tool_result", "tool": "plan_day", "input": null, "summary": "day=32, assignments: 9 öğe", "ms": 41, "ok": true}}
+data: {"cm_trace": {"seq": 5, "agent": "planner", "parent": "supervisor", "type": "delegate_end", "tool": null, "input": null, "summary": "Plan hazır: 9 kurye.", "ms": 2310, "ok": true}}
+data: {"cm_trace": {"seq": 6, "agent": "supervisor", "parent": null, "type": "tool_result", "tool": "ask_planner", "input": null, "summary": "Plan hazır: 9 kurye.", "ms": 2315, "ok": true}}
+```
+
+İzleri canlı okumak: `| sed -n 's/^data: //p' | jq -c 'select(.cm_trace) | .cm_trace | [.seq, .agent, .type, .tool, .summary]'`
+
 ## Demo çağrıları
 
 ```bash
@@ -85,11 +118,13 @@ Düz metin okumak için çıktıyı şuna bağlayın: `| sed -n 's/^data: //p' |
 | `runtime/cm/backend.py` | Araç takımı seçimi: `CM_TOOLSET=auto` (varsayılan) \| `full` \| `core` |
 | `runtime/cm/core.py` | Çekirdek takım: alan kodu olmadan, yalnız `data/demo_run` ile 6 araç |
 | `runtime/cm/scope.py` | Kimlik sınırı (`BeforeToolCallEvent`) |
+| `runtime/cm/trace.py` | Canlı zincir izi (`cm_trace`): araç kancası, istek başına iz kuyruğu, uzman izini aktarma |
 | `runtime/cm/memory.py` | AgentCore Memory oturum yöneticisi |
 | `runtime/cm/model.py` | Bedrock modeli (çıkarım profili kimliği) |
 | `runtime/cm/prompt.py`, `payload.py` | İstem, istek gövdesi |
 | `bootstrap.sh`, `verify.sh` | Kurulum · kontrol |
 | `tests/test_runtime.py` | 21 test (iki araç takımı); Bedrock'a gitmez |
+| `tests/test_trace.py` | `cm_trace` sırası, ret, supervisor aktarımı, hata; Bedrock'a gitmez |
 
 ## Yerelde (AWS olmadan)
 

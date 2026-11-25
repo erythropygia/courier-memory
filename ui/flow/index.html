@@ -42,7 +42,8 @@ header .sp { flex: 1; }
 .badge.done { background: var(--green); color: #fff; }
 .badge.err { background: #F8DDDB; color: var(--red); }
 @keyframes pulse { 50% { opacity: .25; } }
-#plan { font: 600 15px/1 "Inter"; padding: 10px 18px; }
+#plan, #acplan { font: 600 15px/1 "Inter"; padding: 10px 18px; }
+#acplan { background: var(--blue); border-color: var(--blue); color: #fff; }
 #watch { border-color: var(--red); color: var(--red); }
 
 /* mimari şerit */
@@ -101,6 +102,21 @@ main > section { min-height: 0; overflow-y: auto; padding: 14px 16px; }
 #trace details summary { cursor: pointer; color: var(--faded); font-size: 12px; }
 #trace pre { margin: 4px 0 0; max-height: 260px; overflow: auto; background: var(--paper); padding: 8px; font: 11px/1.4 var(--mono); border: 1px solid var(--line); white-space: pre-wrap; word-break: break-word; }
 #trace .decision .v { font-style: italic; }
+/* AgentCore zinciri: ajan rozeti, Supervisor altındaki uzman girintili, ret ayrı */
+.ag { display: inline-block; font: 600 10px/1.7 "Inter"; text-transform: uppercase; letter-spacing: .05em; padding: 0 6px; border-radius: 2px; margin-right: 6px; background: var(--paper-2); color: var(--ink-2); vertical-align: 1px; white-space: nowrap; }
+.ag-supervisor { background: var(--ink); color: var(--paper); }
+.ag-planner { background: #E4ECF4; color: var(--blue); }
+.ag-courier { background: #FBEBD0; color: #8A5A0B; }
+.ag-memory_keeper { background: #E1EFE5; color: var(--green); }
+.ag-analyst { background: #ECE4F3; color: #5B3A82; }
+.ms { font: 11px/1 var(--mono); color: var(--faded); margin-left: 6px; white-space: nowrap; }
+#trace li.nest .v { border-left: 2px solid var(--line); padding-left: 10px; margin-left: 6px; }
+#trace .delegate .k span { background: var(--paper-2); color: var(--ink); }
+#trace .answer .k span { background: var(--ink); color: var(--paper); }
+#trace .denied .k span { background: var(--red); color: #fff; }
+#trace li.denied .v { border-left: 3px solid var(--red); padding: 4px 8px; background: repeating-linear-gradient(135deg, #FCEDEB 0 8px, #fff 8px 16px); }
+.say.ans { white-space: pre-wrap; }
+.hops { margin: 6px 0; line-height: 2; }
 .wait { color: var(--ink-2); padding: 18px 0; display: flex; gap: 10px; align-items: center; }
 .wait i { width: 7px; height: 7px; background: var(--ink); display: inline-block; animation: pulse 1s infinite ease-in-out; }
 .wait i:nth-child(2) { animation-delay: .15s; } .wait i:nth-child(3) { animation-delay: .3s; }
@@ -170,6 +186,7 @@ body.qr-pad #side { padding-bottom: 250px; }
   <span class="badge" id="mode" hidden></span>
   <button id="watch" hidden title="Canlı adıma dön">Canlıya dön</button>
   <button id="plan" class="primary" hidden>Günü planla ▶</button>
+  <button id="acplan" hidden title="Altı istek dağıtılmış AgentCore Supervisor'dan geçer">AgentCore zinciri ▶</button>
 </header>
 <div id="arch"></div>
 <div id="flowline"></div>
@@ -196,6 +213,8 @@ body.qr-pad #side { padding-bottom: 250px; }
 // Canlı akış: sekiz adımlık zincir sunucuda bir kez koşar (api/live.py), bu sayfa olayları SSE ile alır.
 //   /flow/            izleyici (QR): yalnız izler, koşu başlatamaz
 //   /flow/?sunum=1    sunum ekranı: "Günü planla" koşuyu başlatır; &start=1 açılışta başlatır; &qr=1 QR'a yer bırakır
+//                     "AgentCore zinciri" ikinci zinciri başlatır (api/agentcore_chain.py; &start=1&zincir=agentcore açılışta)
+// İzleyiciler hangi zincir koşuyorsa onu izler: `run` olayının `kind`'ı (day | agentcore) adım listesini ve şeridi seçer.
 // API tabanı: sayfa bir ters vekilin arkasındaysa (ör. /proxy/<port>/flow/) o önek; yoksa kök.
 const BASE = (location.pathname.match(/^(.*?\/proxy\/\d+)\//) || [])[1] || "";
 const Q = new URLSearchParams(location.search);
@@ -215,8 +234,16 @@ const NODES = [
   ["memory", "Hafıza", "adres kayıtları"], ["cards", "Durak kartı", "kural"], ["harvest", "Hasat", "ajan"],
   ["review", "Değerlendirme", "ajan"], ["region", "Bölge", "ajan"],
 ];
-$("#arch").innerHTML = NODES.map(([id, t, s], i) =>
-  (i ? '<span class="arrow">›</span>' : "") + `<div class="node${id === "memory" ? " mem" : ""}" data-n="${id}"><b>${t}</b>${s}</div>`).join("");
+const AC_NODES = [
+  ["user", "Kullanıcı", "müdür · kurye"], ["supervisor", "Supervisor", "AgentCore"], ["planner", "Planlama", "uzman"],
+  ["courier", "Kurye Ajanı", "uzman"], ["memory_keeper", "Hafıza Ajanı", "uzman"], ["analyst", "Analiz", "uzman"],
+  ["domain", "Alan ajanları", "kurallı"], ["dynamodb", "DynamoDB", "hafıza"], ["athena", "Athena", "geçmiş"],
+];
+function drawArch(nodes) {
+  $("#arch").innerHTML = nodes.map(([id, t, s], i) =>
+    (i ? '<span class="arrow">›</span>' : "") + `<div class="node${["memory", "dynamodb", "athena"].includes(id) ? " mem" : ""}" data-n="${id}"><b>${t}</b>${s}</div>`).join("");
+}
+drawArch(NODES);
 function center(box, el) { if (el) box.scrollTo({ left: el.offsetLeft - box.clientWidth / 2 + el.clientWidth / 2, behavior: "smooth" }); }
 function lightArch(ids, line) {
   document.querySelectorAll("#arch .node").forEach((n) => n.classList.toggle("on", ids.includes(n.dataset.n)));
@@ -288,9 +315,41 @@ const STEPS = [
       <p class="muted">${esc(o.count)} soru açıldı</p>${o.questions.map((q) => `<div class="say">${esc(q)}</div>`).join("")}` },
 ];
 
+// ------------------------------------------------------------------ AgentCore zinciri (altı istek; çalıştıran sunucu, AgentCore Supervisor)
+const AGENT = { supervisor: "Supervisor", planner: "Planlama", courier: "Kurye", memory_keeper: "Hafıza", analyst: "Analiz" };
+const badge = (a) => `<span class="ag ag-${esc(a)}">${esc(AGENT[a] || a)}</span>`;
+const actorTr = (a) => (/^MUDUR/i.test(a || "") ? `Müdür (${a})` : `Kurye ${a}`);
+const acRender = (o) => `<h3>${esc(actorTr(o.actor))} sordu</h3><div class="say" style="border-color:var(--faded)">${esc(o.prompt)}</div>
+  <div class="hops">${(o.path || []).map(badge).join(" › ")}${(o.tools || []).map((t) => ` <span class="chip">${esc(t)}</span>`).join("")}</div>
+  ${o.denied ? '<span class="chip red">kimlik sınırı: istek reddedildi</span>' : ""}
+  <p class="muted">Supervisor'ın yanıtı</p><div class="say ans">${esc(o.answer || "(boş yanıt)")}</div>
+  <p class="muted">${esc(o.ms)} ms · ${o.traced ? "ajan izi (cm_trace)" : "yalnız Supervisor araçları (eski dağıtım)"} · beklenen: ${esc(AGENT[o.expected?.agent] || o.expected?.agent)} / ${esc(o.expected?.tool || "ret")}</p>`;
+const AC = (t, s, who, code, desc, arch, line) => ({ t, s, who, code, desc, arch, line, render: acRender });
+const AC_STEPS = [
+  AC("Müdür bugünün planını sorar", "Plan", "MUDUR-01 → Supervisor → Planlama", ["cm/roles.py · ask_planner", "plan_day → agents/orchestrator.py"],
+    "Müdürün sorusu dağıtılmış AgentCore Supervisor'a gider. Supervisor işi Planlama uzmanına devreder; uzman plan_day aracıyla Orkestratör + Atama ajanlarını (kurallı) çalıştırır ve gerekçeli planı döndürür.",
+    ["user", "supervisor", "planner", "domain"], "Müdür → Supervisor → Planlama → plan_day (Orkestratör) → yanıt"),
+  AC("Kurye sabah brifingini ister", "Brifing", "O02 → Supervisor → Kurye", ["cm/roles.py · ask_courier_agent", "courier_briefing → agents/briefing.py"],
+    "Kurye kimliğiyle gelen istek Kurye uzmanına gider; uzman yalnız kendi courier_id'siyle courier_briefing aracını çağırır (kimlik sınırı cm/scope.py).",
+    ["user", "supervisor", "courier", "domain"], "Kurye → Supervisor → Kurye Ajanı → courier_briefing → yanıt"),
+  AC("Kurye durağa not bırakır", "Not", "O02 → Supervisor → Hafıza", ["cm/roles.py · ask_memory_keeper", "leave_note → agents/memory.py → DynamoDB"],
+    "Serbest not Hafıza uzmanına gider; leave_note adrese bağlar, türünü çıkarır, kişisel veriyi ayıklar ve ortak hafızaya (DynamoDB) yazar.",
+    ["user", "supervisor", "memory_keeper", "domain", "dynamodb"], "Kurye notu → Supervisor → Hafıza Ajanı → leave_note → DynamoDB"),
+  AC("Müdür kıdemliye soru ister", "Hasat", "MUDUR-01 → Supervisor → Hafıza", ["cm/roles.py · ask_memory_keeper", "harvest_questions → agents/harvest.py"],
+    "Hafızası boş adresler için Hafıza uzmanı harvest_questions aracıyla Hasat ajanını çalıştırır: oraya en son giden kıdemliye kısa soru.",
+    ["user", "supervisor", "memory_keeper", "domain"], "Müdür → Supervisor → Hafıza Ajanı → harvest_questions (Hasat) → sorular"),
+  AC("Müdür geçmişi sorgular", "Analiz", "MUDUR-01 → Supervisor → Analiz", ["cm/roles.py · ask_analyst", "query_history → cm/athena.py (salt okunur SELECT)"],
+    "Analiz uzmanı soruyu tek bir salt okunur SELECT'e çevirir ve Athena'da çalıştırır (en çok 200 satır, 100 MB tarama); A ile D kollarının günlük başarısız teslim farkını yanıtlar.",
+    ["user", "supervisor", "analyst", "athena"], "Müdür → Supervisor → Analiz → query_history (Athena) → yanıt"),
+  AC("Kurye şube planını ister: ret", "Ret", "O02 → Supervisor ✕ Planlama", ["cm/scope.py · CourierScope", "kurye kimliği planlama uzmanına soramaz"],
+    "Kimlik modelden gelmez: kurye kimliğiyle gelen istekte Supervisor'ın planlama uzmanını çağırması kimlik sınırında reddedilir; konuşma sürer, yanıt neden yapılamadığını söyler.",
+    ["user", "supervisor"], "Kurye → Supervisor ✕ Planlama (kimlik sınırı) → ret yanıtı"),
+];
+const ST = () => (S.kind === "agentcore" ? AC_STEPS : STEPS);
+
 // ------------------------------------------------------------------ durum
 let es = null, autostart = PRESENTER && Q.has("start");
-const S = { run: 0, status: "idle", cur: -1, view: -1, follow: true, items: [], results: {}, errors: {}, ctx: null, feedMax: 0, online: false };
+const S = { run: 0, kind: "day", asks: {}, status: "idle", cur: -1, view: -1, follow: true, items: [], results: {}, errors: {}, ctx: null, feedMax: 0, online: false };
 
 // ------------------------------------------------------------------ iz satırları
 const trace = $("#trace");
@@ -333,11 +392,34 @@ function event(e) {
     default: return row("start", esc(e.type), `<span class="args">${esc(short(e))}</span>`, s);
   }
 }
+// AgentCore izi (api/agentcore_chain.py · map_trace): tool, result, delegate, delegate_end, denied, error, answer, info; agent + parent
+function acEvent(e) {
+  const nest = e.parent ? " nest" : "";
+  const who = badge(e.agent);
+  const to = e.target && AGENT[e.target] ? ` → ${badge(e.target)}` : "";
+  const ms = e.ms != null ? `<span class="ms">${esc(e.ms)} ms</span>` : "";
+  const src = e.fallback ? "model olayı" : "AgentCore";
+  switch (e.type) {
+    case "tool": return row("tool" + nest, "araç", `${who}<span class="tname">${esc(e.tool)}</span>(<span class="args">${esc(short(e.input || {}))}</span>)${to}`, src);
+    case "result": return row((e.ok === false ? "error" : "result") + nest, "sonuç", `${who}<span class="tname">${esc(e.tool || "")}</span> → ${esc(e.summary || "")}${ms}`, src);
+    case "delegate": return row("delegate" + nest, "devret", `${badge(e.parent || "supervisor")}→ ${badge(e.target || e.agent)}<span class="args">işi devraldı</span>`, src);
+    case "delegate_end": return row("delegate" + nest, "döndü", `${badge(e.target || e.agent)}→ ${badge(e.parent || "supervisor")}<span class="args">${e.ok === false ? "başarısız" : "yanıtladı"}</span>${ms}`, src);
+    case "denied": return row("denied" + nest, "ret", `${who}<span class="tname">${esc(e.tool || "")}</span>${to} reddedildi · ${esc(e.summary || "kimlik sınırı")}`, src);
+    case "error": return row("error" + nest, "hata", `${who}${esc(e.tool || "")} ${esc(e.text || e.summary || "")}`, src);
+    case "answer": return row("answer", "yanıt", `${who}<div class="say ans">${esc(e.text)}</div>`, src);
+    default: return row("start" + nest, esc(e.type), `${who}<span class="args">${esc(e.summary || short(e))}</span>`, src);
+  }
+}
+function acLight(e) {
+  const ids = ["user", "supervisor", e.agent, e.type === "denied" ? null : e.target].filter((a) => a && (AGENT[a] || a === "user"));
+  if (e.type === "tool" && e.parent) ids.push(e.tool === "query_history" ? "athena" : e.tool === "leave_note" ? "dynamodb" : "domain");
+  lightArch(ids, (ST()[S.cur] || {}).line || "");
+}
 function item(x) {
   switch (x.t) {
     case "http": return row("http", esc(x.method), `<span class="tname">${esc(x.path)}</span>${x.body ? ` <span class="args">${esc(short(x.body))}</span>` : ""}`);
     case "http_done": return row(x.status < 400 ? "http" : "error", "yanıt", `<span class="args">${esc(x.status)} · ${esc(x.ms)} ms</span> ${details("yanıtın JSON'u", x.data)}`);
-    case "ev": return event(x.e);
+    case "ev": return x.e && x.e.source === "agentcore" ? acEvent(x.e) : event(x.e);
     case "note": return row("decision", "not", secret(x.text), "arayüz");
     case "step_error": return row("error", "hata", esc(x.text));
   }
@@ -346,7 +428,7 @@ function item(x) {
 // ------------------------------------------------------------------ çizim
 function result(html) { $("#result").innerHTML = `<div class="card">${html}</div>`; }
 function renderResult(i) {
-  if (i in S.results) { try { result(STEPS[i].render(S.results[i])); } catch (e) { result(`<span class="muted">Sonuç gösterilemedi.</span>`); } }
+  if (i in S.results) { try { result(ST()[i].render(S.results[i])); } catch (e) { result(`<span class="muted">Sonuç gösterilemedi.</span>`); } }
   else if (i in S.errors) result(`<span class="chip red">${esc(S.errors[i])}</span>`);
   else if (i === S.cur && S.status === "running") result('<div class="wait"><i></i><i></i><i></i> ajan çalışıyor…</div>');
   else result('<span class="muted">Adımın çıktısı burada.</span>');
@@ -354,16 +436,19 @@ function renderResult(i) {
 function idleHead() {
   lightArch([], "");
   trace.innerHTML = "";
+  const ac = S.ctx && S.ctx.agentcore;
   const msg = PRESENTER
-    ? ["Başlamak için “Günü planla”", "Gün 32, yoğun bir Çarşamba. Komşu şubeden ödünç gelen kurye bölgeyi bilmiyor; sistem ona şubenin hafızasını taşıyor. Butona basınca sekiz ajan adımı sırayla, canlı çalışır; QR ile bağlanan herkes aynı akışı telefonunda izler."]
-    : ["Sunum başlayınca akış burada canlı görünür", "Bu sayfa yalnız izler. Sunucu “Günü planla”ya bastığında Orkestratör, Brifing, Hafıza, Hasat, Değerlendirme ve Bölge ajanlarının her kararı, çağırdığı araç ve sonucu sırayla buraya akar."];
+    ? ["Başlamak için “Günü planla”", "Gün 32, yoğun bir Çarşamba. Komşu şubeden ödünç gelen kurye bölgeyi bilmiyor; sistem ona şubenin hafızasını taşıyor. Butona basınca sekiz ajan adımı sırayla, canlı çalışır; QR ile bağlanan herkes aynı akışı telefonunda izler."
+       + (ac ? " “AgentCore zinciri” ise aynı demoyu dağıtılmış AgentCore Supervisor'dan geçirir: Supervisor → uzman → alan aracı → sonuç." : "")]
+    : ["Sunum başlayınca akış burada canlı görünür", "Bu sayfa yalnız izler. Sunucu bir zinciri başlattığında ajanların her kararı, çağırdığı araç ve sonucu sırayla buraya akar: “Günü planla”da Orkestratör, Brifing, Hafıza, Hasat, Değerlendirme ve Bölge; “AgentCore zinciri”nde Supervisor ve uzmanları."];
   $("#stephead").innerHTML = `<p class="coltitle">İz</p><h2>${msg[0]}</h2><p>${msg[1]}</p>${!PRESENTER && S.online ? '<div class="wait"><i></i><i></i><i></i> sunum bekleniyor</div>' : ""}`;
   result('<span class="muted">Adımın çıktısı burada.</span>');
 }
 function showStep(i) {
   S.view = i;
-  const s = STEPS[i];
-  $("#stephead").innerHTML = `<p class="coltitle">İz · adım ${i + 1}/${STEPS.length} · ${esc(s.who)}</p><h2>${esc(s.t)}</h2><p>${esc(s.desc)}</p>`;
+  const s = ST()[i];
+  const ask = S.kind === "agentcore" && S.asks[i] ? `<div class="say">${esc(actorTr(S.asks[i].actor))}: “${esc(S.asks[i].prompt)}”</div>` : "";
+  $("#stephead").innerHTML = `<p class="coltitle">İz · adım ${i + 1}/${ST().length} · ${esc(s.who)}</p><h2>${esc(s.t)}</h2><p>${esc(s.desc)}</p>${ask}`;
   lightArch(s.arch, s.line);
   trace.innerHTML = "";
   json.clear();
@@ -373,7 +458,7 @@ function showStep(i) {
   renderSteps();
 }
 function renderSteps() {
-  $("#steplist").innerHTML = STEPS.map((s, i) => {
+  $("#steplist").innerHTML = ST().map((s, i) => {
     const run = i === S.cur && S.status === "running" && !(i in S.results) && !(i in S.errors);
     const cls = [i === S.view ? "active" : "", i in S.results ? "done" : "", i in S.errors ? "fail" : "", run ? "running" : "", S.items[i] ? "seen" : ""].join(" ");
     const st = i in S.errors ? "hata" : i in S.results ? "✓" : run ? "● canlı" : "";
@@ -397,7 +482,9 @@ function setState() {
   $("#watch").hidden = !(S.status === "running" && !S.follow);
   $("#plan").hidden = !PRESENTER;
   $("#plan").disabled = S.status === "running" || !S.online;
-  $("#plan").textContent = S.status === "idle" ? "Günü planla ▶" : "Günü yeniden planla ▶";
+  $("#plan").textContent = S.status === "idle" || S.kind !== "day" ? "Günü planla ▶" : "Günü yeniden planla ▶";
+  $("#acplan").hidden = !(PRESENTER && S.ctx && S.ctx.agentcore);
+  $("#acplan").disabled = S.status === "running" || !S.online;
 }
 function setCtx(c) {
   if (!c) return;
@@ -420,6 +507,13 @@ function side(x) {
   S.feedMax = Math.max(S.feedMax, ...(x.feed || []).map((e) => e.n || 0), 0);
 }
 
+function setKind(kind) {
+  const k = kind === "agentcore" ? "agentcore" : "day";
+  if (k === S.kind) return;
+  S.kind = k;
+  drawArch(k === "agentcore" ? AC_NODES : NODES);
+}
+
 // ------------------------------------------------------------------ olaylar (api/live.py)
 function on(x) {
   switch (x.t) {
@@ -427,20 +521,27 @@ function on(x) {
       S.online = true;
       setCtx(x.ctx);
       if (!x.run_id) { S.status = "idle"; idleHead(); }
-      else S.status = x.status;
+      else { S.status = x.status; setKind(x.kind); }
       setState();
-      if (autostart) { autostart = false; if (x.status !== "running") start(); }
+      if (autostart) { autostart = false; if (x.status !== "running") start(Q.get("zincir") === "agentcore" ? "agentcore" : "day"); }
       break;
     case "run":
-      Object.assign(S, { run: x.run, status: "running", cur: -1, view: -1, follow: true, items: [], results: {}, errors: {}, feedMax: 0 });
-      setCtx({ day: x.day, courier: x.courier, name: x.name, mode: x.mode });
+      Object.assign(S, { run: x.run, status: "running", cur: -1, view: -1, follow: true, items: [], results: {}, errors: {}, asks: {}, feedMax: 0 });
+      setKind(x.kind);
+      if (S.kind === "agentcore") {
+        $("#ctx").textContent = `AgentCore Supervisor · ${x.runtime || ""} · gün ${x.day ?? "–"} · ${x.steps} istek`;
+        Object.assign($("#mode"), { hidden: false, textContent: "AgentCore · Bedrock", className: "badge live" });
+      } else setCtx({ ...(S.ctx || {}), day: x.day, courier: x.courier, name: x.name, mode: x.mode });
       idleHead();
-      $("#stephead").innerHTML = `<p class="coltitle">İz</p><h2>Zincir başladı · ${esc(x.started)}</h2><p>Hafıza ve ajan akışı baştan; ilk ajan birazdan çalışır.</p><div class="wait"><i></i><i></i><i></i></div>`;
+      $("#stephead").innerHTML = S.kind === "agentcore"
+        ? `<p class="coltitle">İz</p><h2>AgentCore zinciri başladı · ${esc(x.started)}</h2><p>Altı istek sırayla dağıtılmış Supervisor'a gider; her atlama (Supervisor → uzman → araç → sonuç) buraya akar.</p><div class="wait"><i></i><i></i><i></i></div>`
+        : `<p class="coltitle">İz</p><h2>Zincir başladı · ${esc(x.started)}</h2><p>Hafıza ve ajan akışı baştan; ilk ajan birazdan çalışır.</p><div class="wait"><i></i><i></i><i></i></div>`;
       renderSteps(); setState();
       break;
     case "step":
       S.cur = x.i;
       S.items[x.i] = [];
+      if (x.actor) S.asks[x.i] = { actor: x.actor, prompt: x.prompt };
       if (S.follow) showStep(x.i); else renderSteps();
       break;
     case "result":
@@ -462,12 +563,13 @@ function on(x) {
       S.status = x.status;
       setState(); renderSteps();
       if (S.view >= 0) renderResult(S.view);
-      $("#flowline").innerHTML = "Zincir tamamlandı · adımlara dokunarak her ajanın ne yaptığına dönebilirsiniz";
+      $("#flowline").innerHTML = x.status === "error" ? "Zincir durdu · hatalı adıma dokunarak nedenini görebilirsiniz"
+        : "Zincir tamamlandı · adımlara dokunarak her ajanın ne yaptığına dönebilirsiniz";
       break;
     default:                                      // http, http_done, ev, note: canlı adımın izi
       if (S.cur < 0) break;
       S.items[S.cur].push(x);
-      if (S.view === S.cur) item(x);
+      if (S.view === S.cur) { item(x); if (x.t === "ev" && x.e && x.e.source === "agentcore") acLight(x.e); }
   }
 }
 
@@ -477,11 +579,11 @@ function connect() {
     es.addEventListener(t, (m) => { try { on(Object.assign(JSON.parse(m.data), { t })); } catch (e) { console.warn(t, e); } }));
   es.onerror = () => { S.online = false; setState(); };   // tarayıcı kendisi yeniden bağlanır (Last-Event-ID ile kaldığı yerden)
 }
-async function start() {
-  $("#plan").disabled = true;
+async function start(chain) {
+  $("#plan").disabled = true; $("#acplan").disabled = true;
   S.follow = true;
   try {
-    const r = await fetch(BASE + "/api/live/start", { method: "POST" });
+    const r = await fetch(BASE + "/api/live/start" + (chain === "agentcore" ? "?chain=agentcore" : ""), { method: "POST" });
     if (!r.ok && r.status !== 409) throw new Error((await r.json().catch(() => ({}))).detail || r.status);
   } catch (e) {
     $("#flowline").textContent = "Başlatılamadı: " + e.message;
@@ -489,7 +591,8 @@ async function start() {
   }
   if (Q.has("start")) { Q.delete("start"); history.replaceState(null, "", location.pathname + (Q.toString() ? "?" + Q : "")); }
 }
-$("#plan").onclick = start;
+$("#plan").onclick = () => start("day");
+$("#acplan").onclick = () => start("agentcore");
 $("#watch").onclick = () => { S.follow = true; if (S.cur >= 0) showStep(S.cur); setState(); };
 mobile.addEventListener("change", () => { renderSteps(); if (S.view >= 0) showStep(S.view); });
 

@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from agents import Services
-from api import transcribe
+from api import agentcore_chain, transcribe
 from api.live import LIVE, LiveBusy
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -829,9 +829,14 @@ async def live_state(after: int = Query(0, ge=0)):
 
 
 @app.post("/api/live/start")
-async def live_start():
-    """Sekiz adımlık zinciri sunucuda bir kez başlatır; koşu sürerken ikinci başlatma 409."""
+async def live_start(chain: str = Query("day", pattern="^(day|agentcore)$")):
+    """Zinciri sunucuda bir kez başlatır; koşu sürerken ikinci başlatma 409 (hangi zincir olursa olsun).
+    `chain=day`: sekiz adım, süreç içi ajanlar · `chain=agentcore`: altı istek AgentCore Supervisor'dan (kapalıysa 501)."""
+    if chain == "agentcore" and not agentcore_chain.enabled():
+        raise HTTPException(501, "AgentCore zinciri bu sunucuda kapalı (CM_AGENTCORE_CHAIN=0)")
     try:
+        if chain == "agentcore":
+            return LIVE.start(target=LIVE.runner(agentcore_chain.Chain), kind="agentcore")
         return LIVE.start()
     except LiveBusy:
         raise HTTPException(409, "Canlı akış zaten çalışıyor") from None
@@ -840,7 +845,8 @@ async def live_start():
 def _live_ctx() -> dict:
     s = sv()
     c = s.run.meta["critical"]
-    return {"day": c["day"], "courier": c["courier"], "name": c.get("courier_name", ""), "mode": s.llm.mode}
+    return {"day": c["day"], "courier": c["courier"], "name": c.get("courier_name", ""), "mode": s.llm.mode,
+            "agentcore": agentcore_chain.enabled()}
 
 
 @app.get("/api/live/stream")
@@ -865,7 +871,8 @@ async def live_stream(request: Request):
     async def gen():
         nonlocal run, n
         snap = LIVE.snapshot(10**9)
-        yield "retry: 2000\n\n" + _sse("hello", {"status": snap["status"], "run_id": snap["run_id"], "ctx": ctx})
+        yield "retry: 2000\n\n" + _sse("hello", {"status": snap["status"], "run_id": snap["run_id"], "kind": snap["kind"],
+                                                 "ctx": ctx})
         beat = time.monotonic()
         while True:
             evs, run, n, _ = LIVE.pull(run, n)

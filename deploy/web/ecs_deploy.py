@@ -5,10 +5,11 @@
 
 Kurulanlar (varsayılan VPC'de; tekrar çalıştırmak güvenlidir):
   ECR deposu       courier-memory-web             push'ta tarama, son 10 image
-  Güvenlik grubu   courier-memory-web-alb         internetten 80
+  Güvenlik grubu   courier-memory-web-alb         yalnız CloudFront'tan 80 (dışarıdan giriş HTTPS adresi)
   Güvenlik grubu   courier-memory-web-task        yalnız ALB'den 8000
   ALB + hedef grup courier-memory-web             HTTP 80 → container 8000, sağlık /api/status, boşta zaman aşımı 300 sn
-  IAM rolleri      courier-memory-web-exec (image çekme, log) · courier-memory-web-task (container kimliği: izinli modeller, Polly)
+  IAM rolleri      courier-memory-web-exec (image çekme, log) · courier-memory-web-task (container kimliği: izinli modeller, Polly,
+                   AgentCore Supervisor çağrısı: /flow/ "AgentCore zinciri")
   ECS              cluster courier-memory · servis courier-memory-web (Fargate, 1 vCPU / 2 GB, 1 görev)
 
 Model: Sonnet 5 (demo/test için Opus kullanılmaz). Varsayılan: Polly (Burcu, neural), Transcribe (tr-TR) ve DynamoDB (courier-memory; yalnız bu tabloya izin).
@@ -35,7 +36,8 @@ ENV = {"CM_LLM_MODE": "live", "CM_BEDROCK_CLIENT": "invoke", "CM_MODEL_ID": "glo
        "CM_AUTO_CACHE": "1", "CM_RUN_DIR": "data/demo_run",
        "CM_POLLY": "1", "CM_POLLY_VOICE": "Burcu", "CM_POLLY_ENGINE": "neural",  # /api/speech: Polly tr-TR neural ses
        "CM_STORAGE": "dynamodb", "CM_DYNAMODB_TABLE": "courier-memory", "CM_DYNAMODB_SYNC_SECONDS": "1",  # ortak durum tablosu
-       "CM_TRANSCRIBE": "1"}  # /api/transcribe: sesli not, Amazon Transcribe Streaming tr-TR
+       "CM_TRANSCRIBE": "1",  # /api/transcribe: sesli not, Amazon Transcribe Streaming tr-TR
+       "CM_AGENTCORE_CHAIN": "1", "CM_AGENTCORE_SUPERVISOR": "CourierMemory_default_agent"}  # /flow/ AgentCore zinciri
 # deploy/dynamodb/create_table.py APP_ACTIONS ile aynı (tablo: deploy/dynamodb/create_table.py ile kurulur)
 STORAGE_ACTIONS = ("dynamodb:GetItem", "dynamodb:Query", "dynamodb:BatchGetItem",
                    "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:BatchWriteItem")
@@ -83,6 +85,16 @@ def transcribe_policy() -> dict:
             "Action": ["transcribe:StartStreamTranscription"], "Resource": "*"}]}
 
 
+def agentcore_policy(region: str, account: str, runtime: str) -> dict:
+    """Yalnız Supervisor runtime'ı (ve uç noktaları) çağrılır. ListAgentRuntimes kaynak düzeyinde kısıtlanamaz: "*".
+    Runtime ARN'si ada rastgele bir son ek ekler (<ad>-XXXXXXXXXX), bu yüzden `<ad>-*`."""
+    base = f"arn:aws:bedrock-agentcore:{region}:{account}:runtime/{runtime}-*"
+    return {"Version": "2012-10-17", "Statement": [
+        {"Sid": "InvokeSupervisorRuntime", "Effect": "Allow", "Action": ["bedrock-agentcore:InvokeAgentRuntime"],
+         "Resource": [base, f"{base}/runtime-endpoint/*"]},
+        {"Sid": "FindSupervisorByName", "Effect": "Allow", "Action": ["bedrock-agentcore:ListAgentRuntimes"], "Resource": "*"}]}
+
+
 # ------------------------------------------------------------------ image
 def ensure_repo(ecr) -> str:
     try:
@@ -123,8 +135,18 @@ def network(ec2) -> tuple[str, list[str], str, str]:
     vpc = ec2.describe_vpcs(Filters=[{"Name": "isDefault", "Values": ["true"]}])["Vpcs"][0]["VpcId"]
     subnets = [s["SubnetId"] for s in ec2.describe_subnets(Filters=[{"Name": "vpc-id", "Values": [vpc]},
                                                                     {"Name": "default-for-az", "Values": ["true"]}])["Subnets"]]
+    # ALB yalnız CloudFront'a açık (deploy/web/cloudfront_setup.py): dışarıdan tek giriş HTTPS adresidir.
+    cf_list = ec2.describe_managed_prefix_lists(Filters=[{"Name": "prefix-list-name",
+                                                          "Values": ["com.amazonaws.global.cloudfront.origin-facing"]}])["PrefixLists"][0]["PrefixListId"]
     alb_sg = _sg(ec2, vpc, f"{NAME}-alb", "Courier Memory web ALB",
-                 {"IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]})
+                 {"IpProtocol": "tcp", "FromPort": 80, "ToPort": 80,
+                  "PrefixListIds": [{"PrefixListId": cf_list, "Description": "CloudFront origin-facing"}]})
+    open_rule = {"IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}
+    try:                                             # eski "internetten 80" kuralı varsa kaldır
+        ec2.revoke_security_group_ingress(GroupId=alb_sg, IpPermissions=[open_rule])
+    except ec2.exceptions.ClientError as e:
+        if "InvalidPermission.NotFound" not in str(e):
+            raise
     task_sg = _sg(ec2, vpc, f"{NAME}-task", "Courier Memory web tasks",
                   {"IpProtocol": "tcp", "FromPort": PORT, "ToPort": PORT, "UserIdGroupPairs": [{"GroupId": alb_sg}]})
     return vpc, subnets, alb_sg, task_sg
@@ -210,9 +232,12 @@ def main(argv=None) -> int:
     account = s.client("sts").get_caller_identity()["Account"]
     storage = ({f"dynamodb-{env['CM_DYNAMODB_TABLE']}": storage_policy(region, account, env["CM_DYNAMODB_TABLE"])}
                if env.get("CM_STORAGE") == "dynamodb" else {})
+    agentcore = ({"agentcore-supervisor": agentcore_policy(region, account, env["CM_AGENTCORE_SUPERVISOR"])}
+                 if env.get("CM_AGENTCORE_CHAIN", "1") != "0" else {})
     task_role = _role(iam, TASK_ROLE, "ecs-tasks.amazonaws.com", inline={"bedrock-allowed-models": bedrock_policy(),
                                                                          "polly-synthesize-speech": polly_policy(),
-                                                                         "transcribe-streaming": transcribe_policy(), **storage, **extra})
+                                                                         "transcribe-streaming": transcribe_policy(), **storage,
+                                                                         **agentcore, **extra})
     vpc, subnets, alb_sg, task_sg = network(c("ec2"))
     dns, tg = load_balancer(c("elbv2"), vpc, subnets, alb_sg)
     time.sleep(10)                                   # yeni rollerin yayılması

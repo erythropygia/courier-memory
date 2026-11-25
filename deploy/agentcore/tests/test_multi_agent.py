@@ -190,7 +190,7 @@ def supervisor(tmp_path, monkeypatch):
 
     calls = []
 
-    def fake_invoke(role, prompt, actor_id, session_id, day=None):
+    def fake_invoke(role, prompt, actor_id, session_id, day=None, on_trace=None):
         calls.append({"role": role, "prompt": prompt, "actor": actor_id, "session": session_id, "day": day})
         return f"[{role}] {actor_id} için yanıt"
 

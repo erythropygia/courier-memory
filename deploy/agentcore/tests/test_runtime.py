@@ -164,7 +164,7 @@ def test_courier_calls_own_tool_end_to_end(rt):
     model = ScriptedModel([{"tool": "courier_briefing", "input": {"courier_id": "O02"}}, {"text": "Bugün 45 durak var."}])
     ev = _run(rt, model, {"prompt": "Brifingim?", "actorId": "O02"})
     assert _text(ev) == "Bugün 45 durak var." and not [e for e in ev if "error" in e]
-    assert all(set(e) == {"event"} and json.dumps(e) for e in ev)       # akış JSON'a çevrilebilir, yalnız ham model olayı
+    assert all(set(e) in ({"event"}, {"cm_trace"}) and json.dumps(e) for e in ev)   # JSON'a çevrilebilir: ham model olayı ya da iz
     res = _tool_results(model)
     assert res and res[0]["status"] == "success" and "Gökhan" in res[0]["content"][0]["text"]
     assert "kurye **O02**" in model.calls[0]["system"] and "courier_briefing" in model.calls[0]["tools"]

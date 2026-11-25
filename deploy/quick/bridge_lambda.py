@@ -30,8 +30,29 @@ def _client():
     return boto3.client("bedrock-agentcore", config=Config(read_timeout=READ_TIMEOUT_S, retries={"max_attempts": 1}))
 
 
-def parse_stream(lines) -> str:
-    """Supervisor akışından (`data: {...}`) metni toplar; mesajlar satırla ayrılır; `error` olayında RuntimeError."""
+AGENT_NAMES = {"supervisor": "Supervisor", "planner": "Planlama", "courier": "Kurye", "memory_keeper": "Hafıza", "analyst": "Analiz"}
+
+
+def chain_path(trace: list[dict]) -> str:
+    """cm_trace olaylarından tek satır yol: "Yol: Supervisor → Planlama (plan_day) → Analiz (query_history)"."""
+    hops: list[tuple[str, list[str]]] = []
+    for t in trace:
+        kind, agent, tool = t.get("type"), t.get("agent"), t.get("tool")
+        if kind == "delegate_start" and agent in AGENT_NAMES:
+            hops.append((AGENT_NAMES[agent], []))
+        elif kind == "tool_call" and t.get("parent") == "supervisor" and hops and tool and tool not in hops[-1][1]:
+            hops[-1][1].append(tool)
+        elif kind == "denied":
+            hops.append(("ret", [tool] if tool else []))
+    if not hops:
+        return ""
+    parts = ["Supervisor"] + [f"{name} ({', '.join(tools)})" if tools else name for name, tools in hops]
+    return "Yol: " + " → ".join(parts)
+
+
+def parse_stream(lines, trace: list | None = None) -> str:
+    """Supervisor akışından (`data: {...}`) metni toplar; mesajlar satırla ayrılır; `error` olayında RuntimeError.
+    `trace` verilirse `cm_trace` olayları ona eklenir (cevap metnine karışmaz)."""
     messages: list[list[str]] = [[]]
     for raw in lines:
         line = raw.decode("utf-8", "replace") if isinstance(raw, bytes) else raw
@@ -43,6 +64,8 @@ def parse_stream(lines) -> str:
             continue
         if ev.get("error"):
             raise RuntimeError(str(ev["error"]))
+        if trace is not None and isinstance(ev.get("cm_trace"), dict):
+            trace.append(ev["cm_trace"])
         event = ev.get("event") or {}
         if "messageStart" in event and messages[-1]:
             messages.append([])
@@ -76,7 +99,11 @@ def handler(event, context):
             payload=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
             contentType="application/json", accept="text/event-stream")
         body = resp["response"]
-        answer = parse_stream(body.iter_lines())
+        trace: list[dict] = []
+        answer = parse_stream(body.iter_lines(), trace)
+        path = chain_path(trace)
+        if answer and path:
+            answer = f"{answer}\n\n{path}"                 # Quick'te çok ajanlı yol görünsün
     except RuntimeError as e:
         log.warning("supervisor hata akıttı: %s", e)
         return {"error": f"Ajan yanıt veremedi: {e}"}

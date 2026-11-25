@@ -4,6 +4,7 @@ Sunum ekranı (hikaye Sahne 3 ya da /flow/?sunum=1) "Günü planla" ile koşuyu 
 (/flow/) aynı olayları SSE ile canlı izler ve koşu başlatamaz. Adımlar /flow/'un eski adımlarıyla ve ui/demo/build.py ile
 aynı uç fonksiyonlarını aynı gövdelerle çağırır (süreç içinde, HTTP'siz). Durum bellek içidir (web tek ECS görevi);
 sunucu yeniden başlarsa boşalır. Olay biçimi docs/sozlesmeler.md §4.9.
+İkinci zincir "AgentCore zinciri" (api/agentcore_chain.py) aynı `Live` yayınını kullanır: `start(kind="agentcore")`.
 """
 from __future__ import annotations
 
@@ -47,6 +48,7 @@ class Live:
         self._lock = threading.Lock()
         self.run_id = 0
         self.status = "idle"            # idle | running | done | error
+        self.kind = "day"               # day (sekiz adım, süreç içi) | agentcore (api/agentcore_chain.py)
         self.events: list[dict] = []
 
     # ---------------------------------------------------------------- yayın
@@ -58,7 +60,8 @@ class Live:
 
     def snapshot(self, after: int = 0) -> dict:
         with self._lock:
-            return {"run_id": self.run_id, "status": self.status, "total": len(self.events), "events": self.events[after:]}
+            return {"run_id": self.run_id, "status": self.status, "kind": self.kind, "total": len(self.events),
+                    "events": self.events[after:]}
 
     def pull(self, run: int | None, n: int) -> tuple[list[dict], int, int, str]:
         """İzleyicinin konumundan sonraki olaylar. Koşu değiştiyse yeni koşunun hepsi (ilk olay `run`: istemci sıfırlar)."""
@@ -68,21 +71,25 @@ class Live:
             return self.events[n:], run, len(self.events), self.status
 
     # ---------------------------------------------------------------- koşu
-    def start(self, target=None) -> dict:
+    def start(self, target=None, kind: str = "day") -> dict:
         with self._lock:
             if self.status == "running":
                 raise LiveBusy()
             self.run_id += 1
             self.events = []
             self.status = "running"
+            self.kind = kind
             run = self.run_id
         threading.Thread(target=target or self._work, args=(run,), daemon=True).start()
-        return {"run_id": run, "status": "running"}
+        return {"run_id": run, "status": "running", "kind": kind}
 
-    def _work(self, run: int) -> None:
+    def runner(self, make_chain):
+        """Başka bir zincir (ör. AgentCore) aynı yayınla koşsun: `start(target=LIVE.runner(X), kind=...)`."""
+        return lambda run: self._work(run, make_chain)
+
+    def _work(self, run: int, make_chain=None) -> None:
         try:
-            Chain(self).run()
-            status = "done"
+            status = (make_chain or Chain)(self).run() or "done"     # zincir "error" döndürebilir (ör. erişim yok)
         except Exception as e:                       # zincirin dışında bir hata (adım hataları adımda kalır)
             self.emit("step_error", i=-1, text=str(e))
             status = "error"

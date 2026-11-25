@@ -76,3 +76,30 @@ def test_parse_stream_joins_messages():
     lines = [b'data: {"event": {"messageStart": {}}}', b'data: {"event": {"contentBlockDelta": {"delta": {"text": "A"}}}}',
              b'data: {"event": {"messageStart": {}}}', b'data: {"event": {"contentBlockDelta": {"delta": {"text": "B"}}}}']
     assert bl.parse_stream(lines) == "A\nB"
+
+
+def _tr(**kw):
+    return ('data: ' + json.dumps({"cm_trace": {"seq": 0, "parent": None, "tool": None, **kw}})).encode()
+
+
+def test_answer_gets_one_line_chain_path(env, monkeypatch):
+    lines = [_tr(agent="supervisor", type="tool_call", tool="ask_planner"),
+             _tr(agent="planner", parent="supervisor", type="delegate_start"),
+             _tr(agent="planner", parent="supervisor", type="tool_call", tool="plan_day"),
+             _tr(agent="planner", parent="supervisor", type="tool_result", tool="plan_day"),
+             _tr(agent="analyst", parent="supervisor", type="delegate_start"),
+             _tr(agent="analyst", parent="supervisor", type="tool_call", tool="query_history"),
+             _tr(agent="analyst", parent="supervisor", type="tool_call", tool="query_history"),
+             b'data: {"event": {"contentBlockDelta": {"delta": {"text": "Plan hazir."}}}}']
+    monkeypatch.setattr(bl, "_client", lambda: _Client(lines))
+    out = bl.handler({"question": "Plan?"}, _Ctx())
+    assert out["answer"] == "Plan hazir.\n\nYol: Supervisor → Planlama (plan_day) → Analiz (query_history)"
+
+
+def test_denied_hop_is_shown_and_no_trace_means_no_footer(env, monkeypatch):
+    lines = [_tr(agent="supervisor", type="denied", tool="ask_planner"),
+             b'data: {"event": {"contentBlockDelta": {"delta": {"text": "Yetki yok."}}}}']
+    monkeypatch.setattr(bl, "_client", lambda: _Client(lines))
+    assert bl.handler({"question": "Plan?"}, _Ctx())["answer"] == "Yetki yok.\n\nYol: Supervisor → ret (ask_planner)"
+    monkeypatch.setattr(bl, "_client", lambda: _Client([b'data: {"event": {"contentBlockDelta": {"delta": {"text": "X"}}}}']))
+    assert bl.handler({"question": "Plan?"}, _Ctx())["answer"] == "X"

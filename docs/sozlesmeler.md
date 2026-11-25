@@ -344,6 +344,44 @@ Olay: `{run, n, t, ...}`. `t`: `run {day, courier, name, mode, model, steps, sta
 
 Arayüz: `/flow/` izleyici (başlatma düğmesi yok), `/flow/?sunum=1` sunum ekranı ("Günü planla"; `start=1` açılışta başlatır, `qr=1` QR'a yer bırakır). `/story`, `/flow`, `/demo` (sonda `/` yok) göreli `307 <ad>/` döner: mutlak yönlendirme CloudFront arkasında `http://<ALB>/…` olurdu.
 
+### AgentCore zinciri (`api/agentcore_chain.py`, `api/agentcore_client.py`; aynı canlı akış)
+
+İkinci zincir aynı demoyu dağıtılmış AgentCore Supervisor'dan geçirir: Supervisor → uzman (Planlama · Kurye · Hafıza · Analiz) → alan aracı → sonuç. İç alan ajanları kurallıdır (değişmez). Yayın yukarıdaki `Live`'dır: aynı `GET /api/live`, `GET /api/live/stream` (Last-Event-ID, `: ping`), tek koşu kuralı. Spec: `.kiro/specs/agentcore-zinciri/`.
+
+| Uç | Açıklama |
+|---|---|
+| `POST /api/live/start?chain=agentcore` | AgentCore zincirini başlatır → `{run_id, status: "running", kind: "agentcore"}`; herhangi bir koşu sürerken `409`; `CM_AGENTCORE_CHAIN=0` ise `501`. `chain=day` (varsayılan) sekiz adımlık zincirdir; başka değer `422` |
+| `GET /api/live` | Ek alan `kind: day\|agentcore` |
+| `GET /api/live/stream` | `hello` ek alanları: `kind`, `ctx.agentcore` (zincir açık mı; sunum ekranı düğmeyi buna göre gösterir) |
+
+Altı adım (sırası sabit; `actorId` kimliktir, modelden gelmez):
+
+| i | `actorId` | İstem | Beklenen |
+|---|---|---|---|
+| 0 | `MUDUR-01` | Bugünün planını gerekçesiyle iki maddede özetle. | planner → `plan_day` |
+| 1 | `O02` | Sabah brifingimi ver. | courier → `courier_briefing` |
+| 2 | `O02` | 1. durağa not: sitenin önünde park yeri yok, aracı arka sokaktaki otoparka bırakın. | memory_keeper → `leave_note` (DynamoDB) |
+| 3 | `MUDUR-01` | Hafızası boş adresler için kıdemli kuryelere hangi soruları soralım? | memory_keeper → `harvest_questions` |
+| 4 | `MUDUR-01` | Mevcut yapı (A) ile hafızalı yapı (D) arasında günlük başarısız teslim farkı ne? | analyst → `query_history` (Athena) |
+| 5 | `O02` | Bugünün şube planını göster. | `denied`: kurye planlama uzmanına soramaz |
+
+Çağrı: `bedrock-agentcore` `InvokeAgentRuntime`; ARN `bedrock-agentcore-control` `ListAgentRuntimes` ile adla bulunur (`CM_AGENTCORE_SUPERVISOR`, varsayılan `CourierMemory_default_agent`; bölge `CM_AGENTCORE_REGION` → `AWS_REGION` → `us-east-1`) ve önbelleğe alınır. Gövde `{"prompt", "actorId", "day"}`; `runtimeSessionId` koşu + kimlik başına (`cm-live-<run>-<actor>-<uuid>`, ≥ 33 karakter). Yeniden deneme yok (`leave_note` yazar), okuma zaman aşımı 120 sn.
+
+Yanıt akışı (`data: {...}` satırları): `{"event": <strands model olayı>}` · `{"error": "..."}` · `{"cm_trace": {seq, agent, parent, type, tool, input, summary, ms, ok}}`. Metin = `event.contentBlockDelta.delta.text` parçaları (mesajlar satırla ayrılır).
+
+Olaylar (§4.9'a ek alanlar):
+- `run {kind: "agentcore", day, runtime, mode: "agentcore", steps: 6, started, chain[{actor, prompt, agent, tool, expect}]}`
+- `step {i, actor, prompt, agent, tool, expect}`
+- `http {method: "invoke", path: "InvokeAgentRuntime · <ad>", body}` · `http_done {status: 200|502, ms, data{answer}|{detail}}`
+- `ev {e}`: `cm_trace` → `{type, agent, parent, tool, input?, summary?, ms?, ok?, seq?, target?, source: "agentcore"}`. `type`: `tool_call→tool`, `tool_result→result`, `delegate_start→delegate`, `delegate_end→delegate_end`, `denied→denied`, `error→error` (+`text`), bilinmeyen → `info`. `target`: Supervisor'ın `ask_*` aracının uzmanı (`ask_planner→planner`, `ask_courier_agent→courier`, `ask_memory_keeper→memory_keeper`, `ask_analyst→analyst`). `parent: "supervisor"` olan olay arayüzde girintili çizilir. Adım sonunda `{type: "answer", agent: "supervisor", text}`.
+- Yedek (eski dağıtım, `cm_trace` yok): Supervisor'ın araç çağrıları `contentBlockStart.start.toolUse.name` (+ `toolUse.input` parçaları) ile adım sonunda `ev {type: "tool", agent: "supervisor", fallback: true, target}` olarak yayınlanır. Koşuda bir kez `cm_trace` gelince yedek iz tutulmaz (yinelenmez).
+- `result {i, out{actor, prompt, answer, ms, traced, expected{agent, tool, expect}, path[], tools[], denied}}`. `path`: Supervisor ve ulaşılan uzmanlar (reddedilen `ask_*` sayılmaz).
+- Hata: `step_error {i, text}` Türkçe ve gösterilebilir; ARN, hesap numarası, ham istisna metni yoktur (akıştaki `error` metninde ARN `<arn>`, 12 hane `<hesap>` olur). Kimlik yok, izin yok (AccessDenied), runtime yok, bağlantı yok zinciri durdurur (`note` + `end {status: "error"}`); zaman aşımı, istek sınırı ve akıştaki `error` yalnız o adımı düşürür.
+
+İzin (web görev rolü, `deploy/web/ecs_deploy.py` → `agentcore-supervisor`): `bedrock-agentcore:InvokeAgentRuntime` yalnız `arn:aws:bedrock-agentcore:<bölge>:<hesap>:runtime/CourierMemory_default_agent-*` (ve `/runtime-endpoint/*`); `bedrock-agentcore:ListAgentRuntimes` `"*"` (kaynak düzeyinde kısıtlanamaz). Ortam: `CM_AGENTCORE_CHAIN=1`, `CM_AGENTCORE_SUPERVISOR=CourierMemory_default_agent`.
+
+Arayüz: sunum ekranında ikinci düğme "AgentCore zinciri" (açılışta: `?sunum=1&start=1&zincir=agentcore`); izleyiciler hangi zincir koşuyorsa onu izler (`run.kind` adım listesini ve mimari şeridi seçer). Her atlamada ajan rozeti (Supervisor / Planlama / Kurye / Hafıza / Analiz), araç adı, girdi, özet, ms; ret ayrı biçimde.
+
 ## 5. Ajan izi (orkestratör)
 
 Her olay: `{"i": sıra, "type": ..., "source": "llm|kural|insan", ...alanlar}`. Saat damgası yoktur; mock iz deterministiktir. Canlı yol ile kurallı yedek aynı tipleri aynı sırayla üretir; arayüz yalnız `source` ile ayırt eder.

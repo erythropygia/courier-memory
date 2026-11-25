@@ -14,7 +14,7 @@ import json
 import logging
 import os
 import threading
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from functools import lru_cache
 
 log = logging.getLogger(__name__)
@@ -95,8 +95,11 @@ def _runtime_client():
                         config=Config(read_timeout=READ_TIMEOUT_S, retries={"max_attempts": 1, "mode": "standard"}))
 
 
-def parse_stream(lines: Iterable[bytes | str]) -> str:
-    """Uzmanın akışından (`data: {...}` satırları) metni toplar; mesajlar satırla ayrılır; `error` olayında DelegationError."""
+def parse_stream(lines: Iterable[bytes | str], on_trace: Callable[[dict], object] | None = None) -> str:
+    """Uzmanın akışından (`data: {...}` satırları) metni toplar; mesajlar satırla ayrılır; `error` olayında DelegationError.
+
+    `cm_trace` öğeleri metne girmez; `on_trace` verilirse geldikleri anda ona aktarılır (supervisor canlı zinciri).
+    """
     messages: list[list[str]] = [[]]
     for raw in lines:
         line = raw.decode("utf-8", "replace") if isinstance(raw, bytes) else raw
@@ -106,8 +109,14 @@ def parse_stream(lines: Iterable[bytes | str]) -> str:
             ev = json.loads(line[len("data: "):])
         except json.JSONDecodeError:
             continue
+        if not isinstance(ev, dict):
+            continue
         if ev.get("error"):
             raise DelegationError(str(ev["error"]))
+        if isinstance(ev.get("cm_trace"), dict):
+            if on_trace is not None:
+                on_trace(ev["cm_trace"])
+            continue
         event = ev.get("event") or {}
         if "messageStart" in event and messages[-1]:
             messages.append([])
@@ -117,7 +126,8 @@ def parse_stream(lines: Iterable[bytes | str]) -> str:
     return "\n".join("".join(m).strip() for m in messages if "".join(m).strip())
 
 
-def invoke_specialist(role: str, prompt: str, actor_id: str, session_id: str, day: int | None = None) -> str:
+def invoke_specialist(role: str, prompt: str, actor_id: str, session_id: str, day: int | None = None,
+                      on_trace: Callable[[dict], object] | None = None) -> str:
     from botocore.exceptions import BotoCoreError, ClientError
 
     payload = {"prompt": prompt, "actorId": actor_id, **({"day": day} if day else {})}
@@ -128,7 +138,7 @@ def invoke_specialist(role: str, prompt: str, actor_id: str, session_id: str, da
             payload=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
             contentType="application/json", accept="text/event-stream")
         body = resp["response"]
-        text = parse_stream(body.iter_lines())
+        text = parse_stream(body.iter_lines(), on_trace)
     except (ClientError, BotoCoreError, KeyError) as e:
         _forget(role)                      # runtime silinip yeniden kurulduysa sonraki çağrı ARN'yi yeniden bulur
         log.exception("uzman çağrısı başarısız: role=%s actor=%s", role, actor_id)

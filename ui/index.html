@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Courier Memory · Demo</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/ui/style.css">
+  <script src="/ui/common.js" defer></script>
+  <script src="/ui/map.js" defer></script>
+  <script src="/ui/chart.js" defer></script>
+  <script src="/ui/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">CM</span>
+      <div class="brand-text"><b>Courier Memory</b><small>Son-mil teslimatta kurye bilgisi · agentic AI</small></div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Ekranlar">
+      <button type="button" role="tab" data-screen="branch" title="Kısayol: 1">Şube<small>müdür</small></button>
+      <button type="button" role="tab" data-screen="courier" title="Kısayol: 2">Kurye<small>saha</small></button>
+      <button type="button" role="tab" data-screen="simulation" title="Kısayol: 3">Simülasyon<small>karşılaştırma</small></button>
+      <button type="button" role="tab" data-screen="value" title="Kısayol: 4">Değer<small>maliyet · kazanç</small></button>
+    </nav>
+    <label class="day-selector">Gün <select id="day" aria-label="Değerlendirme günü"></select></label>
+    <div class="top-right">
+      <span id="data-label" class="badge data-label">Uygulama verisi · 1 aylık geçmiş</span>
+      <span id="degraded" class="badge warning" hidden><i aria-hidden="true">!</i>Çevrimdışı yedek</span>
+      <span id="mod" class="badge mod"><i class="point"></i>Mod: …</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- ================================================================ 1. ŞUBE -->
+    <section id="screen-branch" class="screen screen-branch" role="tabpanel" aria-label="Şube müdürü ekranı">
+      <div class="card map-card">
+        <div class="card-head">
+          <h2>Günün kümeleri ve rotalar</h2>
+          <span class="alt" id="branch-map-alt"></span>
+          <span class="gap"></span>
+          <label class="key"><input type="checkbox" id="branch-result" checked> Gün sonu sonuçları</label>
+        </div>
+        <div class="map-status" id="branch-map-status"></div>
+        <div class="map-container" id="branch-map"></div>
+        <div class="map-alt" id="branch-legend"></div>
+      </div>
+
+      <div class="card assignment-card">
+        <div class="card-head">
+          <h2>Atama önerisi</h2>
+          <span class="gap"></span>
+          <button type="button" id="btn-propose" class="primary">Atama önerisi al</button>
+        </div>
+        <div id="assignment-summary" class="assignment-summary"></div>
+        <div class="table-wrap"><table id="assignment-table" class="assignment-table"></table></div>
+        <div class="assignment-alt">
+          <span id="assignment-alt-info" class="alt"></span>
+          <span class="gap"></span>
+          <button type="button" id="btn-back" class="secondary" hidden>Öneriye dön</button>
+          <button type="button" id="btn-approve" class="primary" disabled>Onayla</button>
+        </div>
+      </div>
+
+      <div class="right-column">
+        <div class="card rationale-card">
+          <div class="card-head"><h2>Gerekçe</h2><span class="alt">Atama Ajanı</span></div>
+          <div id="rationale" class="shift"></div>
+        </div>
+        <div class="card chat-card">
+          <div class="card-head"><h2>Ya şöyle olursa?</h2><span class="alt">senaryo sorusu</span></div>
+          <div id="chat" class="chat"></div>
+          <div id="chips" class="chips"></div>
+          <form id="question-form" class="question-form">
+            <input id="question" type="text" placeholder="Atama Ajanı’na sorun…" autocomplete="off" aria-label="Senaryo sorusu">
+            <button type="submit" class="primary">Sor</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ 2. KURYE -->
+    <section id="screen-courier" class="screen screen-courier" role="tabpanel" aria-label="Kurye ekranı">
+      <div class="phone-column">
+        <div class="phone-panel">
+          <div class="phone-status"><span id="phone-hour">09:00</span><span class="phone-app">Courier Memory</span><span aria-hidden="true">● ● ●</span></div>
+          <div class="phone-body">
+            <div id="phone-who" class="phone-who"></div>
+            <div class="phone-briefing">
+              <div class="phone-head">
+                <b>Sabah brifingi</b>
+                <span class="gap"></span>
+                <span id="speech-source" class="alt"></span>
+                <button type="button" id="btn-listen" class="primary small">▶ Dinle</button>
+              </div>
+              <div id="briefing-text" class="briefing-text"></div>
+              <ul id="briefing-warning" class="warnings"></ul>
+              <div id="briefing-step"></div>
+            </div>
+            <div id="phone-door" class="phone-door" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card courier-map-card">
+        <div class="card-head">
+          <label class="courier-selector">Kurye <select id="courier-select" aria-label="Kurye"></select></label>
+          <div id="courier-route-summary" class="route-summary"></div>
+        </div>
+        <div class="map-container" id="courier-map"></div>
+        <div class="play-bar">
+          <button type="button" id="btn-play" class="primary">▶ Rotayı oynat</button>
+          <button type="button" id="btn-restart" class="secondary" title="Başa sar">⟲ Başa</button>
+          <div class="segment" id="speed" role="group" aria-label="Oynatma hızı">
+            <button type="button" data-speed="0.5" aria-pressed="false">0,5×</button>
+            <button type="button" data-speed="1" aria-pressed="true">1×</button>
+            <button type="button" data-speed="2" aria-pressed="false">2×</button>
+            <button type="button" data-speed="4" aria-pressed="false">4×</button>
+          </div>
+          <label class="key"><input type="checkbox" id="sound-on" checked> Sesli ipucu</label>
+          <span class="gap"></span>
+          <span id="progress" class="progress"></span>
+        </div>
+        <div id="stop-strip" class="strip" aria-label="Durak şeridi"></div>
+        <div class="map-alt" id="courier-legend"></div>
+      </div>
+
+      <div class="note-column">
+        <div class="card note-card">
+          <div class="card-head"><h2>Not bırak</h2><span class="alt">Hafıza Ajanı</span></div>
+          <div id="note-target" class="note-target"></div>
+          <form id="note-form" class="note-form">
+            <textarea id="note-text" rows="3" placeholder="Kapıda öğrendiğin püf noktası… (3 saniyelik not)" aria-label="Not metni"></textarea>
+            <div class="note-buttons">
+              <button type="button" id="btn-microphone" class="secondary microphone" hidden title="Basılı tutun ve konuşun">Bas-konuş</button>
+              <span class="gap"></span>
+              <button type="submit" id="btn-note" class="primary">Notu gönder</button>
+            </div>
+          </form>
+          <div class="alt small-title">Örnek notlar</div>
+          <div id="note-chips" class="chips vertical"></div>
+        </div>
+        <div class="card result-card">
+          <div class="card-head"><h2>Hafıza sonucu</h2></div>
+          <div id="memory-summary" class="alt memory-summary"></div>
+          <div id="note-result" class="shift"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ 3. SİMÜLASYON -->
+    <section id="screen-simulation" class="screen screen-sim" role="tabpanel" aria-label="Simülasyon panosu">
+      <div class="kpi-area">
+        <div class="kpi-top">
+          <h2>Dört kol, aynı günler</h2>
+          <div class="segment" id="period-select" role="group" aria-label="Dönem">
+            <button type="button" data-period="demo" aria-pressed="true">Demo senaryosu · 20 gün</button>
+            <button type="button" data-period="long" aria-pressed="false">Uzun dönem · 60 iş günü</button>
+          </div>
+          <span class="alt" id="kpi-period"></span>
+        </div>
+        <div id="kpi" class="kpi-row"></div>
+      </div>
+
+      <div class="card chart-card g-daily demo-only">
+        <div class="card-head"><h2>Günlük ilk denemede teslim</h2><span class="gap"></span><button type="button" class="table-btn" id="tb-daily" aria-pressed="false">Tablo</button></div>
+        <div id="lj-daily"></div>
+        <div class="chart-body" id="g-daily"></div>
+      </div>
+
+      <div class="card chart-card u-series long-only">
+        <div class="card-head"><h2>Hafıza birikiyor</h2><span class="alt">5 günlük hareketli ortalama</span><span class="gap"></span><button type="button" class="table-btn" id="tb-useries" aria-pressed="false">Tablo</button></div>
+        <div class="small-chart-title">D − C farkı, ilk denemede teslim (puan)</div>
+        <div class="chart-body" id="g-udiff"></div>
+        <div class="small-chart-title">D kolunda hafıza kapsamı</div>
+        <div class="chart-body" id="g-ucoverage"></div>
+      </div>
+
+      <div class="card chart-card g-reason">
+        <div class="card-head"><h2>Başarısızlık nedenleri</h2><span class="alt" id="reason-alt"></span><span class="gap"></span><button type="button" class="table-btn" id="tb-reason" aria-pressed="false">Tablo</button></div>
+        <div id="lj-reason"></div>
+        <div class="chart-body" id="g-reason"></div>
+      </div>
+
+      <div class="card chart-card g-learning">
+        <div class="card-head"><h2>Yeni ve ödünç kurye öğrenme eğrisi</h2><span class="gap"></span><button type="button" class="table-btn" id="tb-learning" aria-pressed="false">Tablo</button></div>
+        <div id="lj-learning"></div>
+        <div class="chart-body" id="g-learning"></div>
+        <div class="chart-note">x: kuryenin şubedeki kaçıncı günü · y: ilk denemede teslim (o gün çalışan yeni/ödünç kuryelerin ortalaması)</div>
+      </div>
+
+      <div class="card g-sweep">
+        <div class="card-head"><h2>Sağlamlık: parametreleri değiştirin</h2><span class="alt">tarama sonuçları</span></div>
+        <div id="sweep" class="sweep"></div>
+      </div>
+
+      <div class="card g-compare demo-only">
+        <div class="card-head">
+          <h2>Haritada karşılaştır</h2><span class="alt" id="compare-day"></span>
+          <span class="gap"></span>
+          <div class="segment" id="compare-select" role="group" aria-label="Karşılaştırılan kol">
+            <button type="button" data-arm="A" aria-pressed="true">A ile D</button>
+            <button type="button" data-arm="B" aria-pressed="false">B ile D</button>
+          </div>
+        </div>
+        <div class="compare-grid">
+          <div class="compare-cell"><div class="map-container" id="compare-left"></div><div class="compare-alt" id="compare-left-alt"></div></div>
+          <div class="compare-cell"><div class="map-container" id="compare-right"></div><div class="compare-alt" id="compare-right-alt"></div></div>
+        </div>
+        <div class="map-alt" id="compare-legend"></div>
+      </div>
+
+      <div class="card u-message long-only">
+        <div class="card-head"><h2>Net mesaj: bugün, ajansız geçiş, Courier Memory</h2><span class="alt">uzun dönem, günlük ortalama</span></div>
+        <div id="u-message" class="u-message-inner"></div>
+      </div>
+
+      <div class="card g-note">
+        <div id="sim-note" class="sim-note"></div>
+      </div>
+    </section>
+    <!-- ================================================================ 4. DEĞER -->
+    <section id="screen-value" class="screen screen-value" role="tabpanel" aria-label="Operasyon maliyeti ve ajanların getirisi">
+      <div class="card headline-card" id="headline"></div>
+
+      <div class="card opwaterfall-card">
+        <div class="card-head">
+          <h2>Operasyon maliyeti: bugünden yeni yapıya</h2><span class="alt" id="opwaterfall-alt">şube başına</span>
+          <span class="gap"></span>
+          <div class="segment" id="waterfall-unit" role="group" aria-label="Birim">
+            <button type="button" data-unit="day" aria-pressed="true">TL / gün</button>
+            <button type="button" data-unit="year" aria-pressed="false">TL / yıl</button>
+          </div>
+          <button type="button" class="table-btn" id="tb-opwaterfall" aria-pressed="false">Tablo</button>
+        </div>
+        <div class="chart-body" id="g-opwaterfall"></div>
+        <div class="map-alt opwaterfall-alt-row"><span id="opwaterfall-legend"></span><span id="opwaterfall-note" class="opwaterfall-note"></span></div>
+      </div>
+
+      <div class="card compare-card">
+        <div class="card-head"><h2>Üç durum yan yana</h2><span class="alt">günlük · fark bugüne göre</span><span class="gap"></span><label class="key" title="Yalnız Atama Ajanı ile yeni yapı"><input type="checkbox" id="compare-c"> C’yi göster</label></div>
+        <div id="compare-table" class="compare-table-container"></div>
+      </div>
+
+      <div class="card agent-card">
+        <div class="card-head">
+          <h2>Ajanların maliyeti ve getirisi</h2>
+          <span class="gap"></span>
+          <div class="segment" id="agent-view" role="group" aria-label="Görünüm">
+            <button type="button" data-view="cost" aria-pressed="true">Maliyet kırılımı</button>
+            <button type="button" data-view="roi" aria-pressed="false">Getiri hesabı</button>
+          </div>
+        </div>
+        <div id="scenario-select" class="scenario-select" role="group" aria-label="LLM senaryosu" hidden></div>
+        <div id="agent-headline" class="agent-headline"></div>
+        <div id="agent-cost" class="agent-body">
+          <div class="model-selection" id="model-selection"></div>
+          <div id="cost" class="cost-inner"></div>
+        </div>
+        <div id="agent-return" class="agent-body" hidden>
+          <div class="return-head">
+            <div id="gain-explanation" class="gain-explanation"></div>
+            <div class="segment" id="gain-select" role="group" aria-label="Karşılaştırma">
+              <button type="button" data-compare="vs_C" aria-pressed="true">Hafıza + Brifing</button>
+              <button type="button" data-compare="vs_B" aria-pressed="false">Üst sınır</button>
+            </div>
+          </div>
+          <div class="chart-body" id="g-waterfall"></div>
+          <div class="map-alt" id="waterfall-legend"></div>
+        </div>
+      </div>
+
+      <div class="card assumption-card">
+        <div class="card-head"><h2>Parametreler</h2><span class="assumption-label">tahmini · şirket rakamıyla değiştirin</span><span class="gap"></span><button type="button" class="table-btn" id="assumption-reset" title="Varsayılan değerlere dön">↺</button></div>
+        <div id="assumptions" class="sliders"></div>
+        <div id="derived" class="alt derived"></div>
+      </div>
+
+      <div class="card scale-card">
+        <div class="card-head"><h2>Ölçek</h2><span class="alt">TL / yıl · iş günü × şube</span></div>
+        <div id="scale"></div>
+        <div class="small-chart-title">Model seçimi: gönderi başına LLM maliyeti (tüm ajanlar aynı model)</div>
+        <div class="chart-body" id="g-model"></div>
+        <div class="chart-note">Küçük model maliyeti düşürür; kalite canlı ölçümle doğrulanmalı.</div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

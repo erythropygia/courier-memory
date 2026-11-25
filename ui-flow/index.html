@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Courier Memory · Nasıl çalışır</title>
+<style>
+@font-face { font-family: "Inter"; font-weight: 400; src: url(../story/fonts/inter-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 400; src: url(../story/fonts/inter-latin-ext-400-normal.woff2) format("woff2"); unicode-range: U+0100-02BA, U+1E00-1E9F; }
+@font-face { font-family: "Inter"; font-weight: 600; src: url(../story/fonts/inter-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; src: url(../story/fonts/inter-latin-ext-600-normal.woff2) format("woff2"); unicode-range: U+0100-02BA, U+1E00-1E9F; }
+@font-face { font-family: "Barlow C"; font-weight: 600; src: url(../story/fonts/barlow-condensed-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Barlow C"; font-weight: 600; src: url(../story/fonts/barlow-condensed-latin-ext-600-normal.woff2) format("woff2"); unicode-range: U+0100-02BA, U+1E00-1E9F; }
+
+:root {
+  --paper: #FBF8F2; --paper-2: #F3EDE2; --ink: #1A1714; --ink-2: #4A433B; --faded: #8A8177;
+  --line: rgba(26, 23, 20, 0.14); --red: #D2261C; --green: #2C7A4B; --accent: #E8A33A; --blue: #2F5E8C;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #EFE8DC; color: var(--ink); font: 14px/1.45 "Inter", system-ui, sans-serif; }
+body { display: grid; grid-template-rows: auto auto 1fr; height: 100vh; overflow: hidden; }
+h1, h2, h3 { font-family: "Barlow C", "Inter", sans-serif; font-weight: 600; margin: 0; letter-spacing: .01em; }
+button { font: inherit; cursor: pointer; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); padding: 6px 12px; border-radius: 3px; }
+button.primary { background: var(--ink); color: var(--paper); }
+button:disabled { opacity: .4; cursor: default; }
+code, .mono { font-family: var(--mono); font-size: 12px; }
+
+/* üst çubuk */
+header { display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: var(--paper); border-bottom: 1px solid var(--line); }
+header h1 { font-size: 22px; }
+header .sub { color: var(--faded); }
+header .sp { flex: 1; }
+.badge { font: 600 11px/1 "Inter"; text-transform: uppercase; letter-spacing: .06em; padding: 4px 7px; border-radius: 2px; background: var(--paper-2); color: var(--ink-2); }
+.badge.mock { background: #E9E2D3; }
+.badge.live { background: var(--green); color: #fff; }
+
+/* mimari şerit */
+#arch { display: flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--paper-2); border-bottom: 1px solid var(--line); overflow-x: auto; white-space: nowrap; }
+#arch .node { padding: 6px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--paper); color: var(--faded); transition: all .25s; font-size: 13px; }
+#arch .node b { display: block; font: 600 15px/1.1 "Barlow C"; color: var(--ink-2); }
+#arch .node.on { border-color: var(--ink); color: var(--ink); box-shadow: 0 0 0 2px var(--accent); }
+#arch .node.on b { color: var(--ink); }
+#arch .node.mem { border-style: dashed; }
+#arch .arrow { color: var(--faded); }
+#flowline { padding: 4px 20px 6px; font-size: 12px; color: var(--ink-2); background: var(--paper-2); border-bottom: 1px solid var(--line); min-height: 24px; }
+
+/* üç sütun */
+main { display: grid; grid-template-columns: 300px 1fr 340px; min-height: 0; }
+main > section { min-height: 0; overflow-y: auto; padding: 14px 16px; }
+#steps { background: var(--paper); border-right: 1px solid var(--line); }
+#center { background: #fff; }
+#side { background: var(--paper); border-left: 1px solid var(--line); }
+.coltitle { font: 600 11px/1 "Inter"; text-transform: uppercase; letter-spacing: .08em; color: var(--faded); margin: 0 0 10px; }
+
+.step { border: 1px solid var(--line); border-radius: 3px; padding: 9px 10px; margin-bottom: 8px; cursor: pointer; background: var(--paper); }
+.step:hover { border-color: var(--ink-2); }
+.step.active { border-color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); }
+.step .hd { display: flex; gap: 8px; align-items: baseline; }
+.step .no { font: 600 18px/1 "Barlow C"; color: var(--faded); width: 18px; }
+.step.done .no { color: var(--green); }
+.step .t { font-weight: 600; }
+.step .who { font-size: 12px; color: var(--ink-2); margin: 3px 0 0 26px; }
+.step .code { font-size: 11px; color: var(--faded); margin: 4px 0 0 26px; font-family: var(--mono); line-height: 1.5; }
+.step .st { margin-left: auto; font-size: 11px; color: var(--faded); }
+.step.running .st { color: var(--accent); }
+.step.done .st { color: var(--green); }
+
+/* iz */
+#stephead h2 { font-size: 26px; }
+#stephead p { margin: 4px 0 12px; color: var(--ink-2); max-width: 760px; }
+#trace { list-style: none; margin: 0; padding: 0; }
+#trace li { display: grid; grid-template-columns: 74px 1fr; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); animation: in .25s ease-out; }
+@keyframes in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+#trace .k { font: 600 10px/1.9 "Inter"; text-transform: uppercase; letter-spacing: .06em; }
+#trace .k span { padding: 2px 5px; border-radius: 2px; background: var(--paper-2); color: var(--ink-2); }
+#trace .http .k span { background: #E4ECF4; color: var(--blue); }
+#trace .tool .k span { background: #FBEBD0; color: #8A5A0B; }
+#trace .result .k span { background: #E1EFE5; color: var(--green); }
+#trace .decision .k span { background: var(--ink); color: var(--paper); }
+#trace .fallback .k span, #trace .error .k span { background: #F8DDDB; color: var(--red); }
+#trace .human .k span { background: var(--accent); color: var(--ink); }
+#trace .v { min-width: 0; }
+#trace .v .src { float: right; font-size: 10px; color: var(--faded); text-transform: uppercase; letter-spacing: .05em; }
+#trace .tname { font-family: var(--mono); font-weight: 600; }
+#trace .args { font-family: var(--mono); font-size: 12px; color: var(--ink-2); word-break: break-word; }
+#trace details summary { cursor: pointer; color: var(--faded); font-size: 12px; }
+#trace pre { margin: 4px 0 0; max-height: 260px; overflow: auto; background: var(--paper); padding: 8px; font: 11px/1.4 var(--mono); border: 1px solid var(--line); }
+#trace .decision .v { font-style: italic; }
+.empty { color: var(--faded); padding: 30px 0; }
+
+/* sağ sütun */
+.card { border: 1px solid var(--line); border-radius: 3px; background: #fff; padding: 10px 12px; margin-bottom: 12px; }
+.card h3 { font-size: 17px; margin-bottom: 6px; }
+.card ul { margin: 6px 0 0; padding-left: 18px; }
+.card li { margin: 3px 0; }
+.say { font-size: 15px; border-left: 3px solid var(--accent); padding: 6px 10px; background: var(--paper); margin: 6px 0; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 13px; }
+.kv b { font: 600 20px/1.1 "Barlow C"; }
+.big { font: 600 34px/1 "Barlow C"; }
+.muted { color: var(--faded); font-size: 12px; }
+.chip { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 2px; background: var(--paper-2); margin: 2px 3px 0 0; }
+.chip.red { background: #F8DDDB; color: var(--red); }
+.chip.green { background: #E1EFE5; color: var(--green); }
+#feed .ev { font-size: 12px; padding: 5px 0; border-top: 1px solid var(--line); }
+#feed .ev .a { font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: .05em; color: var(--ink-2); }
+#feed .ev.flash { background: #FFF5DE; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Courier Memory · Nasıl çalışır</h1>
+  <span class="sub" id="ctx">bir günün akışı, adım adım</span>
+  <span class="sp"></span>
+  <span class="badge" id="mode">…</span>
+  <button id="reset" title="Hafıza, ajan akışı ve öğrenilen ayarlar baştan">Baştan</button>
+  <button id="runall">Hepsini oynat</button>
+  <button id="next" class="primary">Sıradaki adım ▶</button>
+</header>
+<div id="arch"></div>
+<div id="flowline"></div>
+<main>
+  <section id="steps"><p class="coltitle">Akış</p><div id="steplist"></div>
+    <p class="muted" style="margin-top:14px">Her adım canlı API çağrısıdır. Ortadaki iz, ajanın kararlarını ve çağırdığı araçları sırasıyla gösterir; araç sonuçlarının tam JSON'u açılır.</p>
+    <p class="muted"><a href="../story/">Hikaye arayüzü</a> · <a href="../docs">API belgesi</a></p>
+  </section>
+  <section id="center">
+    <div id="stephead"><p class="coltitle">İz</p><h2>Başlamak için “Sıradaki adım”</h2>
+      <p>Gün 32, yoğun bir Çarşamba. Komşu şubeden ödünç gelen kurye bölgeyi bilmiyor; sistem ona şubenin hafızasını taşıyor.</p></div>
+    <ol id="trace"></ol>
+  </section>
+  <section id="side">
+    <p class="coltitle">Sonuç</p><div id="result"><div class="card muted">Adımın çıktısı burada.</div></div>
+    <p class="coltitle">Şube hafızası</p><div id="memory" class="card"></div>
+    <p class="coltitle">Ajan akışı</p><div id="feed" class="card"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+// API tabanı: sayfa bir ters vekilin arkasındaysa (ör. /proxy/<port>/flow/) o önek; yoksa kök.
+const BASE = (location.pathname.match(/^(.*?\/proxy\/\d+)\//) || [])[1] || '';
+const $ = (s) => document.querySelector(s);
+const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const fmt = (o) => JSON.stringify(o, null, 2);
+const short = (o) => { const s = JSON.stringify(o); return s.length > 160 ? s.slice(0, 157) + "…" : s; };
+
+// ------------------------------------------------------------------ mimari
+const NODES = [
+  ["records", "Teslim kayıtları", "simülasyon"], ["orch", "Orkestratör", "ajan"], ["manager", "Müdür", "insan"],
+  ["briefing", "Brifing", "ajan"], ["courier", "Kurye", "telefon"], ["memagent", "Hafıza Ajanı", "ajan"],
+  ["memory", "Hafıza", "adres kayıtları"], ["cards", "Durak kartı", "kural"], ["harvest", "Hasat", "ajan"],
+  ["review", "Değerlendirme", "ajan"], ["region", "Bölge", "ajan"],
+];
+$("#arch").innerHTML = NODES.map(([id, t, s], i) =>
+  (i ? '<span class="arrow">›</span>' : "") + `<div class="node${id === "memory" ? " mem" : ""}" data-n="${id}"><b>${t}</b>${s}</div>`).join("");
+function lightArch(ids, line) {
+  document.querySelectorAll("#arch .node").forEach((n) => n.classList.toggle("on", ids.includes(n.dataset.n)));
+  $("#flowline").innerHTML = line ? "Veri akışı: " + line : "";
+}
+
+// ------------------------------------------------------------------ durum
+const KIND = { back_entry: "arka giriş", saturday_closed: "cumartesi kapalı", lunch_break: "öğle arası", safety: "site güvenliği", bell: "zil",
+  position_wrong: "konum hatalı", reception: "resepsiyon", temporary_closed: "geçici kapalı", roadwork: "yol çalışması", park: "park",
+  building_access: "bina erişimi", directions: "adres tarifi", animal: "hayvan", other_info: "not" };
+const kindTr = (k) => KIND[k] || k;
+const CONF = { confirmed: "teyitli", single_source: "tek kaynak", needs_confirmation: "teyit gerekli" };
+const S = { day: 32, courier: "O02", name: "Gökhan", session: null, stop: null, cardIds: [], cur: -1, done: new Set(), busy: false };
+
+// ------------------------------------------------------------------ API + iz
+const trace = $("#trace");
+function row(kind, label, html, src) {
+  const li = document.createElement("li");
+  li.className = kind;
+  li.innerHTML = `<div class="k"><span>${label}</span></div><div class="v">${src ? `<span class="src">${src === "rule" ? "kural" : src === "llm" ? "LLM" : esc(src)}</span>` : ""}${html}</div>`;
+  trace.appendChild(li);
+  li.scrollIntoView({ block: "nearest" });
+}
+async function api(method, path, body) {
+  row("http", method, `<span class="tname">${esc(path)}</span>${body ? ` <span class="args">${esc(short(body))}</span>` : ""}`);
+  const t0 = performance.now();
+  const r = await fetch(BASE + path, { method, headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
+  const data = await r.json().catch(() => ({}));
+  row("http", "yanıt", `<span class="args">${r.status} · ${Math.round(performance.now() - t0)} ms</span>
+    <details><summary>yanıtın JSON'u</summary><pre>${esc(fmt(data))}</pre></details>`);
+  if (!r.ok) throw new Error(data.detail || r.status);
+  return data;
+}
+// Ajan izi olayı (agents/trace.py): start, decision, tool, result, error, fallback, proposal, awaiting_approval, human_decision, done
+function event(e) {
+  const s = e.source;
+  switch (e.type) {
+    case "start": return row("start", "başla", `<span class="args">görev: ${esc(e.task)} · gün ${esc(e.day)} · mod ${esc(e.mod)}</span>`, s);
+    case "decision": return row("decision", "karar", esc(e.text), s);
+    case "tool": return row("tool", "araç", `<span class="tname">${esc(e.tool)}</span>(<span class="args">${esc(short(e.input || {}))}</span>)`, s);
+    case "result": return row("result", "sonuç", `<span class="tname">${esc(e.tool)}</span> → ${esc(e.summary)}
+      ${e.data !== undefined ? `<details><summary>aracın döndürdüğü veri</summary><pre>${esc(fmt(e.data))}</pre></details>` : ""}`, s);
+    case "error": return row("error", "hata", `${esc(e.tool || "")} ${esc(e.text)}`, s);
+    case "fallback": return row("fallback", "yedek", esc(e.text), s);
+    case "proposal": return row("human", "öneri", "Müdüre gerekçeli öneri sunuldu (sağda).", s);
+    case "awaiting_approval": return row("human", "onay bekler", "İnsan onayı noktası: plan müdür onaylamadan uygulanmaz.", s);
+    case "human_decision": return row("human", "müdür", `Karar: <b>${esc(e.decision)}</b>${e.note ? " · " + esc(e.note) : ""}`, "insan");
+    case "done": return row("start", "bitti", `<span class="args">${esc(e.status || "")}</span>`, s);
+    default: return row("start", esc(e.type), `<span class="args">${esc(short(e))}</span>`, s);
+  }
+}
+async function play(events, ms = 110) { for (const e of events) { event(e); await sleep(ms); } }
+const note = (html) => row("decision", "not", html, "arayüz");
+
+// ------------------------------------------------------------------ sağ sütun
+function result(html) { $("#result").innerHTML = `<div class="card">${html}</div>`; }
+let feedMax = 0;
+async function refreshSide() {
+  const [m, f] = await Promise.all([fetch(`${BASE}/api/memory/summary?day=${S.day}`).then((r) => r.json()), fetch(BASE + "/api/feed").then((r) => r.json())]);
+  const dist = Object.entries(m.type_distribution || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  $("#memory").innerHTML = `<div class="kv"><b>${m.total}</b><span>aktif adres kaydı</span></div>
+    <div style="margin-top:4px">${dist.map(([k, n]) => `<span class="chip">${esc(kindTr(k))} ${n}</span>`).join("")}</div>
+    ${(m.last || []).slice(0, 3).map((e) => `<div class="muted" style="margin-top:6px">yeni · ${esc(kindTr(e.kind))}: “${esc(e.text)}”</div>`).join("")}`;
+  const ev = (f.events || []).slice(-8).reverse();
+  $("#feed").innerHTML = ev.length ? ev.map((e) => `<div class="ev${e.n > feedMax ? " flash" : ""}"><span class="a">${esc(e.agent)} · ${esc(e.type)} · ${esc(e.status)}</span><br>${esc(e.summary)}</div>`).join("")
+    : '<span class="muted">Henüz olay yok. Hafıza, Değerlendirme ve Bölge ajanlarının işleri buraya düşer.</span>';
+  feedMax = Math.max(feedMax, ...(f.events || []).map((e) => e.n), 0);
+}
+
+// ------------------------------------------------------------------ adımlar
+const STEPS = [
+  {
+    t: "Gün planlanır", who: "Orkestratör Ajanı", code: ["agents/orchestrator.py", "agents/route.py", "POST /api/orchestrator/start"],
+    desc: "Hacmi okur, kapasite açığını bulur, komşu şubeden kimin geleceğini seçer, kümelere kurye atar, hafızalı rotayı hesaplar ve müdüre gerekçeli öneri sunar. Hesaplar araçlarda; ajan sırayı ve kararı verir.",
+    arch: ["records", "orch", "memory", "manager"], line: "Teslim kayıtları + hafıza → Orkestratör (araçlar) → müdüre öneri",
+    async run() {
+      const k = await api("POST", "/api/orchestrator/start", { day: S.day });
+      S.session = k.session_id;
+      let n = 0, status = k.status;
+      for (let i = 0; i < 400; i++) {
+        const r = await fetch(`${BASE}/api/orchestrator/session/${S.session}?after=${n}`).then((x) => x.json());
+        await play(r.events, 140);
+        n += r.events.length;
+        status = r.status;
+        if (status !== "running" && n >= r.total_event) {
+          const p = r.proposal;
+          if (p) result(`<h3>Müdüre öneri</h3>
+            <div class="kv"><b>${p.total?.courier_count ?? "–"}</b><span>kurye · ödünç: ${p.borrowed.map((b) => esc(b.name)).join(", ")}</span>
+            <b>%${Math.round(100 * p.own_zone_share)}</b><span>kurye kendi bölgesinde</span>
+            <b>${p.total?.expected_fails ?? "–"}</b><span>beklenen başarısız (geçmişe bakmadan ${p.comparison?.history_blind_expected_fails ?? "–"})</span></div>
+            <ul>${p.rationale.slice(0, 4).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+            ${p.risks?.length ? `<p class="muted">Riskler</p><ul>${p.risks.slice(0, 2).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}`);
+          break;
+        }
+        await sleep(250);
+      }
+    },
+  },
+  {
+    t: "Müdür onaylar", who: "İnsan (müdür)", code: ["agents/orchestrator.py · SessionStore.decision", "POST /api/orchestrator/session/{id}/decision"],
+    desc: "Plan müdür onaylamadan uygulanmaz. Onaylanan atama, sonraki ajanların (Brifing, kart, Hasat) okuduğu gün planı olur.",
+    arch: ["manager", "orch"], line: "Müdür kararı → onaylı plan (sonraki adımların girdisi)",
+    async run() {
+      if (!S.session) throw new Error("Önce 1. adım");
+      const r = await api("POST", `/api/orchestrator/session/${S.session}/decision`, { decision: "approval" });
+      const evs = (r.events || []).filter((e) => ["human_decision", "done", "decision"].includes(e.type)).slice(-3);
+      await play(evs);
+      result(`<h3>Plan onaylandı</h3><p>Durum: <b>${esc(r.status)}</b>. ${S.name} için onaylı planın kümesi ve rotası artık Brifing Ajanı'nın girdisi.</p>`);
+    },
+  },
+  {
+    t: "Kuryeye sabah brifingi", who: "Brifing Ajanı", code: ["agents/briefing.py", "GET /api/briefing/{day}/{courier}"],
+    desc: "Ödünç kurye bölgeyi bilmiyor. Ajan rotasındaki riskleri ve hafızadaki notları okur; kuryeye sesli okunacak kısa bir sabah özeti yazar.",
+    arch: ["memory", "briefing", "courier"], line: "Onaylı plan + hafıza → Brifing Ajanı → kurye",
+    async run() {
+      const b = await api("GET", `/api/briefing/${S.day}/${S.courier}`);
+      await play((b.steps || []).flatMap((x) => [{ type: "tool", tool: x.tool, input: x.input, source: b.mode === "mock" ? "rule" : "llm" },
+        { type: "result", tool: x.tool, summary: x.summary, source: b.mode === "mock" ? "rule" : "llm" }]));
+      result(`<h3>${esc(b.courier_name)} · sabah</h3><div class="say">${esc(b.morning_briefing)}</div>
+        <div class="kv"><b>${b.estimated_return}</b><span>tahmini dönüş</span><b>${(b.door_sentences || []).length}</b><span>durakta kapı cümlesi hazır</span></div>
+        ${(b.warnings || []).map((w) => `<div class="chip red">${esc(w)}</div>`).join("")}`);
+    },
+  },
+  {
+    t: "Kurye kapıda not bırakır", who: "Hafıza Ajanı", code: ["agents/memory.py", "agents/guardrails.py", "agents/memorybook.py", "POST /api/note"],
+    desc: "Kuryenin serbest notu adrese bağlanır, türü çıkarılır. Kişisel veri ve kapı şifresi araç düzeyinde ayıklanır; hafızaya yalnız adresi anlatan bilgi yazılır.",
+    arch: ["courier", "memagent", "memory"], line: "Kurye notu → Hafıza Ajanı (adres, tür, ayıklama) → hafıza",
+    async run() {
+      const L = await api("GET", `/api/cards/${S.day}/${S.courier}?all=true`);
+      S.stop = L.stops.find((x) => !x.cards.length) || L.stops[0];
+      note(`Rotanın ${S.stop.order}. durağı (${esc(S.stop.label)}) hafızada kartsız. Kurye buraya not bırakıyor:`);
+      const text = "sitenin önünde park yeri yok, aracı arka sokaktaki otoparka bırakıp yürüyün. B blok kapı şifresi 2580";
+      const r = await api("POST", "/api/note", { day: S.day, courier: S.courier, lat: S.stop.lat, lng: S.stop.lng, text });
+      await play((r.steps || []).flatMap((x) => [{ type: "tool", tool: x.tool, input: x.input, source: r.mode === "mock" ? "rule" : "llm" },
+        { type: "result", tool: x.tool, summary: x.summary, source: r.mode === "mock" ? "rule" : "llm" }]));
+      result(`<h3>Not işlendi</h3><p class="muted">Kuryenin yazdığı</p><div class="say" style="border-color:var(--faded)">${esc(text)}</div>
+        <p class="muted">Hafızaya yazılan (${esc(kindTr(r.type))})</p><div class="say">${esc(r.hint || "–")}</div>
+        <span class="chip ${r.personal_data_redacted ? "red" : ""}">${r.personal_data_redacted ? "şifre / kişisel veri ayıklandı" : "temiz"}</span>
+        <span class="chip green">${esc({ saved: "kaydedildi", updated: "güçlendi", noise: "kaydedilmedi", uncertain: "adres belirsiz", rejected: "reddedildi" }[r.status] || r.status)}</span><p class="muted">${esc(r.summary)}</p>`);
+    },
+  },
+  {
+    t: "Sonraki kurye aynı kapıya yaklaşır", who: "Durak kartları (kural, LLM yok)", code: ["agents/cards.py · StopCards.approach", "POST /api/approach"],
+    desc: "Kartın anı vardır: park bilgisi durağa 400 m kala, kapı bilgisi 60 m kala söylenir. Uygulama konumu gönderir, sunucu o an söylenecek kartı döndürür; bir kart iki kez söylenmez.",
+    arch: ["memory", "cards", "courier"], line: "Hafıza → durak kartı → kuryeye sesli (konuma göre)",
+    async run() {
+      if (!S.stop) throw new Error("Önce 4. adım");
+      const base = { day: S.day, courier: S.courier, next_order: S.stop.order };
+      note("Kurye durağa ~660 m uzakta:");
+      const a = await api("POST", "/api/approach", { ...base, lat: S.stop.lat + 0.006, lng: S.stop.lng });
+      note(`${a.stop?.distance_m} m → henüz söylenecek kart yok; bekleyen ${a.pending}.`);
+      note("~220 m kala:");
+      const b = await api("POST", "/api/approach", { ...base, lat: S.stop.lat + 0.002, lng: S.stop.lng });
+      note(`An: <b>${b.moment === "approaching" ? "yaklaşırken" : esc(b.moment)}</b> · söylenecek: “${esc(b.to_speak)}”`);
+      note("Kapıda (söylenen kart tekrar söylenmez):");
+      const c = await api("POST", "/api/approach", { ...base, lat: S.stop.lat, lng: S.stop.lng, shown: b.cards.map((k) => k.id) });
+      result(`<h3>Kuryenin duyduğu</h3>
+        <p class="muted">${a.stop?.distance_m} m</p><div class="say" style="border-color:var(--line)">—</div>
+        <p class="muted">${b.stop?.distance_m} m · yaklaşırken</p><div class="say">${esc(b.to_speak || "—")}</div>
+        <p class="muted">${c.stop?.distance_m} m · kapıda</p><div class="say">${esc(c.to_speak || "— (park kartı zaten söylendi)")}</div>
+        ${b.cards.map((k) => `<span class="chip">${esc(k.title)} · ${esc(CONF[k.confidence] || k.confidence)} · ${k.affects_route ? "rotayı etkiler" : "rotayı etkilemez"}</span>`).join("")}`);
+    },
+  },
+  {
+    t: "Kıdemliye hedefli soru", who: "Hasat Ajanı", code: ["agents/harvest.py", "POST /api/harvest/plan"],
+    desc: "Yarın bölgeye yabancı kurye gidecek ama hafızası boş adresleri bulur; oraya en son giden kıdemliye kısa soru sorar. Cevap yine Hafıza Ajanı'ndan geçer.",
+    arch: ["records", "memory", "harvest", "courier"], line: "Hafıza boşlukları + teslim kayıtları → Hasat Ajanı → kıdemli kuryeye soru",
+    async run() {
+      const r = await api("POST", "/api/harvest/plan", { day: S.day });
+      await play(r.trace, 90);
+      result(`<h3>${r.questions.length} soru</h3><p>${esc(r.summary)}</p>
+        <ul>${r.questions.slice(0, 3).map((q) => `<li><b>${esc(q.courier_name)}</b>: ${esc(q.question)}</li>`).join("")}</ul>`);
+    },
+  },
+  {
+    t: "Ertesi sabah: sistem kendini değerlendirir", who: "Değerlendirme Ajanı", code: ["agents/review.py", "agents/feed.py", "POST /api/review/run"],
+    desc: "Son 5 günü önceki 5 günle karşılaştırır. Kuryeyi değil sistemin kararlarını değerlendirir: ipucuna rağmen başarısız olan kaydı teyide alır, hafızası boş soruna soru açar, süre tahminini ayarlar. Atama değişikliği yalnız öneridir; her eylem geri alınabilir.",
+    arch: ["records", "memory", "review", "manager"], line: "Dünkü sonuçlar + hafıza → Değerlendirme Ajanı → düzeltme (geri alınabilir) / müdüre öneri",
+    async run() {
+      const r = await api("POST", "/api/review/run", { day: S.day });
+      await play(r.trace, 90);
+      const rep = r.report || {};
+      result(`<h3>Sabah raporu</h3><p>${esc(rep.summary)}</p>
+        ${(rep.going_well || []).map((x) => `<span class="chip green">${esc(x)}</span>`).join("")}
+        ${(rep.going_badly || []).map((x) => `<span class="chip red">${esc(x)}</span>`).join("")}
+        <p class="muted" style="margin-top:8px">Süre tahmini: genel sapma ${r.params.general_bias_min} dk · yabancı durak başına +${r.params.unfamiliar_stop_extra_min} dk</p>`);
+    },
+  },
+  {
+    t: "Şube raporu ve hafıza boşlukları", who: "Bölge Ajanı", code: ["agents/region.py", "agents/region_agent.py", "POST /api/region/run"],
+    desc: "Blokların zorluğunu (bilgi nedenli başarısızlık ÷ şube ortalaması) hesaplar; zor ama hafızası boş bloklar için kıdemliye soru açar (günde ≤ 5), müdüre kısa rapor sunar.",
+    arch: ["records", "memory", "region", "manager"], line: "Blok istatistikleri + hafıza → Bölge Ajanı → müdüre rapor, kıdemliye soru",
+    async run() {
+      const r = await api("POST", "/api/region/run", { day: S.day });
+      await play(r.trace, 90);
+      result(`<h3>Müdüre</h3><ul>${r.manager_summary.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+        <p class="muted">${r.questions.length} soru açıldı</p>${r.questions.slice(0, 2).map((q) => `<div class="say">${esc(q.question)}</div>`).join("")}`);
+    },
+  },
+];
+
+function renderSteps() {
+  $("#steplist").innerHTML = STEPS.map((s, i) => `<div class="step${i === S.cur ? " active" : ""}${S.done.has(i) ? " done" : ""}${i === S.cur && S.busy ? " running" : ""}" data-i="${i}">
+    <div class="hd"><span class="no">${i + 1}</span><span class="t">${esc(s.t)}</span><span class="st">${S.done.has(i) ? "✓" : i === S.cur && S.busy ? "çalışıyor" : ""}</span></div>
+    <div class="who">${esc(s.who)}</div><div class="code">${s.code.map(esc).join("<br>")}</div></div>`).join("");
+  document.querySelectorAll(".step").forEach((el) => (el.onclick = () => !S.busy && run(+el.dataset.i)));
+  $("#next").disabled = $("#runall").disabled = $("#reset").disabled = S.busy;
+  $("#next").textContent = S.cur >= STEPS.length - 1 && S.done.has(STEPS.length - 1) ? "Bitti" : "Sıradaki adım ▶";
+}
+
+async function run(i) {
+  if (S.busy || i < 0 || i >= STEPS.length) return;
+  const s = STEPS[i];
+  S.cur = i; S.busy = true; renderSteps();
+  trace.innerHTML = "";
+  $("#stephead").innerHTML = `<p class="coltitle">İz · adım ${i + 1}/${STEPS.length} · ${esc(s.who)}</p><h2>${esc(s.t)}</h2><p>${esc(s.desc)}</p>`;
+  lightArch(s.arch, s.line);
+  result('<span class="muted">çalışıyor…</span>');
+  try {
+    await s.run();
+    S.done.add(i);
+  } catch (e) {
+    row("error", "hata", esc(e.message));
+    result(`<span class="chip red">${esc(e.message)}</span>`);
+  }
+  S.busy = false; renderSteps();
+  refreshSide();
+}
+
+$("#next").onclick = () => run(S.done.has(S.cur) || S.cur < 0 ? S.cur + 1 : S.cur);
+$("#runall").onclick = async () => { for (let i = Math.max(0, S.cur + (S.done.has(S.cur) ? 1 : 0)); i < STEPS.length; i++) { await run(i); await sleep(600); } };
+$("#reset").onclick = async () => {
+  S.busy = true; renderSteps();
+  await fetch(BASE + "/api/demo/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ day: S.day }) });
+  Object.assign(S, { session: null, stop: null, cur: -1, done: new Set(), busy: false });
+  feedMax = 0; trace.innerHTML = ""; lightArch([], "");
+  $("#stephead").innerHTML = '<p class="coltitle">İz</p><h2>Başlamak için “Sıradaki adım”</h2>';
+  result('<span class="muted">Adımın çıktısı burada.</span>');
+  renderSteps(); refreshSide();
+};
+document.addEventListener("keydown", (e) => { if (e.key === "ArrowRight") $("#next").click(); });
+
+(async () => {
+  const [st, m] = await Promise.all([fetch(BASE + "/api/status").then((r) => r.json()).catch(() => ({})), fetch(BASE + "/api/meta").then((r) => r.json())]);
+  S.day = m.critical.day; S.courier = m.critical.courier; S.name = m.critical.courier_name || S.name;
+  const mode = st.llm_mode || st.mode || "mock";
+  $("#mode").textContent = mode === "mock" ? "mock · kurallı yedek" : mode;
+  $("#mode").className = "badge " + (mode === "live" ? "live" : "mock");
+  $("#ctx").textContent = `gün ${S.day} · ödünç kurye ${S.name} (${S.courier}) · uygulama verisi · 1 aylık geçmiş`;
+  renderSteps(); refreshSide();
+})();
+</script>
+</body>
+</html>

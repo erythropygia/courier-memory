@@ -1,0 +1,1 @@
+{"app_data":true,"end_of_warmup":{"n":23,"spearman_estimate":0.877,"spearman_naive":0.786,"eta_hat":0.939,"nav_min_hat":2.02},"end_of_eval_C":{"n":30,"spearman_estimate":0.698,"spearman_naive":0.559,"eta_hat":1.323,"nav_min_hat":2.31}}

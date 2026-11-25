@@ -1,0 +1,18 @@
+hint_only     D−C +0.23 puan [+0.21, +0.27] · önlenebilir -15.2% · fazla mesai -151 dk/gün · km +0.0
+hint_harvest  D−C +0.25 puan [+0.23, +0.29] · önlenebilir -16.5% · fazla mesai -174 dk/gün · km +0.0
+hint_route    D−C +0.27 puan [+0.23, +0.32] · önlenebilir -13.7% · fazla mesai -184 dk/gün · km +7.0
+full          D−C +0.26 puan [+0.26, +0.27] · önlenebilir -13.2% · fazla mesai -245 dk/gün · km +3.8
+no_time       D−C +0.24 puan [+0.22, +0.26] · önlenebilir -13.8% · fazla mesai -238 dk/gün · km +5.3
+full_g60      D−C +0.39 puan [+0.34, +0.47] · önlenebilir -20.6% · fazla mesai -274 dk/gün · km -2.7
+no_time_g60   D−C +0.31 puan [+0.26, +0.42] · önlenebilir -19.7% · fazla mesai -291 dk/gün · km -1.0
+full_tol5     D−C +0.29 puan [+0.25, +0.33] · önlenebilir -14.0% · fazla mesai -246 dk/gün · km +5.1
+no_time_tol5  D−C +0.24 puan [+0.22, +0.25] · önlenebilir -13.9% · fazla mesai -243 dk/gün · km +4.8
+unconstrained D−C +0.31 puan [+0.23, +0.40] · önlenebilir -14.3% · fazla mesai -272 dk/gün · km +7.9
+no_time_unconstrained D−C +0.24 puan [+0.20, +0.26] · önlenebilir -14.7% · fazla mesai -257 dk/gün · km +9.2
+full_morning  D−C +0.28 puan [+0.25, +0.32] · önlenebilir -15.6% · fazla mesai -1177 dk/gün · km +3.6
+zaman katkısı g20: alıcı yok -0.97/gün, tekrar ziyaret -0.60, km -1.47, fazla mesai -7.7 dk, ilk denemede +0.023 puan · aynı rota: alıcı yok -0.75, fazla mesai -1.0 [-1.3, -0.8] dk, planlanan -0.0 [max +0.0] dk, beklenen süre -6.3 [max -3.8] dk
+zaman katkısı g60: alıcı yok -1.43/gün, tekrar ziyaret -1.62, km -1.67, fazla mesai +17.2 dk, ilk denemede +0.073 puan · aynı rota: alıcı yok -1.47, fazla mesai -2.8 [-3.7, -2.0] dk, planlanan -0.2 [max -0.2] dk, beklenen süre -16.2 [max -13.9] dk
+zaman katkısı tol5: alıcı yok -1.25/gün, tekrar ziyaret -1.08, km +0.30, fazla mesai -2.6 dk, ilk denemede +0.046 puan · aynı rota: alıcı yok -0.90, fazla mesai -0.7 [-1.3, -0.1] dk, planlanan -0.1 [max +0.0] dk, beklenen süre -4.1 [max -3.8] dk
+zaman katkısı unconstrained_2_b: alıcı yok -1.90/gün, tekrar ziyaret -1.45, km -1.30, fazla mesai -14.8 dk, ilk denemede +0.062 puan · aynı rota: alıcı yok -1.43, fazla mesai -0.3 [-0.6, +0.3] dk, planlanan +0.8 [max +1.1] dk, beklenen süre +0.0 [max +0.0] dk
+zaman katkısı morning: alıcı yok +0.55/gün, tekrar ziyaret -0.28, km -0.27, fazla mesai -931.5 dk, ilk denemede +0.015 puan · aynı rota: alıcı yok +0.03, fazla mesai -0.0 [-0.6, +0.4] dk, planlanan -0.1 [max +0.1] dk, beklenen süre +3.2 [max +6.7] dk
+176 sn

@@ -1,0 +1,244 @@
+# Courier Memory: simülatör varsayılan yapılandırması.
+# Her değer bir varsayımdır; gerçek bir şubeden kopyalanmamıştır.
+# Sunumdaki her rakam bu dosya + seed ile yeniden üretilebilir.
+
+seed: 42
+
+days:
+  warmup: 20          # Isınma: sabit bölgede kuryeler bölgesini öğrenir, gözlemlenebilir geçmiş oluşur.
+  eval: 20            # Değerlendirme: dört kol aynı başlangıç durumundan ayrılır. Pzt–Cmt, ~3 cumartesi.
+
+world:
+  center: [39.0, 35.0]        # Soyut koordinat; gerçek bir yerleşime denk gelmesi amaçlanmaz.
+  width_km: 12.0
+  height_km: 10.0
+  block_m: 300                # "Sokak bilgisi" ölçeği.
+  addresses: 40000            # 10 bin düzenli + 30 bin seyrek adres; günde ~2.500 durak.
+  depot_offset_km: [-1.2, -0.9]
+  ring_core: 0.28             # Merkeze normalize uzaklık eşikleri (0 merkez, 1 kenar).
+  ring_mid: 0.62
+  ring_noise: 0.12            # Halka sınırlarını doğal göstermek için düşük frekanslı gürültü.
+  block_kind_mix:
+    core:  {busy_residential: 0.70, business_center: 0.30}
+    mid:   {busy_residential: 0.40, site: 0.45, business_center: 0.15}
+    outer: {rural: 0.85, industrial: 0.15}
+  address_weight:             # Blok türüne göre adres yoğunluğu (göreli).
+    busy_residential: 12
+    business_center: 10
+    site: 8
+    industrial: 4
+    rural: 0.5
+  address_kind_mix:
+    busy_residential: {apartment: 0.75, house: 0.15, workplace: 0.10}
+    business_center:  {workplace: 0.78, collection_point: 0.05, apartment: 0.17}
+    site:        {site: 0.85, house: 0.10, workplace: 0.05}
+    industrial:      {workplace: 0.85, collection_point: 0.15}
+    rural:      {house: 0.90, workplace: 0.10}
+  difficulty_mean: 0.007      # Blok zorluğu: bilgi + beceriye bağlı taban başarısızlık (lognormal ortalama).
+  difficulty_sigma: 0.5
+  recurring_share: 0.25       # Düzenli gönderi alan adres payı (toplu teslim noktaları hep düzenli).
+  recurring_sigma: 0.5        # Düzenli adreslerde talep çeşitliliği.
+
+couriers:
+  senior: 20                  # Isınmada kendi sabit bölgesinde çalışan kıdemli kuryeler.
+  reserve: 4                  # Yedek/ek kuryeler: izinli bölgeyi ya da aşırı yüklenen bölgenin taşan kısmını alır.
+  skill_sigma: 0.25           # Beceri çarpanı lognormal; ılımlı farklılık.
+  skill_clip: [0.6, 1.6]
+  speed_sigma: 0.12           # Kapıda süre çarpanı.
+  speed_clip: [0.8, 1.3]
+  note_propensity_beta: [2.0, 5.0]   # Ortalama ≈ 0,29: karşılaşmaların çoğu nota dönüşmez (temkinli).
+  note_propensity_scale: 1.0
+
+demand:
+  shipments_per_day: 2800     # Hafta içi ortalama gönderi (saha verisinden türetilen ölçek, yuvarlanmış).
+  sporadic_share: 0.25        # Seyrek adreslere giden gönderi payı; tekrar oranlarını belirler.
+  rate: {house: 1.0, apartment: 2.0, site: 3.0, workplace: 3.0, collection_point: 15.0}   # Adres türüne göre göreli oran.
+  weekday_factor: [1.12, 1.04, 1.0, 1.0, 1.04, 0.78]                     # Pzt..Cmt
+  workplace_saturday_factor: 0.4
+  shocks: []                  # [{day: 12, factor: 1.3}]; day = değerlendirme günü indeksi (0'dan).
+
+planning:
+  start_minute: 540           # 09:00
+  target_minutes: 480         # Dinamik planda küme başına hedef iş yükü (bandın üst yarısı).
+  band: [378, 528]            # Vardiya bandı: 7–8 saat, ±%10.
+  travel_per_stop_estimate: 1.2   # Küme sayısını seçerken durak başına tahmini yol dakikası.
+  road_factor: 1.3            # Kuş uçuşu → yol.
+  minutes_per_km: 3.0
+  two_opt_passes: 4
+  kmeans_iters: 8
+  fixed_zone_demand_drift: 0.8 # Bölgeler çizildiğinden beri blok düzeyinde talep kayması (lognormal σ).
+  fixed_zone_weight_exp: 1.0  # 1: bölgeler beklenen talebe göre; <1: alana göre (tarihsel çizim).
+  dynamic_slack: 1.04         # Dinamik kümelerde kapasite payı.
+  # Çekirdek bölgeli dinamik plan (C/D): kümeler kuryelerin çekirdek bölgeleri etrafında kurulur; yalnız sınırlar ve fazla iş esner.
+  anchor_bonus_km: 1.0        # Tanıdık bloktaki durak, o kuryenin kümesine f × 1 km daha yakın sayılır.
+  anchor_alpha: 0.5           # Küme merkezi çekirdek ile günün durakları arasında; kayma sınırlı.
+  anchor_slack: 1.10          # Çekirdek kümelerde kapasite payı (dengeli iş yükü).
+  anchor_min_f: 0.2           # Bu tanıdıklığın üstündeki bloklar kuryenin çekirdeğidir.
+  extra_courier_mode: zones   # Sabit bölgede ek kurye, birkaç bölgenin taşan işini bölge sırasıyla toplar (sahadaki uygulama).
+  fixed_zone_slack: 2.0       # Sabit bölgeler mahalle sınırlarıyla çizilmiş, tarihsel: yük dengesi gevşek (iş yükü sapması ~%40).
+  fixed_absence_rule: reserve # reserve: yedek kurye; yedek yoksa komşu bölgelere bölünür. split: doğrudan böl.
+                              # Sabit bölgede bandı aşan bölgenin taşan durakları ek kuryeye verilir (sahadaki uygulama).
+
+outcome:
+  service_per_stop: 1.0       # dk
+  service_per_shipment: 1.5   # dk
+  p0: {house: 0.031, apartment: 0.023, site: 0.016, workplace: 0.009, collection_point: 0.003}   # Yalnız presence.enabled=false iken: saatten bağımsız alıcı yok (Faz 2 modeli).
+  eta_nav: 1.0                # Yabancı blokta bilgi/beceri kaynaklı taban oran (1 + eta) katına çıkar.
+  nav_min: 1.5                # Yabancı blokta durak başına ek navigasyon dakikası.
+  delta_wrong: 0.03           # Yanlış/bayat ipucu ya da bayat kişisel bilgi: ek başarısızlık olasılığı.
+  tau_wrong: 2.0              # ... ve ek dakika.
+
+quirks:
+  prevalence: {house: 0.08, apartment: 0.12, site: 0.40, workplace: 0.35, collection_point: 1.0}
+  prevalence_scale: 1.0
+  kinds_by_address:
+    house:       {back_entry: 0.4, position_wrong: 0.4, bell: 0.2}
+    apartment: {bell: 0.5, back_entry: 0.3, position_wrong: 0.2}
+    site:     {safety: 0.6, back_entry: 0.4}
+    workplace:  {saturday_closed: 0.5, lunch_break: 0.35, back_entry: 0.15}
+    collection_point:    {reception: 1.0}
+  effects:                    # Bilinmediğinde: fail = ek başarısızlık olasılığı, minutes = ek dakika.
+                              # known_minutes: bilinse de kalan ek dakika (kimlik işlemi, arkadan dolaşma). VARSAYIM.
+    back_entry:       {fail: 0.10, minutes: 4, known_minutes: 1}
+    saturday_closed: {fail: 0.90, minutes: 0, window: saturday}
+    lunch_break:       {fail: 0.80, minutes: 0, window: lunch}
+    safety:         {fail: 0.03, minutes: 6, known_minutes: 2}
+    bell:              {fail: 0.20, minutes: 2}
+    position_wrong:     {fail: 0.25, minutes: 5}
+    reception:       {fail: 0.05, minutes: 5, known_minutes: 1}
+    temporary_closed:    {fail: 0.90, minutes: 0}
+    roadwork:    {fail: 0.05, minutes: 6, known_minutes: 2}
+  lunch_window: [720, 810]    # 12:00–13:30
+  lunch_wait_max: 15          # Öğle arasını BİLEN kurye pencerede gelirse teslim eder ama bekler ya da sonra döner:
+                              # ek dakika = min(pencere sonu − varış, 15). Bilgi ancak rota pencereyi önlerse bedava. VARSAYIM.
+  change_rate: 0.10           # Kalıcı püf noktalarının değerlendirmede bir kez değişen payı (bayat bilgi üretir).
+  temporary_rate: 0.02        # Değerlendirmede süreli püf noktası alan adres payı.
+  temporary_kinds: {temporary_closed: 0.4, roadwork: 0.6}
+  temporary_days: [5, 15]
+
+presence:                     # Alıcı/adres bulunabilirliği (GİZLİ GERÇEK; Faz 2b). Alıcı yokluğu varış saatine bağlıdır: her adresin
+                              # bir profili vardır, kapıda kimse yoksa duraktaki tüm gönderiler "alıcı yok" olur (durak düzeyi).
+                              # Bilgi (not/hafıza) bunu önlemez; ancak doğru saatte gitmek önler. Gerçek veride başarısızlık saati/nedeni
+                              # boş olduğundan profiller ve paylar VARSAYIM'dır; büyüklüğü pilot ölçer. Paylar, toplam alıcı yok oranı
+                              # Faz 2'deki saatten bağımsız modelin ortalamasında (≈ gönderinin %1,3'ü) kalacak şekilde seçildi; kalibrasyon 14/14.
+  enabled: true
+  hours_start: 9              # Profil dizileri 09:00'dan saat saat; son değer o saat ve sonrası (18:00+).
+  profiles:                   # Saat başına bulunamama olasılığı (adres düzeyi çarpanla ölçeklenir).
+    home:       {weekdays: [0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003],
+                 saturday: [0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003]}   # Her zaman evde biri var.
+    worker:    {weekdays: [0.70, 0.70, 0.70, 0.70, 0.70, 0.70, 0.60, 0.35, 0.10, 0.05],
+                 saturday: [0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08]}   # Çalışan hane: gündüz yok, ~17:00 sonrası evde.
+    shop:     {weekdays: [0.005, 0.005, 0.05, 0.65, 0.65, 0.005, 0.005, 0.005, 0.005, 0.10],
+                 saturday: [0.005, 0.005, 0.05, 0.65, 0.65, 0.005, 0.005, 0.005, 0.005, 0.10]}   # Dükkân: 12–14 sahibi dışarıda, kapı kilitli.
+    office:       {weekdays: [0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.06],
+                 saturday: [0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15]}   # Ofis: hafta içi mesaide açık; 18:00 sonrası ve Cumartesi zayıf.
+                              # Faz 5: 18:00 sonrası 0,15 → 0,06; çıkış 10:30'a çekilince (gerçek çıkış) kalibrasyon başarısız oranı 0,044 ✗ oldu.
+    reception: {weekdays: [0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003],
+                 saturday: [0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003]}
+  mix:                        # Adres türüne göre profil payı. VARSAYIM: güçlü ama seyrek örüntü (sahadaki "hep aynı saatte yok" adresi).
+    house:       {home: 0.965, worker: 0.035}
+    apartment: {home: 0.97, worker: 0.03}
+    site:     {home: 0.98, worker: 0.02}   # Site güvenliği çoğu zaman teslim alır.
+    workplace:  {office: 0.93, shop: 0.07}
+    collection_point:    {reception: 1.0}
+  intensity_sigma: 0.3        # Adres düzeyinde çarpan (lognormal, ortalama 1): aynı profilde de adresler farklıdır.
+  intensity_max: 0.95
+
+time_analysis:                # Teslim zamanı analizi (kayıtlardan, notsuz). Saat dilimleri: 09–12, 12–14, 14–16, 16–18, 18 sonrası.
+                              # İki düzeyli Beta-Binom büzme: dilim oranı → adresin genel oranı → adres türünün dilim şekli. VARSAYIM.
+  kappa_address: 4            # Adresin genel oranı, türün ortalamasına 4 sanal denemeyle çekilir.
+  kappa_slot: 2               # Dilim oranı, adresin genel oranına (türün saat şekliyle) 2 sanal denemeyle çekilir.
+  min_att_bad: 2              # "Kötü saat" için o dilimde en az 2 deneme ...
+  min_abs_bad: 2              # ... ve adresin kendi en az 2 "alıcı yok" kaydı (yalnız tür önceli yetmez).
+  min_att_good: 2             # Önerilen dilimde en az 2 deneme (adresin kendi kanıtı; yalnız öncel yetmez).
+  min_bad_rate: 0.4           # Kötü dilimin tahmini bulunamama oranı en az %40.
+  min_diff: 0.3               # Kötü − iyi en az 30 puan.
+  conf_high: 0.95             # P(kötü dilim oranı > iyi dilim oranı) ≥ 0,95 → yüksek güven.
+  conf_mid: 0.85              # ≥ 0,85 → orta güven.
+  confirm_bad_rate: 0.5       # İyi dilim verisi yok ama kötü dilim ≥ %50: teyit sorusu (hasat), rotaya girmez.
+
+learning:
+  p_learn: 0.7                # Püf noktasıyla karşılaşan kuryenin onu öğrenme olasılığı.
+
+familiarity:
+  alpha: 0.35                 # Ziyaret günü: f ← f + alpha·(1 − f). 3 ziyarette ≈ 0,73.
+  half_life: 40               # Ziyaret edilmeyen iş günlerinde yarı ömür.
+  unfamiliar_below: 0.2       # Metrik: f bunun altındaysa blok "yabancı".
+
+memory:
+  parse_accuracy: 0.85        # Notun doğru adres + doğru türe bağlanma olasılığı. Hafıza Ajanı ölçülünce güncellenir.
+  compliance: 0.9             # Kuryenin geçerli ipucuna uyma olasılığı.
+  min_sources: 1
+  ttl_days: 10                # Süreli türlerin hafızadaki ömrü.
+  seed_from_warmup: true      # Hafıza sabit bölge döneminde toplanmaya başlar ("önce hafıza, sonra dinamik plan").
+  feedback: true              # "Hâlâ geçerli mi?" geri bildirimi: yanlış/bayat kayıt düşer.
+  p_feedback: 0.8
+  harvest_per_day: 30         # Proaktif hasat (kol D): plan kesinleşince, yabancı kurye için hafızası boş duraklarını o bloğu en iyi
+                              # tanıyan kıdemliye sor; ayrılacak kuryeye de son 3 gününde bölgesini sor. Günde en çok 30 soru. VARSAYIM.
+  harvest_per_senior: 3       # Kıdemli başına günde en çok 3 soru (ayrılan kurye: 10). VARSAYIM.
+  p_answer: 0.8               # Kıdemli bildiği püf noktasını anlatır; cevap Hafıza Ajanı'ndan parse_accuracy ile geçer. VARSAYIM.
+
+routing:                      # Hafıza-farkında plan (kol D). Kapalıysa D = yalnız kapı ipucu (Faz 1'deki D).
+  enabled: true
+  defer_closed: true          # Bugün kapalı olduğu bilinen durak (cumartesi kapalı + Cmt, geçici kapalı) kümelemeden önce çıkar: planda erteleme.
+  window_repair: true         # Öğle arası bilinen durağın beklenen varışı pencereye düşüyorsa en az km artışıyla pencere dışına taşınır.
+  service_correction: true    # Bilinen püf noktasının kalan ek süresi durak ağırlığına ve planlanan süreye girer.
+  extra_service_min: {back_entry: 1, safety: 2, reception: 1, roadwork: 2}   # Planlayıcı varsayımı. VARSAYIM.
+  defer_min_sources: 2        # Planda erteleme için en az kaç bağımsız kaynak (tek kaynaklı kapanış rotada kalır, kapıda ipucu).
+                              # Gerekçe: yanlış erteleme bir teslimi kaçırır; doğru erteleme yalnız bir yolu kurtarır. VARSAYIM.
+  time_scale: 1.1             # Beklenen varış = başlangıç + 1,1 × planlanan geçen süre (sahada plandan yavaş gidilir). VARSAYIM.
+  window_margin_min: 10       # Pencereye güvenlik payı. VARSAYIM.
+  time_aware: true            # Teslim zamanı bulgusu olan durak bulunma olasılığı yüksek saate kaydırılır (or-opt + 2-opt; Faz 2b).
+  time_min_confidence: mid   # Kurallı politika: güveni "orta" ve üstü, önerilen saati kanıtlı bulgular rotaya girer.
+  time_revisit_min: 10        # Amaç: sürüş dk + km × 0,8 + beklenen başarısız durak × 10 dk. 10 dk ≈ başarısız deneme maliyeti
+                              # (agents/economics.yaml: 6 dk + 1,2 km + 20 TL ≈ 71 TL ÷ 7,3 TL/dk). VARSAYIM.
+  time_km_cost_min: 0.8       # 6 TL/km ÷ 7,3 TL/dk. VARSAYIM.
+  time_min_gain_min: 0.5      # Hamle beklenen maliyeti en az 0,5 dk düşürmeli (gürültüye karşı).
+  # Faz 2c: onarımların SERT KISITI (sahibin kuralı: "ajan mevcut rotadan daha uzun rota çıkarmamalı"). Pencere ve zaman onarımı,
+  # onarım öncesi rotaya göre (erteleme sonrası, servis düzeltmeli) beklenen rota süresini (sürüş + servis + bilinen öğle beklemesi)
+  # artıramaz, km'yi en çok 0,5 km artırabilir (yalnız öğle beklemesini kısaltan taşımada işe yarar: süre yine artamaz), vardiya
+  # bandının üstünü (planning.band[1]) aşamaz, zaten aşıyorsa süre artamaz; kaydırılan bulgu durağı vardiya bitişinden
+  # (09:00 + 528 dk = 17:48, beklenen varış) sonraya konamaz. Kısıtı bozan hamle maliyetinden bağımsız reddedilir.
+  repair_limits: true
+  repair_max_extra_min: 0     # Rota süresi toleransı 0 dk: beklenen başarısızlık kazancı fazla mesaiyi satın alamaz.
+  repair_max_extra_km: 0.5    # ≈ 1,5 dk sürüş; süre kısıtı ayrıca geçerli. VARSAYIM.
+  repair_wait_margin_min: 30  # Süre hesabında öğle beklemesi ±30 dk paylı pencereyle tahmin edilir: gerçekleşen varış beklenenden
+                              # sapar (çoğunlukla geç), paysız tahmin beklemeyi küçük gösterir ve beklemeyi önleyen taşımayı reddederdi. VARSAYIM.
+  time_blocked_diff: 0.3      # Onarımdan sonra en iyi dilimden ≥ 30 puan kötü dilimde kalan bulgu "kısıt yüzünden kaydırılamadı".
+  time_alternatives: true     # Kaydırılamayan bulguya sırayla: başka kuryeye aktarma (iki rotada kısıt) → ertesi gün / akşam-teslim
+                              # noktası önerisi; hepsinde alıcıya önceden SMS önerisi. Müdür kararı; simülasyonda uygulanmaz.
+
+notes:
+  difficulty_mix: {pii: 0.08, ambiguous: 0.08, wrong: 0.05}
+  gps_sigma_m: 25
+  noise_rate: 0.05            # Kurye-gün başına alakasız not olasılığı (ör. "trafik berbattı").
+
+assignment:
+  w_fail: 1.0                 # Beklenen başarısız teslim başına maliyet.
+  w_time: 0.05                # Dakika başına maliyet: 20 dk ≈ 1 başarısız teslim.
+  eta_prior: 1.0
+  eta_prior_weight: 200
+  memory_relief: 0.6          # Hafıza kaydı olan durakta yabancılık cezasının ne kadar düştüğü (politika varsayımı).
+  shrink_block: 50
+  shrink_courier: 10          # Kurye etkisi büzülmesi (beklenen başarısız teslim birimi).
+  shrink_speed: 30
+
+morning:                        # Faz 5: şubede sabah akışı (mesai 09:00 = planning.start_minute).
+  enabled: true
+  current_min: 90                # Bugünkü süreç: araçtan indirme (okutmalı) → kurye kendi gönderilerini ayrıştırır → zimmet → yükleme;
+                              # çıkış ~10:30 (saha bilgisi, şube sahibinin beyanı; VARSAYIM, pilot ölçer).
+  presorted_min: 30        # Ayrıştırma indirme okutmasına gömülü (plan önden hazır, okutmada "kurye · raf · yükleme sırası"):
+                              # kalan zimmet + yükleme; çıkış en geç ~09:30 (saha bilgisi; VARSAYIM).
+  deviation_min: 10                # Kurye başına çıkış dağılımı (normal σ, ±2σ kesik; VARSAYIM). Kollar arası aynı sayılar (CRN).
+  presorted_arms: [D]   # Ayrıştırması okutmaya gömülü kollar. Hafızanın katkısını ölçen deneyler (tarama, öğrenme,
+                              # ablasyonun hafıza varyantları) bunu [] yapar: sabah tüm kollarda eşit olur.
+
+calendar:                     # Günler değerlendirme dönemine göredir (0'dan). Senaryolar bunları doldurur.
+  leaves: []                  # [{courier: K03, from: 3, to: 8}]  (to dahil)
+  departures: []              # [{courier: K05, day: 6}]
+  hires: []                   # [{id: N01, kind: new, day: 6}]
+  borrowed: []                # [{id: O01, from: 12, to: 14}]
+
+export:
+  snapshots: true
+  round: 5

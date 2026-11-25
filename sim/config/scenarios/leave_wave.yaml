@@ -1,0 +1,6 @@
+# Üç kıdemli kurye bir hafta izinde (değerlendirme günleri 2–7).
+calendar:
+  leaves:
+    - {courier: K03, from: 2, to: 7}
+    - {courier: K08, from: 2, to: 7}
+    - {courier: K14, from: 2, to: 7}

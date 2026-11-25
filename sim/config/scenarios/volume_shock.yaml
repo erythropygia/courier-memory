@@ -1,0 +1,4 @@
+# Düşük hacim günü: −%25 (değerlendirme günü 17).
+demand:
+  shocks:
+    - {day: 17, factor: 0.75}

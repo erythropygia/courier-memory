@@ -1,0 +1,55 @@
+# Ekonomi parametreleri: token maliyeti ↔ operasyonel kazanç.
+# "tahmini" etiketli değerler şirket rakamı değildir; şirket rakamlarıyla değiştirin (arayüzden de ayarlanabilir).
+
+money:
+  usd_try: 45.0                     # Tahmini: USD/TRY kuru
+
+courier:
+  daily_cost_tl: 3500           # Tahmini: kurye-gün sabit maliyeti (ücret + yan haklar + araç); yakıt km maliyetinde
+  shift_min: 480
+  overtime_multiplier: 1.5          # Fazla mesai dakikası normal dakikanın kaç katı
+
+vehicle:
+  km_cost_tl: 6.0               # Tahmini: yakıt + aşınma, km başına
+
+failed_delivery:                   # Bir başarısız ilk denemenin ek maliyeti
+  second_attempt_min: 6               # Tekrar gitme: yol + kapı (kurye dakikası)
+  second_attempt_km: 1.2
+  other_tl: 20                      # Tahmini: çağrı merkezi, SMS, depo elleçleme, iade riski payı
+
+scale:
+  workdays_per_year: 306                  # Pzt–Cmt
+  branch_counts: [1, 10, 100]
+
+llm:
+  price_source: "Anthropic liste fiyatı, MTok başına USD. Bedrock fiyatı farklı olabilir; dağıtım bölgesinde kontrol edin."
+  models:
+    anthropic.claude-opus-5-5:   {name: "Claude Opus 5.5",   input: 4.0,  output: 20.0, cache_read: 0.20,  cache_write: 5.0}
+    anthropic.claude-sonnet-5-5: {name: "Claude Sonnet 5.5", input: 2.0,  output: 10.0, cache_read: 0.10,  cache_write: 2.5}
+    anthropic.claude-haiku-5-5:  {name: "Claude Haiku 5.5",  input: 0.10, output: 0.50, cache_read: 0.01,  cache_write: 0.125}
+  # Önbellek fiyatları: Opus/Sonnet 5.5 okuma fiyatı yayımlanan değer; diğerleri girdi fiyatının 0,1× (okuma) / 1,25× (yazma) varsayımı.
+  agent_model:                      # Ajan başına model (varsayılan hepsi Opus 5.5). Değiştirmek ekibin kararı; kalite canlıda ölçülmeli.
+    assignment: anthropic.claude-opus-5-5
+    memory: anthropic.claude-opus-5-5
+    briefing: anthropic.claude-opus-5-5
+    orchestrator: anthropic.claude-opus-5-5
+    harvest: anthropic.claude-opus-5-5
+  daily_assignment_question: 3            # Müdürün günde sorduğu "ya şöyle olursa?" sayısı (Atama ve Orkestratör için ayrı ayrı sayılır)
+  # Günlük çağrılar: propose_assignment 1 + ask_assignment 3 + orkestrator 1 + ask_orchestrator 3 + hasat 1 + harvest_answer (günde sorulan hasat
+  # sorusu; her cevap bir Hafıza Ajanı çağrısı) + hafiza (not) + brifing (kurye). Atama ve Orkestratör ikisi de sayılır (temkinli).
+  cache: false                   # Manşet hesap önbelleksiz (temkinli). true: önbellekli tahmin.
+
+# LLM senaryoları: ?senaryo=temkinli|optimize. Optimize: istem önbelleği + işe göre model
+# (hacmi yüksek, kalıplı işler küçük modelle; az sayıda ve muhakeme isteyen atama orta modelle).
+# Kalite iddiası canlı ölçümle doğrulanır: CM_MODEL_MEMORY=anthropic.claude-haiku-5-5 python -m agents.evaluate
+scenarios:
+  cautious:
+    name: "Temkinli: tüm ajanlar Opus 5.5, önbelleksiz"
+    cache: false
+    agent_model: {assignment: anthropic.claude-opus-5-5, memory: anthropic.claude-opus-5-5, briefing: anthropic.claude-opus-5-5,
+                  orchestrator: anthropic.claude-opus-5-5, harvest: anthropic.claude-opus-5-5}
+  optimize:
+    name: "Optimize: önbellek + işe göre model (Hafıza/Brifing/Hasat Haiku 5.5, Atama/Orkestratör Sonnet 5.5)"
+    cache: true
+    agent_model: {assignment: anthropic.claude-sonnet-5-5, memory: anthropic.claude-haiku-5-5, briefing: anthropic.claude-haiku-5-5,
+                  orchestrator: anthropic.claude-sonnet-5-5, harvest: anthropic.claude-haiku-5-5}

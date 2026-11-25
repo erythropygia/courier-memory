@@ -1,0 +1,22 @@
+# Kalibrasyon hedefleri: saha verisinden türetilmiş, yuvarlanmış TOPLU değerler (mevcut yapı, tek şube, 13 iş günü).
+# Ham kayıt, koordinat, barkod, kurye kimliği ya da bölge geometrisi bu repoya girmez; yalnız aşağıdaki özetler.
+# Uygulama verisi bu hedeflere yakınsayacak şekilde ayarlanır: python -m cm_sim.calibration
+source: "Saha verisinin toplulaştırılmış özeti (yuvarlanmış); mevcut yapı, teslimat görevleri"
+targets:
+  shipment_day:          {target: 2900, tolerance: 0.10, explanation: "Günlük teslimat gönderisi"}
+  stop_day:            {target: 2400, tolerance: 0.10, explanation: "Günlük farklı teslim noktası"}
+  shipment_stop:        {target: 1.2,  tolerance: 0.10, explanation: "Durak başına gönderi"}
+  courier_day:            {target: 21,   tolerance: 0.10, explanation: "Mevcut yapıda günlük çalışan kurye (ek kuryeler dahil)"}
+  failure_rate:      {target: 0.038, tolerance: 0.15, explanation: "Başarısız teslim / deneme (mevcut yapı)"}
+  repeat_1_g:            {target: 0.16, tolerance: 0.25, explanation: "Durağın adresine önceki 1 gün içinde gidilmiş olma payı"}
+  repeat_5_g:            {target: 0.53, tolerance: 0.10, explanation: "… önceki 5 gün içinde"}
+  repeat_12_g:           {target: 0.69, tolerance: 0.10, explanation: "… önceki 12 gün içinde"}
+  one_time_address:   {target: 0.59, tolerance: 0.15, explanation: "13 günde yalnız bir kez gidilen adres payı"}
+  workload_deviation_fixed: {target: 0.43, tolerance: 0.25, explanation: "Mevcut yapıda kurye iş yükü değişim katsayısı"}
+  workload_deviation_dynamic: {target: 0.24, tolerance: 0.35, explanation: "Dinamik planda kurye iş yükü değişim katsayısı"}
+  # Sahadaki karşılaştırmadan (aynı gönderiler, mevcut yapı ↔ dinamik plan) türetilmiş farklar:
+  dynamic_courier_diff:  {target: -0.17, tolerance: 0.50, explanation: "Dinamik planda kurye-gün farkı (göreli)"}
+  band_planned_fixed: {target: 0.45, tolerance: 0.30, explanation: "Mevcut yapıda planlanan süresi vardiya bandında olan kurye payı"}
+  band_planned_dynamic: {target: 0.97, tolerance: 0.10, explanation: "Dinamik planda planlanan süresi vardiya bandında olan kurye payı"}
+# Not: Sahadaki karşılaştırmada dinamik plan km'yi de belirgin azaltıyordu. Simülasyon coğrafyasında km farkı
+# kendiliğinden oluşmuyor; zorlamadık ve sunumda km tasarrufu iddia etmiyoruz.

@@ -1,0 +1,8 @@
+# İki kıdemli kurye ayrılır; yerlerine iki yeni kurye başlar (değerlendirme günü 6).
+calendar:
+  departures:
+    - {courier: K05, day: 6}
+    - {courier: K11, day: 6}
+  hires:
+    - {id: N01, day: 6}
+    - {id: N02, day: 6}

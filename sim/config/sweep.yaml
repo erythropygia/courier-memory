@@ -1,0 +1,9 @@
+# Sağlamlık taraması ızgarası. Arayüz kaydırıcıları bu değerlere oturur.
+params:
+  outcome.eta_nav: [0.5, 1.0, 1.5]                    # Yabancı blokta bilgi kaynaklı artış
+  quirks.prevalence_scale: [0.5, 1.0, 1.5]            # Püf noktası sıklığı
+  couriers.note_propensity_scale: [0.5, 1.0, 1.6]     # Not bırakma eğilimi
+  memory.parse_accuracy: [0.6, 0.85, 0.95]            # Hafıza Ajanı ayrıştırma doğruluğu
+fixed:
+  - export.snapshots=false
+  - morning.presorted_arms=[]                     # tarama hafızayı ölçer; sabah tüm kollarda eşit (bugünkü süreç)

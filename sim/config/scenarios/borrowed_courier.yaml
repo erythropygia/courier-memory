@@ -1,0 +1,17 @@
+# Kampanya haftası: hacim +%30, komşu şubenin o gün verebileceği üç kurye (değerlendirme günleri 12–14).
+# Adayların bu şubeyle ortak geçmişi farklı (Hedef 2 "kim gitsin"). Komşu şubeyle ortak sınır sokaklarının teslim
+# geçmişi şirket içinde ortaktır, tanıdıklık olarak görünür (gözlemlenebilir):
+#   O01: komşu şubede doğu sınırındaki sokakları dağıtıyor (2 km kuşak).
+#   O02: kuzey sınırındaki dar bir kuşağı dağıtıyor (1,2 km).
+#   O03: bu şubenin hiçbir sokağını tanımıyor.
+# Kaç kişi ve kimin geleceğine Orkestratör karar verir.
+demand:
+  shocks:
+    - {day: 12, factor: 1.3}
+    - {day: 13, factor: 1.3}
+    - {day: 14, factor: 1.3}
+calendar:
+  borrowed:
+    - {id: O01, from: 12, to: 14, border_side: east, border_depth_km: 2.0}
+    - {id: O02, from: 12, to: 14, border_side: north, border_depth_km: 1.2}
+    - {id: O03, from: 12, to: 14}

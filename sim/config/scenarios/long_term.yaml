@@ -1,0 +1,40 @@
+# Uzun dönem: 60 iş günü (~2,5 ay). Gerçekçi kurye devri (ayda ~%8), yayılmış yıllık izinler,
+# iki kampanya haftası (ödünç kurye + hacim artışı) ve bir düşük hacim günü. Hafızanın zamanla
+# biriktiğini ve kurye değişse de bilginin kaldığını göstermek için.
+days:
+  eval: 60
+demand:
+  shocks:
+    - {day: 18, factor: 1.3}
+    - {day: 19, factor: 1.3}
+    - {day: 20, factor: 1.3}
+    - {day: 33, factor: 0.75}
+    - {day: 46, factor: 1.25}
+    - {day: 47, factor: 1.25}
+    - {day: 48, factor: 1.25}
+calendar:
+  leaves:
+    - {courier: K02, from: 3, to: 7}
+    - {courier: K09, from: 10, to: 14}
+    - {courier: K15, from: 17, to: 21}
+    - {courier: K04, from: 24, to: 28}
+    - {courier: K18, from: 31, to: 35}
+    - {courier: K12, from: 38, to: 42}
+    - {courier: K07, from: 45, to: 49}
+    - {courier: K20, from: 52, to: 56}
+  departures:
+    - {courier: K05, day: 8}
+    - {courier: K11, day: 22}
+    - {courier: K17, day: 37}
+    - {courier: K14, day: 50}
+  hires:
+    - {id: N01, day: 8}
+    - {id: N02, day: 22}
+    - {id: N03, day: 37}
+    - {id: N04, day: 50}
+  borrowed:
+    - {id: O01, from: 18, to: 20}
+    - {id: O02, from: 18, to: 20}
+    - {id: O03, from: 18, to: 20}
+    - {id: O04, from: 46, to: 48}
+    - {id: O05, from: 46, to: 48}

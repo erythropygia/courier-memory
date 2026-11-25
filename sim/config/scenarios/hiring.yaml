@@ -1,0 +1,13 @@
+# Hedef 1 deneyi (cm_sim.learning): değerlendirme günü 2'de dört kıdemli ayrılır, yerlerine dört yeni kurye başlar.
+# Ayrılanlar son üç gününde devir teslim hasadına girer (memory.harvest_*). Çok seed'le koşulur.
+calendar:
+  departures:
+    - {courier: K03, day: 2}
+    - {courier: K07, day: 2}
+    - {courier: K12, day: 2}
+    - {courier: K16, day: 2}
+  hires:
+    - {id: N01, day: 2}
+    - {id: N02, day: 2}
+    - {id: N03, day: 2}
+    - {id: N04, day: 2}

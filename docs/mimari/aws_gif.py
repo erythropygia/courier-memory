@@ -1,32 +1,50 @@
 """Animated AWS infrastructure chart, kept simple: every service with what it does and WHY we use it.
 
-The chain is triggered by the ROUTING MACHINE. Companion to mimari_gif.py (same visual language).
+Web entry (CloudFront → ALB → ECS Fargate), agents and model (7 domain agents in ECS, 5 agents in AgentCore),
+data, voice, Amazon Quick / Kiro access over MCP, and delivery (GitHub Actions + CDK). Everything runs in us-east-1.
+Companion to mimari_gif.py (same visual language).
 
-Usage:  python docs/mimari/aws_gif.py   (needs Pillow; macOS Arial fonts)
+Usage:  python docs/mimari/aws_gif.py   (needs Pillow; Arial from macOS, Windows or Linux msttcorefonts)
 Output: docs/mimari/aws-altyapi.gif
 """
 from __future__ import annotations
 
 import math
+import os
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
 OUT = Path(__file__).with_name("aws-altyapi.gif")
 K = 2                                   # supersampling factor
-W, H = 1280, 770
+W, H = 1400, 800
 FPS_MS = 90
 SCENE_FRAMES = 48
-OUT_W = 1024
+OUT_W = 1120
 
-FONT_DIR = Path("/System/Library/Fonts/Supplemental")
+_WIN_FONTS = Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts"
+FONT_CANDIDATES = {
+    False: [Path("/System/Library/Fonts/Supplemental/Arial.ttf"), Path("/Library/Fonts/Arial.ttf"),
+            _WIN_FONTS / "arial.ttf", Path("/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"),
+            Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")],
+    True: [Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"), Path("/Library/Fonts/Arial Bold.ttf"),
+           _WIN_FONTS / "arialbd.ttf", Path("/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf"),
+           Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")],
+}
 _fonts: dict[tuple[int, bool], ImageFont.FreeTypeFont] = {}
+
+
+def font_path(bold: bool) -> Path:
+    for p in FONT_CANDIDATES[bold]:
+        if p.is_file():
+            return p
+    raise FileNotFoundError("Arial not found; tried: " + ", ".join(str(p) for p in FONT_CANDIDATES[bold]))
 
 
 def font(size: float, bold: bool = False) -> ImageFont.FreeTypeFont:
     key = (round(size * K), bold)
     if key not in _fonts:
-        _fonts[key] = ImageFont.truetype(str(FONT_DIR / ("Arial Bold.ttf" if bold else "Arial.ttf")), key[0])
+        _fonts[key] = ImageFont.truetype(str(font_path(bold)), key[0])
     return _fonts[key]
 
 
@@ -46,90 +64,123 @@ TEAL = (45, 212, 191)
 GREY = (148, 163, 184)
 WHY = (253, 224, 138)
 
-C1, C2, C3, C4 = 30, 345, 660, 975          # column x
-NW, NH = 275, 84
-RA, RB, RC, RD = 86, 206, 326, 500          # row y
+C1, C2, C3, C4, C5 = 14, 302, 590, 878, 1166     # column x
+NW, NH = 218, 84
+RA, RB, RC, RD = 92, 240, 388, 536               # row y
+CAP_Y = H - 112                                  # caption panel top
 
-# key: (x, y, name, what, why, category color)
+# key: (x, y, name, what, why, category color)   (keys without "_": edge names are "<from>_<to>")
 NODES = {
-    "rm": (C1, RA, "ROUTING MACHINE", "Her sabah kümeleme + rota", "Neden: zinciri tetikler; plan bunun üstüne kurulur", BLUE),
-    "rt": (C2, RA, "Bedrock AgentCore Runtime", "5 ajan: yönetici, planlama, kurye, hafıza, analiz", "Neden: ajanlar sunucusuz ve kimlik sınırlı çalışır", BLUE),
-    "llm": (C3, RA, "Amazon Bedrock · Claude", "Ajanların modeli: araç kullanarak karar", "Neden: karar modelde, her sayı deterministik araçta", BLUE),
-    "cw": (C4, RA, "Amazon CloudWatch", "Loglar ve OpenTelemetry izleri", "Neden: her karar izlenir, hata anında görülür", RED),
-    "quick": (C1, RB, "Amazon Quick", "MCP ile AgentCore Gateway'e bağlı", "Neden: ekip doğal dille sorar, panoda görür", TEAL),
-    "mem": (C2, RB, "AgentCore Memory", "Oturum hafızası, kimlik başına ayrı alan", "Neden: ajan bağlamı unutmaz, veriler karışmaz", BLUE),
-    "ddb": (C3, RB, "Amazon DynamoDB", "Kalıcı şube adres hafızası", "Neden: bilgi kişiden adrese taşınır, kalıcı kalır", GREEN),
-    "iam": (C4, RB, "AWS IAM · en az yetki", "Rol politikaları: çağrı ve veri erişimi dar", "Neden: analiz salt okunur, yetkisiz erişim yok", RED),
-    "kiro": (C1, RC, "Kiro + MCP sunucusu", "Spec → tasarım → görev; steering, hook", "Neden: önce spec; hafıza geliştirirken okunur", AMBER),
-    "dep": (C2, RC, "agentcore deploy · AWS CDK", "5 runtime + hafıza + IAM'i kurar", "Neden: altyapı kodla, tek komutla tekrar kurulur", AMBER),
-    "ath": (C4, RC, "Amazon S3 + Glue + Athena", "Geçmiş teslim verisi, 4 tablo", "Neden: Analiz Ajanı geçmişi sunucusuz sorgular", GREEN),
-    "trn": (C2, RD, "Amazon Transcribe", "Kuryenin sesli notu → metin", "Neden: kurye direksiyonda yazmadan not bırakır", PURPLE),
-    "pol": (C3, RD, "Amazon Polly", "Kapı kartı → doğal Türkçe ses", "Neden: kurye ekrana bakmadan duyar", PURPLE),
+    # row A: delivery and model
+    "gha": (C1, RA, "GitHub Actions · OIDC", "İmaj → ECR, ECS ve Lambda güncellenir", "Neden: kayıtlı gizli anahtar yok", AMBER),
+    "ecr": (C2, RA, "Amazon ECR", "Web uygulamasının konteyner imajı", "Neden: her sürüm etiketli, geri dönülür", AMBER),
+    "bed": (C3, RA, "Amazon Bedrock · Claude", "Sonnet 5: ajanların modeli", "Neden: karar modelde, sayı araçta", BLUE),
+    "dep": (C4, RA, "agentcore deploy · AWS CDK", "CloudFormation: 5 runtime + hafıza", "Neden: altyapı kodla, tekrar kurulur", AMBER),
+    "cw": (C5, RA, "Amazon CloudWatch", "Loglar ve OpenTelemetry izleri", "Neden: her ajan adımı izlenir", RED),
+    # row B: request path
+    "cf": (C1, RB, "Amazon CloudFront", "Tek HTTPS adres, tüm arayüzler", "Neden: mikrofon HTTPS ister", TEAL),
+    "alb": (C2, RB, "Application Load Balancer", "Yalnız CloudFront'a açık", "Neden: doğrudan erişim kapalı", TEAL),
+    "ecs": (C3, RB, "Amazon ECS · Fargate", "FastAPI + arayüzler + 7 alan ajanı", "Neden: sunucu yönetimi yok", BLUE),
+    "rt": (C4, RB, "Bedrock AgentCore Runtime", "Yönetici + planlama, kurye, hafıza, analiz", "Neden: sunucusuz, oturumlar ayrı", BLUE),
+    "mem": (C5, RB, "AgentCore Memory", "Konuşma hafızası, oturum başına", "Neden: ajan bağlamı unutmaz", BLUE),
+    # row C: voice, data, bridge
+    "trn": (C1, RC, "Amazon Transcribe", "Streaming: kuryenin sesli notu → metin", "Neden: kurye yazmadan not bırakır", PURPLE),
+    "pol": (C2, RC, "Amazon Polly", "Neural ses Burcu, kapı kartını okur", "Neden: kurye ekrana bakmadan duyar", PURPLE),
+    "ddb": (C3, RC, "Amazon DynamoDB", "courier-memory: adres, akış, kullanım", "Neden: web ve 5 runtime aynı hafıza", GREEN),
+    "lam": (C4, RC, "AWS Lambda · köprü", "Gateway aracını Supervisor'a iletir", "Neden: yalnız Supervisor'ı çağırır", TEAL),
+    "ath": (C5, RC, "Amazon S3 + Glue + Athena", "Geçmiş teslim verisi, 4 tablo", "Neden: salt okunur SQL, 100 MB sınır", GREEN),
+    # row D: outside access and security
+    "kiro": (C1, RD, "Kiro", "Spec → tasarım → görev; MCP proxy", "Neden: önce spec, sonra kod", AMBER),
+    "cog": (C2, RD, "Amazon Cognito", "OAuth client credentials token", "Neden: Gateway yalnız token kabul eder", TEAL),
+    "quick": (C3, RD, "Amazon Quick", "Sohbet ajanı + MCP bağlayıcı", "Neden: ekip doğal dille sorar", TEAL),
+    "gw": (C4, RD, "AgentCore Gateway", "MCP uç noktası: ask_courier_memory", "Neden: Quick ve Kiro tek kapıdan", TEAL),
+    "iam": (C5, RD, "AWS IAM · en az yetki", "Rol başına dar izin: model, tablo, ses", "Neden: analiz salt okunur", RED),
 }
 
 ZONES = [  # (x1, y1, x2, y2, label, color)
-    (16, 470, 1262, 600, "Sesli döngü · Transcribe + DynamoDB + Polly", PURPLE),
+    (6, 380, 528, 480, "Sesli döngü", PURPLE),
+    (6, 528, 1104, 628, "Dış erişim · MCP", TEAL),
 ]
 
 EDGES = {
-    "rm_rt": [(C1 + NW, 122), (C2, 122)],
-    "rt_llm": [(C2 + NW, 110), (C3, 110)],
-    "rt_cw": [(C2 + 160, RA), (C2 + 160, 72), (C4 + 137, 72), (C4 + 137, RA)],
-    "rt_mem": [(C2 + 137, RA + NH), (C2 + 137, RB)],
-    "rt_ddb": [(C2 + NW, 140), (640, 140), (640, 248), (C3, 248)],
-    "rt_ath": [(C2 + NW, 160), (652, 160), (652, 312), (C4 + 137, 312), (C4 + 137, RC)],
-    "quick_rt": [(C1 + NW, 248), (325, 248), (325, 150), (C2, 150)],
-    "kiro_dep": [(C1 + NW, 368), (C2, 368)],
-    "dep_rt": [(C2 + 137, RC), (C2 + 137, RB + NH)],
-    "rm_ath": [(C1, 150), (18, 150), (18, 444), (C4 + 70, 444), (C4 + 70, RC + NH)],
-    "voice_in": [(40, 542), (C2, 542)],
-    "trn_ddb": [(C2 + NW - 20, RD), (C2 + NW - 20, 458), (705, 458), (705, RB + NH)],
-    "ddb_pol": [(860, RB + NH), (860, RD)],
-    "voice_out": [(C3 + NW, 542), (1245, 542)],
+    "gha_ecr": [(C1 + NW, 134), (C2, 134)],
+    "gha_dep": [(123, RA), (123, 74), (987, 74), (987, RA)],
+    "ecr_ecs": [(411, RA + NH), (411, 208), (640, 208), (640, RB)],
+    "ecs_bed": [(699, RB), (699, RA + NH)],
+    "rt_bed": [(930, RB), (930, 208), (760, 208), (760, RA + NH)],
+    "dep_rt": [(987, RA + NH), (987, RB)],
+    "rt_cw": [(1030, RB), (1030, 208), (1240, 208), (1240, RA + NH)],
+    "cf_alb": [(C1 + NW, 282), (C2, 282)],
+    "alb_ecs": [(C2 + NW, 282), (C3, 282)],
+    "ecs_rt": [(C3 + NW, 282), (C4, 282)],
+    "rt_mem": [(C4 + NW, 282), (C5, 282)],
+    "ecs_trn": [(610, RB + NH), (610, 340), (160, 340), (160, RC)],
+    "ecs_pol": [(640, RB + NH), (640, 356), (450, 356), (450, RC)],
+    "ecs_ddb": [(730, RB + NH), (730, RC)],
+    "rt_ddb": [(920, RB + NH), (920, 344), (795, 344), (795, RC)],
+    "lam_rt": [(987, RC), (987, RB + NH)],
+    "rt_ath": [(1060, RB + NH), (1060, 356), (1240, 356), (1240, RC)],
+    "gw_lam": [(987, RD), (987, RC + NH)],
+    "quick_gw": [(C3 + NW, 578), (C4, 578)],
+    "cog_quick": [(C2 + NW, 578), (C3, 578)],
+    "kiro_gw": [(123, RD + NH), (123, 646), (950, 646), (950, RD + NH)],
 }
-LABEL_AT = {"rm_rt": (325, 108), "rt_llm": (640, 96), "rt_cw": (880, 72), "rt_ddb": (600, 248), "rt_ath": (880, 312),
-            "quick_rt": (325, 196), "dep_rt": (410, 308), "rm_ath": (200, 444), "voice_in": (170, 542),
-            "trn_ddb": (705, 380), "ddb_pol": (860, 380), "voice_out": (1090, 542), "rt_mem": (520, 196), "kiro_dep": (325, 390)}
+LABEL_AT = {"gha_ecr": (267, 134), "gha_dep": (555, 74), "ecr_ecs": (525, 208), "ecs_bed": (699, 208),
+            "rt_bed": (845, 208), "dep_rt": (987, 208), "rt_cw": (1135, 208), "cf_alb": (267, 282),
+            "alb_ecs": (555, 282), "ecs_rt": (843, 282), "rt_mem": (1131, 282), "ecs_trn": (400, 340),
+            "ecs_pol": (545, 356), "ecs_ddb": (730, 362), "rt_ddb": (858, 344), "lam_rt": (987, 356),
+            "rt_ath": (1150, 356), "gw_lam": (987, 504), "quick_gw": (843, 578), "cog_quick": (555, 578),
+            "kiro_gw": (330, 646)}
 
 ALL = {n: (v[5], None) for n, v in NODES.items()}
 SCENES = [
-    ("1 · ROUTING MACHINE tetikler, ajanlar AgentCore'da karar verir",
-     ["ROUTING MACHINE sabah gönderileri kümeler ve rotalar; zincir buradan başlar. Beş ajan Bedrock AgentCore Runtime'da çalışır,",
-      "kararı Amazon Bedrock'taki Claude verir, sayıları araçlar hesaplar. Oturum AgentCore Memory'de, her adımın izi CloudWatch'ta."],
-     ("Tetik → AgentCore → Claude", BLUE),
-     {"rm_rt": (BLUE, 0.0, "plan + rota"), "rt_llm": (BLUE, 0.25, "karar"), "rt_mem": (BLUE, 0.45, "oturum"),
-      "rt_cw": (RED, 0.6, "izler")},
-     {"rm": (BLUE, "tetik"), "rt": (BLUE, None), "llm": (BLUE, None), "mem": (BLUE, None), "cw": (RED, None)}),
-    ("2 · Hafıza ve veri: kalıcı adres bilgisi, salt okunur geçmiş",
-     ["Adres bilgisi DynamoDB'de kalıcıdır: kurye değişse de bilgi adreste kalır. Geçmiş teslim verisi S3'te, Glue kataloğunda,",
-      "Athena ile salt okunur SQL'le sorgulanır. IAM politikaları rolleri dar tutar (analiz salt okunur); kişisel veri yüklenmez."],
+    ("1 · Web girişi ve barındırma: CloudFront → ALB → ECS Fargate",
+     ["Kurye ekranı ve sunum ekranı tek HTTPS adresten girer: Amazon CloudFront (mikrofon HTTPS ister) → yalnız CloudFront'a açık Application Load Balancer.",
+      "ECS Fargate'te FastAPI ve arayüzler çalışır (hikâye, canlı zincir, eski ekran, demo); konteyner imajı Amazon ECR'dan gelir, sunucu yönetilmez."],
+     ("CloudFront → ALB → ECS · ECR", TEAL),
+     {"cf_alb": (TEAL, 0.0, "HTTPS"), "alb_ecs": (TEAL, 0.2, "yönlendir"), "ecr_ecs": (AMBER, 0.45, "imaj")},
+     {"cf": (TEAL, "HTTPS"), "alb": (TEAL, "yalnız CloudFront"), "ecs": (BLUE, "web uygulaması"), "ecr": (AMBER, None)}),
+    ("2 · Ajanlar ve model: ECS'te 7 alan ajanı, AgentCore'da 5 ajan",
+     ["Web uygulaması 7 alan ajanını (Orkestratör, Atama, Hafıza, Brifing, Hasat, Değerlendirme, Bölge) Bedrock'taki Claude Sonnet 5 ile canlı çalıştırır;",
+      "canlı zincir sunum ekranından başlar (8 adım, Acil Durum Kapısı dahil). \"AgentCore zinciri\" aynı işi AgentCore'daki 5 ajana yaptırır; oturum Memory'de, izler CloudWatch'ta."],
+     ("ECS 7 ajan · AgentCore 5 ajan · Claude", BLUE),
+     {"ecs_bed": (BLUE, 0.0, "7 ajan · canlı"), "ecs_rt": (BLUE, 0.2, "zincir"), "rt_bed": (BLUE, 0.35, "karar"),
+      "rt_mem": (BLUE, 0.5, "oturum"), "rt_cw": (RED, 0.6, "izler")},
+     {"ecs": (BLUE, "7 alan ajanı"), "rt": (BLUE, "5 ajan"), "bed": (BLUE, "Sonnet 5"), "mem": (BLUE, None), "cw": (RED, None)}),
+    ("3 · Veri ve hafıza: ortak DynamoDB tablosu, salt okunur Athena",
+     ["DynamoDB'deki courier-memory tablosu canlı adres hafızasını, ajan akışını ve kullanımı tutar; web uygulaması ve 5 runtime aynı tabloyu kullanır.",
+      "Geçmiş teslim verisi S3'te, Glue kataloğunda 4 tablo; Analiz Ajanı Athena'da salt okunur SQL çalıştırır (sorgu başına 100 MB). IAM her rolü dar tutar."],
      ("DynamoDB · S3 + Glue + Athena · IAM", GREEN),
-     {"rt_ddb": (GREEN, 0.0, "adres hafızası"), "rm_ath": (GREEN, 0.2, "geçmiş veri"), "rt_ath": (GREEN, 0.4, "salt okunur SQL")},
-     {"rt": (BLUE, None), "ddb": (GREEN, None), "ath": (GREEN, None), "iam": (RED, "en az yetki"), "rm": (BLUE, None)}),
-    ("3 · Sesli döngü: kurye konuşur, sistem dinler, kapıda söyler",
-     ["Kurye notunu sesle bırakır; Transcribe metne çevirir, Hafıza Ajanı kişisel veriyi ayıklayıp DynamoDB'ye yazar.",
-      "Sonraki kurye kapıya yaklaşınca Polly aynı bilgiyi doğal Türkçe sesle okur. Kurye ne yazar ne ekrana bakar."],
-     ("Ses → metin → hafıza → ses", PURPLE),
-     {"voice_in": (PURPLE, 0.0, "sesli not"), "trn_ddb": (PURPLE, 0.25, "metin → hafıza"), "ddb_pol": (PURPLE, 0.5, "kapı kartı"),
-      "voice_out": (PURPLE, 0.7, "kapıda dinler")},
-     {"trn": (PURPLE, None), "ddb": (GREEN, None), "pol": (PURPLE, None)}),
-    ("4 · Amazon Quick: ekip sisteme doğal dille sorar",
-     ["Amazon Quick, MCP üzerinden AgentCore Gateway'e bağlıdır: ekip panodan soru sorar, istek aynı ajanlara gider.",
-      "Analiz Ajanı geçmişi Athena'da salt okunur sorgular; cevap Claude'un kararı, sayılar aracın hesabıdır."],
-     ("Quick → MCP → AgentCore → Athena", TEAL),
-     {"quick_rt": (TEAL, 0.0, "MCP"), "rt_llm": (BLUE, 0.3, None), "rt_ath": (GREEN, 0.45, "salt okunur SQL")},
-     {"quick": (TEAL, None), "rt": (BLUE, None), "llm": (BLUE, None), "ath": (GREEN, None)}),
-    ("5 · Geliştirme ve dağıtım: Kiro'dan AgentCore'a",
-     ["Her özellik Kiro'da spec ile başlar (gereksinim → tasarım → görev); projenin MCP sunucusu şube hafızasını Kiro'ya açar.",
-      "agentcore deploy, AWS CDK ile beş runtime'ı, hafızayı ve IAM politikalarını kodla kurar; aynı komut her ortamda aynı sonucu verir."],
-     ("Kiro → CDK → AgentCore", AMBER),
-     {"kiro_dep": (AMBER, 0.0, "spec + kod"), "dep_rt": (AMBER, 0.35, "kurar")},
-     {"kiro": (AMBER, "önce spec"), "dep": (AMBER, None), "rt": (BLUE, None), "mem": (BLUE, None), "iam": (RED, None)}),
+     {"ecs_ddb": (GREEN, 0.0, "adres hafızası"), "rt_ddb": (GREEN, 0.2, "aynı tablo"), "rt_ath": (GREEN, 0.4, "salt okunur SQL")},
+     {"ecs": (BLUE, None), "rt": (BLUE, None), "ddb": (GREEN, None), "ath": (GREEN, "4 tablo"), "iam": (RED, "en az yetki")}),
+    ("4 · Sesli döngü: kurye konuşur, sistem dinler, kapıda söyler",
+     ["Kurye notunu sesle bırakır: ses HTTPS üzerinden web uygulamasına akar, Amazon Transcribe Streaming (tr-TR) metne çevirir, Hafıza Ajanı DynamoDB'ye yazar.",
+      "Sonraki kurye kapıya yaklaşınca Amazon Polly kapı kartını neural Türkçe sesle (Burcu) okur. Kurye ne yazar ne ekrana bakar."],
+     ("Ses · metin · hafıza · ses", PURPLE),
+     {"cf_alb": (TEAL, 0.0, None), "alb_ecs": (TEAL, 0.0, None), "ecs_trn": (PURPLE, 0.15, "sesli not"),
+      "ecs_ddb": (GREEN, 0.4, "not → hafıza"), "ecs_pol": (PURPLE, 0.6, "kart metni")},
+     {"cf": (TEAL, "HTTPS"), "ecs": (BLUE, None), "trn": (PURPLE, "tr-TR"), "pol": (PURPLE, "Burcu"), "ddb": (GREEN, None)}),
+    ("5 · Amazon Quick ve Kiro: MCP ile aynı ajanlara erişim",
+     ["Amazon Quick'teki sohbet ajanı MCP bağlayıcısıyla gelir: Amazon Cognito'dan OAuth token alır (client credentials), AgentCore Gateway'e bağlanır.",
+      "Gateway aracı AWS Lambda köprüsünü çağırır, köprü soruyu Supervisor'a (yönetici ajan) iletir. Kiro aynı Gateway'i yerel MCP proxy ile kullanır."],
+     ("Quick → Gateway → Lambda → Supervisor", TEAL),
+     {"cog_quick": (TEAL, 0.0, "token"), "quick_gw": (TEAL, 0.15, "MCP"), "kiro_gw": (AMBER, 0.3, "yerel MCP proxy"),
+      "gw_lam": (TEAL, 0.45, "araç"), "lam_rt": (TEAL, 0.6, "iletir")},
+     {"quick": (TEAL, None), "cog": (TEAL, None), "gw": (TEAL, None), "lam": (TEAL, None), "kiro": (AMBER, None),
+      "rt": (BLUE, "Supervisor")}),
+    ("6 · Geliştirme ve teslimat: Kiro'da spec, GitHub Actions ile dağıtım",
+     ["Her özellik Kiro'da spec ile başlar (gereksinim → tasarım → görev). main'e gelen değişiklikte GitHub Actions OIDC ile IAM rolü üstlenir, gizli anahtar tutmaz.",
+      "Web imajı ECR'a gider ve ECS servisi güncellenir; agentcore deploy AWS CDK / CloudFormation ile 5 runtime'ı ve hafızayı kurar; köprü Lambda kodu da güncellenir."],
+     ("Kiro → GitHub Actions → ECR · ECS · AgentCore", AMBER),
+     {"gha_ecr": (AMBER, 0.0, "imaj"), "ecr_ecs": (AMBER, 0.2, "yeni sürüm"), "gha_dep": (AMBER, 0.35, "agentcore deploy"),
+      "dep_rt": (AMBER, 0.55, "kurar")},
+     {"kiro": (AMBER, "önce spec"), "gha": (AMBER, "OIDC"), "ecr": (AMBER, None), "dep": (AMBER, None), "ecs": (BLUE, None),
+      "rt": (BLUE, None), "iam": (RED, "OIDC rolü")}),
     ("Özet · hangi AWS servisi, neden",
-     ["Tetik ROUTING MACHINE; karar Bedrock'ta Claude, çalışma AgentCore'da; adres hafızası DynamoDB'de, geçmiş Athena'da.",
-      "Ses Transcribe ve Polly ile döner; izler CloudWatch'ta, yetki IAM'de; ekip Quick ile sorar, altyapı Kiro + CDK ile kurulur."],
-     ("13 parça · her birinin bir nedeni var", BLUE),
-     {e: (NODES[e.split("_")[0]][5] if e.split("_")[0] in NODES else PURPLE, 0.0, None) for e in EDGES},
+     ["Giriş CloudFront + ALB; uygulama ve 7 alan ajanı ECS Fargate'te; 5 ajan AgentCore Runtime'da; karar Bedrock'ta Claude; hafıza DynamoDB ve AgentCore Memory'de.",
+      "Geçmiş Athena'da; ses Transcribe ve Polly ile döner; izler CloudWatch'ta, yetki IAM'de; Quick ve Kiro MCP ile bağlanır; teslimat GitHub Actions + CDK."],
+     (f"{len(NODES)} parça · her birinin bir nedeni var", BLUE),
+     {e: (NODES[e.split("_")[0]][5], 0.0, None) for e in EDGES},
      ALL),
 ]
 
@@ -219,34 +270,25 @@ def pill(d, cx, cy, txt, color, f=F_SMALL):
 
 
 def legend(d):
-    x = 560
-    for txt, col in (("ajan ve model", BLUE), ("veri ve hafıza", GREEN), ("ses", PURPLE)):
-        d.rounded_rectangle([s(x), s(18), s(x + 12), s(30)], radius=s(3), fill=col)
-        d.text((s(x + 18), s(24)), txt, font=F_SUB, fill=TEXT, anchor="lm")
-        x += 34 + d.textlength(txt, font=F_SUB) / K
-    x = 560
-    for txt, col in (("izleme ve güvenlik", RED), ("erişim", TEAL), ("geliştirme", AMBER)):
-        d.rounded_rectangle([s(x), s(40), s(x + 12), s(52)], radius=s(3), fill=col)
-        d.text((s(x + 18), s(46)), txt, font=F_SUB, fill=TEXT, anchor="lm")
-        x += 34 + d.textlength(txt, font=F_SUB) / K
+    rows = ((("ajan ve model", BLUE), ("veri ve hafıza", GREEN), ("ses", PURPLE)),
+            (("izleme ve güvenlik", RED), ("erişim", TEAL), ("geliştirme ve teslimat", AMBER)))
+    for y, row in zip((24, 46), rows):
+        x = 640
+        for txt, col in row:
+            d.rounded_rectangle([s(x), s(y - 6), s(x + 12), s(y + 6)], radius=s(3), fill=col)
+            d.text((s(x + 18), s(y)), txt, font=F_SUB, fill=TEXT, anchor="lm")
+            x += 34 + d.textlength(txt, font=F_SUB) / K
 
 
-def frame(scene, f):
-    title, caption, badge, edges, nodes = scene
-    t = f / SCENE_FRAMES
-    img = Image.new("RGB", (s(W), s(H)), BG)
-    d = ImageDraw.Draw(img)
-
-    d.text((s(26), s(26)), "Courier Memory · AWS altyapısı", font=F_TITLE, fill=TEXT, anchor="lm")
-    d.text((s(26), s(48)), "Hangi servis, ne iş, neden", font=F_SUB, fill=GREY, anchor="lm")
-    legend(d)
-
+def draw_zones(d):
     for x1, y1, x2, y2, lab, col in ZONES:
         d.rounded_rectangle([s(x1), s(y1), s(x2), s(y2)], radius=s(10), fill=mix(col, 0.05), outline=mix(col, 0.35), width=s(1))
         lw = d.textlength(lab, font=F_ZONE) / K + 12
         d.rounded_rectangle([s(x1 + 10), s(y1 - 7), s(x1 + 10 + lw), s(y1 + 7)], radius=s(6), fill=BG)
         d.text((s(x1 + 16), s(y1)), lab, font=F_ZONE, fill=mix(col, 0.9), anchor="lm")
 
+
+def draw_edges(d, edges, f, t):
     for name, p in EDGES.items():
         active = name in edges and t >= edges[name][1]
         draw_poly(d, p, edges[name][0] if active else DIM, 3 if active else 2)
@@ -263,6 +305,8 @@ def frame(scene, f):
             d.ellipse([x - r, y - r, x + r, y + r], fill=(255, 255, 255))
             pos += s(40)
 
+
+def draw_nodes(d, nodes, f):
     for key, (x, y, name, what, why, cat) in NODES.items():
         lit = key in nodes
         col, tag = nodes.get(key, (DIM, None))
@@ -279,24 +323,40 @@ def frame(scene, f):
         if tag:
             tw = d.textlength(tag, font=F_SMALL) / K + 14
             pill(d, x + NW - 6 - tw / 2, y - 1, tag, col)
-    for name, (col, start, lab) in edges.items():
-        if lab and t >= start:
-            pill(d, *label_pos(name), lab, col)
 
-    d.rounded_rectangle([s(16), s(658), s(W - 16), s(H - 12)], radius=s(12), fill=PANEL)
-    d.text((s(36), s(683)), title, font=F_CAP_T, fill=TEXT, anchor="lm")
-    btxt, bcol = badge
+
+def draw_caption(d, scene):
+    title, caption, (btxt, bcol) = scene[0], scene[1], scene[2]
+    d.rounded_rectangle([s(16), s(CAP_Y), s(W - 16), s(H - 12)], radius=s(12), fill=PANEL)
+    d.text((s(36), s(CAP_Y + 25)), title, font=F_CAP_T, fill=TEXT, anchor="lm")
     bw = d.textlength(btxt, font=F_SMALL) / K + 24
-    d.rounded_rectangle([s(W - 36 - bw), s(671), s(W - 36), s(695)], radius=s(12), fill=bcol)
-    d.text((s(W - 36 - bw / 2), s(683)), btxt, font=F_SMALL, fill=BG, anchor="mm")
+    d.rounded_rectangle([s(W - 36 - bw), s(CAP_Y + 13), s(W - 36), s(CAP_Y + 37)], radius=s(12), fill=bcol)
+    d.text((s(W - 36 - bw / 2), s(CAP_Y + 25)), btxt, font=F_SMALL, fill=BG, anchor="mm")
     for i, line in enumerate(caption):
-        d.text((s(36), s(712 + i * 21)), line, font=fit(d, line, 14, False, W - 72), fill=(203, 213, 225), anchor="lm")
+        d.text((s(36), s(CAP_Y + 54 + i * 21)), line, font=fit(d, line, 14, False, W - 72), fill=(203, 213, 225), anchor="lm")
     for i in range(len(SCENES)):
         cx = W / 2 - (len(SCENES) - 1) * 9 + i * 18
         on = SCENES[i] is scene
         r = 4 if on else 3
         d.ellipse([s(cx - r), s(H - 5 - r), s(cx + r), s(H - 5 + r)], fill=TEXT if on else DIM)
 
+
+def frame(scene, f):
+    edges, nodes = scene[3], scene[4]
+    t = f / SCENE_FRAMES
+    img = Image.new("RGB", (s(W), s(H)), BG)
+    d = ImageDraw.Draw(img)
+
+    d.text((s(26), s(26)), "Courier Memory · AWS altyapısı", font=F_TITLE, fill=TEXT, anchor="lm")
+    d.text((s(26), s(48)), "Hangi servis, ne iş, neden · hepsi us-east-1", font=F_SUB, fill=GREY, anchor="lm")
+    legend(d)
+    draw_zones(d)
+    draw_edges(d, edges, f, t)
+    draw_nodes(d, nodes, f)
+    for name, (col, start, lab) in edges.items():
+        if lab and t >= start:
+            pill(d, *label_pos(name), lab, col)
+    draw_caption(d, scene)
     return img.resize((W, H), Image.LANCZOS)
 
 

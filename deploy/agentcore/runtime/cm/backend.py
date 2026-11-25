@@ -62,7 +62,7 @@ class CoreBackend:
     def plan_day(self, day):
         raise ValueError(MANAGER_ONLY_MSG)
 
-    morning_review = region_report = plan_day
+    morning_review = region_report = harvest = plan_day
 
 
 class FullBackend:
@@ -156,6 +156,13 @@ class FullBackend:
         return {"day": day, "report": r["report"], "params": r["params"],
                 "applied": [e["summary"] for e in ev if e["status"] == "applied" and e["type"] != "report"][-6:],
                 "awaiting_approval": [e["summary"] for e in ev if e["status"] == "awaiting_approval"][-4:]}
+
+    def harvest(self, day):
+        r = self.sv.harvest.plan(day)
+        return {"day": day, "summary": r.get("summary"), "plan_source": r.get("plan_source"), "degraded": r.get("degraded"),
+                "questions": [{"courier_id": q.get("courier"), "address": q.get("label") or q.get("address"),
+                               "reason": q.get("reason"), "question": q.get("question"), "status": q.get("status")}
+                              for q in r.get("questions", [])][:15]}
 
     def region_report(self, day):
         r = self.sv.region.branch(day)

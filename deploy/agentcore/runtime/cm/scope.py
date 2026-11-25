@@ -15,7 +15,10 @@ from .backend import role_of
 from .tools import COURIER_TOOLS, MANAGER_TOOLS
 
 COURIER_TOOL_NAMES = frozenset(t.tool_name for t in COURIER_TOOLS)
-MANAGER_TOOL_NAMES = frozenset(t.tool_name for t in MANAGER_TOOLS)
+# Supervisor'ın uzman araçları (cm/roles.py). Uzman kimliği ayrıca denetler; burada erken ret, boşa runtime ve model
+# çağrısını önler. ask_courier_agent'ta courier_id yok (kimlik kapanışta), yalnız kimliksiz çağıran reddedilir.
+MANAGER_TOOL_NAMES = frozenset(t.tool_name for t in MANAGER_TOOLS) | {"ask_planner", "ask_analyst", "query_history"}
+IDENTIFIED_TOOL_NAMES = frozenset({"ask_courier_agent"})
 
 
 def decide(actor_id: str, role: str, tool_name: str, tool_input: dict | None) -> str | None:
@@ -24,6 +27,9 @@ def decide(actor_id: str, role: str, tool_name: str, tool_input: dict | None) ->
     if tool_name in MANAGER_TOOL_NAMES and role != "manager":
         return (f"Erişim reddedildi: {tool_name} yalnız şube müdürü içindir. "
                 "Bu istekte müdür kimliği yok; şube planı, değerlendirme ve bölge raporu paylaşılmaz.")
+    if tool_name in IDENTIFIED_TOOL_NAMES and role == "guest":
+        return (f"Erişim reddedildi: {tool_name} için kurye ya da müdür kimliği gerekir (istek gövdesinde actorId). "
+                "Kimliksiz çağıran yalnız şube özetini ve gerçek gün kanıtını görebilir.")
     if tool_name in COURIER_TOOL_NAMES:
         if role == "guest":
             return (f"Erişim reddedildi: {tool_name} için kurye ya da müdür kimliği gerekir (istek gövdesinde actorId). "

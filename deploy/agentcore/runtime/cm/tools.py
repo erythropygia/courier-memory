@@ -120,6 +120,17 @@ def region_report(day: int | None = None) -> str:
     return _j(backend().region_report(_day(day)))
 
 
+@tool
+def harvest_questions(day: int | None = None) -> str:
+    """Hafıza hasadı (Hasat Ajanı): hafızası boş ya da tekrar tekrar başarısız olan adresler için bölgeyi bilen
+    kuryelere sorulacak hedefli sorular. Cevaplar Hafıza Ajanı'ndan geçip hafızaya yazılır.
+
+    Args:
+        day: Simülasyon günü; verilmezse demo günü.
+    """
+    return _j(backend().harvest(_day(day)))
+
+
 # ------------------------------------------------------------------ herkese açık (salt okunur)
 @tool
 def branch_memory_summary(day: int | None = None) -> str:
@@ -138,6 +149,6 @@ def real_day_evidence() -> str:
 
 
 COURIER_TOOLS = (courier_briefing, stop_cards, approaching_stop, leave_note)
-MANAGER_TOOLS = (plan_day, morning_review, region_report)
+MANAGER_TOOLS = (plan_day, morning_review, region_report, harvest_questions)
 PUBLIC_TOOLS = (branch_memory_summary, real_day_evidence)
 ALL_TOOLS = [*COURIER_TOOLS, *MANAGER_TOOLS, *PUBLIC_TOOLS]

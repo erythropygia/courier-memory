@@ -11,10 +11,13 @@
 #      (demo çalıştırması + gerçek gün). Repoda alan kodu varsa agents/, cm_sim/, config/ da kopyalanır (tam araç
 #      takımı, 9 araç); yoksa ajan çekirdek takımla (6 araç, yalnız veri dosyaları) çalışır.
 #   4. app/agent/pyproject.toml → [project].dependencies içine yalnız çalışma zamanı paketlerini ekler.
-#   5. agentcore/agentcore.json → çalışma ortamının envVars listesine UNIFIED_TRACES_DESTINATION_ENABLED=true yazar.
+#   5. agentcore/agentcore.json → çok ajanlı yapı (agentcore_config.py): `agent` supervisor olur, aynı kodla
+#      planner, courier, memory_keeper runtime'ları eklenir; supervisor'a yalnız bu projenin runtime'larını çağırma
+#      izni (agentcore/supervisor-policy.json). Her runtime'a UNIFIED_TRACES_DESTINATION_ENABLED=true.
 # Dağıtmaz: `agentcore deploy` kararı sizde (deploy/agentcore/README.md).
 #
-# Ortam: CM_WORKSPACE (varsayılan: reponun üst klasörü), CM_SKIP_CREATE=1 (iskele zaten var; test için).
+# Ortam: CM_WORKSPACE (varsayılan: reponun üst klasörü), CM_SKIP_CREATE=1 (iskele zaten var; test için),
+#        CM_MULTI_AGENT=0 (tek runtime, on araç), CM_TARGET (agentcore hedefi; varsayılan default).
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -86,18 +89,12 @@ if add:
 print("  bağımlılık eklendi:", ", ".join(add) if add else "(hepsi vardı)")
 
 cfg = json.load(open(agentcore, encoding="utf-8"))
-runtimes = cfg.get("runtimes") or []
-if not runtimes:
-    sys.exit("agentcore.json içinde runtime yok")
-KEY = "UNIFIED_TRACES_DESTINATION_ENABLED"
-for r in runtimes:
-    env = [e for e in (r.get("envVars") or []) if e.get("name") != KEY]
-    env.append({"name": KEY, "value": "true"})
-    r["envVars"] = env
-json.dump(cfg, open(agentcore, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
-print("  envVars:", KEY, "= true →", ", ".join(r.get("name", "?") for r in runtimes))
 print("  hafıza:", ", ".join(m.get("name", "?") for m in cfg.get("memories") or []) or "(tanımlı değil: agentcore add memory --name agentMemory)")
 PY
+
+# Çok ajanlı yapı (varsayılan): agent = supervisor + planner, courier, memory_keeper; tek ajan için CM_MULTI_AGENT=0.
+# Her runtime'a UNIFIED_TRACES_DESTINATION_ENABLED=true yazılır (gözlemlenebilirlik).
+python3 "$REPO/deploy/agentcore/agentcore_config.py" "$PROJ/agentcore/agentcore.json" "$NAME" "${CM_MULTI_AGENT:-1}" "${CM_TARGET:-default}"
 
 if command -v uv >/dev/null; then
   echo "==> uv sync ($APP)"

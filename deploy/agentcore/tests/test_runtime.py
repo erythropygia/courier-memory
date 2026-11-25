@@ -138,7 +138,7 @@ def test_parse_request():
 def test_tools_return_domain_data(rt):
     from cm.tools import ALL_TOOLS, branch_memory_summary, courier_briefing, real_day_evidence, stop_cards
 
-    assert len(ALL_TOOLS) == 9 and all(t.tool_spec["description"] for t in ALL_TOOLS)
+    assert len(ALL_TOOLS) == 10 and all(t.tool_spec["description"] for t in ALL_TOOLS)
     b = json.loads(courier_briefing(courier_id="O02"))
     assert b["name"] == "Gökhan" and b["morning_briefing"].startswith("Günaydın") and b["toolset"] == rt.toolset
     c = json.loads(stop_cards(courier_id="O02"))

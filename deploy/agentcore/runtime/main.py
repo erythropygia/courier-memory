@@ -37,16 +37,19 @@ def _get_agent(actor_id: str, session_id: str):
 
         from cm.memory import session_manager
         from cm.prompt import build_system_prompt
+        from cm.roles import agent_role, tools_for
         from cm.scope import CourierScope
         from cm.backend import backend, role_of
-        from cm.tools import ALL_TOOLS
 
         role = role_of(actor_id)
+        me = agent_role()                      # bu runtime: supervisor | planner | courier | memory_keeper | all
         name = backend().courier_name(actor_id) if role == "courier" else None
-        _agents[key] = Agent(model=_get_model(), tools=list(ALL_TOOLS), system_prompt=build_system_prompt(actor_id, role, name),
+        _agents[key] = Agent(model=_get_model(), tools=tools_for(me, actor_id, session_id),
+                             system_prompt=build_system_prompt(actor_id, role, name, agent_role=me),
                              hooks=[CourierScope(actor_id)], session_manager=session_manager(actor_id, session_id),
-                             callback_handler=None, name="courier-memory",
-                             trace_attributes={"cm.actor_role": role, "cm.actor_id": actor_id, "cm.toolset": backend().name})
+                             callback_handler=None, name=f"courier-memory-{me}",
+                             trace_attributes={"cm.agent_role": me, "cm.actor_role": role, "cm.actor_id": actor_id,
+                                               "cm.toolset": backend().name})
     return _agents[key]
 
 

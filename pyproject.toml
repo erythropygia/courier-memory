@@ -28,6 +28,6 @@ packages = ["cm_sim", "cm_sim.policies", "agents", "api"]
 
 [tool.pytest.ini_options]
 pythonpath = ["sim", "."]
-testpaths = ["sim/tests", "agents/tests", "api/tests", "deploy/agentcore/tests"]
+testpaths = ["sim/tests", "agents/tests", "api/tests", "deploy/agentcore/tests", "deploy/athena/tests"]
 markers = ["slow: uzun süren testler (pytest -m slow)"]
 addopts = "-m 'not slow'"

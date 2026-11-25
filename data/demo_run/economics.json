@@ -1,0 +1,430 @@
+{
+ "app_data": true,
+ "headline": {
+  "savings_tl_day": 16618,
+  "savings_tl_year": 5085108,
+  "savings_rate": 0.1542,
+  "per_shipment_before_tl": 38.32,
+  "per_shipment_after_tl": 32.41,
+  "agentless_extra_cost_tl_day": 35862,
+  "agentless_extra_cost_tl_year": 10973772,
+  "agents_saved_tl_day": 52480,
+  "quality": {
+   "fails_per_day_current": 96,
+   "fails_per_day_agentless": 158,
+   "fails_per_day_memory": 89
+  },
+  "llm_share": 0.0138,
+  "sentence": "Şube başına günde 16.618 TL, yılda 5,1 milyon TL daha düşük operasyon maliyeti; başarısız teslim bugünkü düzeyde (96 → 89/gün). Ajansız aynı geçiş maliyeti günde 35.862 TL artırırdı."
+ },
+ "llm_scenarios": [
+  {
+   "scenario": "cautious",
+   "name": "Temkinli: tüm ajanlar Opus 5.5, önbelleksiz",
+   "llm_tl_day": 229.9,
+   "llm_tl_year": 70345,
+   "per_shipment_kurus": 8.174,
+   "savings_rate": 0.01383,
+   "memory_return_multiple": 5.1
+  },
+  {
+   "scenario": "optimize",
+   "name": "Optimize: önbellek + işe göre model (Hafıza/Brifing/Hasat Haiku 5.5, Atama/Orkestratör Sonnet 5.5)",
+   "llm_tl_day": 18.8,
+   "llm_tl_year": 5738,
+   "per_shipment_kurus": 0.667,
+   "savings_rate": 0.00113,
+   "memory_return_multiple": 62.7
+  }
+ ],
+ "scenario": null,
+ "operation": {
+  "arms": {
+   "A": {
+    "name": "Bugün · sabit bölge",
+    "courier": 22.3,
+    "fails_per_day": 96,
+    "preventable_day": 34,
+    "overtime_hour_day": 29.4,
+    "km_day": 596,
+    "first_attempt": 0.96584,
+    "components_tl_day": {
+     "courier": 78108,
+     "overtime": 19288,
+     "fails": 6809,
+     "km": 3576,
+     "llm": 0
+    },
+    "total_tl_day": 107782,
+    "per_shipment_tl": 38.32,
+    "total_tl_year": 32981140
+   },
+   "B": {
+    "name": "Yeni yapı · ajansız",
+    "courier": 20.1,
+    "fails_per_day": 158,
+    "preventable_day": 94,
+    "overtime_hour_day": 89.0,
+    "km_day": 602,
+    "first_attempt": 0.94383,
+    "components_tl_day": {
+     "courier": 70408,
+     "overtime": 58415,
+     "fails": 11207,
+     "km": 3614,
+     "llm": 0
+    },
+    "total_tl_day": 143644,
+    "per_shipment_tl": 51.08,
+    "total_tl_year": 43955184
+   },
+   "C": {
+    "name": "Yeni yapı + çekirdek bölge (Atama Ajanı)",
+    "courier": 20.1,
+    "fails_per_day": 98,
+    "preventable_day": 37,
+    "overtime_hour_day": 31.9,
+    "km_day": 604,
+    "first_attempt": 0.96508,
+    "components_tl_day": {
+     "courier": 70350,
+     "overtime": 20937,
+     "fails": 6961,
+     "km": 3621,
+     "llm": 10
+    },
+    "total_tl_day": 101880,
+    "per_shipment_tl": 36.23,
+    "total_tl_year": 31175253
+   },
+   "D": {
+    "name": "Yeni yapı + Courier Memory",
+    "courier": 20.2,
+    "fails_per_day": 89,
+    "preventable_day": 30,
+    "overtime_hour_day": 15.5,
+    "km_day": 605,
+    "first_attempt": 0.96819,
+    "components_tl_day": {
+     "courier": 70758,
+     "overtime": 10204,
+     "fails": 6339,
+     "km": 3632,
+     "llm": 230
+    },
+    "total_tl_day": 91164,
+    "per_shipment_tl": 32.41,
+    "total_tl_year": 27896099
+   }
+  },
+  "waterfall": [
+   {
+    "code": "today",
+    "step": "Bugün (sabit bölge)",
+    "type": "start",
+    "tl_day": 107782
+   },
+   {
+    "code": "dynamic",
+    "step": "Dinamik planlama: daha az kurye, dengeli iş yükü",
+    "type": "decrease",
+    "tl_day": -7350
+   },
+   {
+    "code": "agentless",
+    "step": "Ajansız: bölge bilgisi kaybı (başarısız teslim, fazla mesai)",
+    "type": "increase",
+    "tl_day": 43212
+   },
+   {
+    "code": "assignment",
+    "step": "Atama Ajanı: çekirdek bölgeli plan, kurye kendi bölgesinde",
+    "type": "decrease",
+    "tl_day": -41764
+   },
+   {
+    "code": "memory",
+    "step": "Hafıza + Brifing: bilgi kişiden adrese",
+    "type": "decrease",
+    "tl_day": -538
+   },
+   {
+    "code": "morning",
+    "step": "Sabah: ayrıştırma indirme okutmasında (kurye ayrıştırma yapmaz, erken çıkar)",
+    "type": "decrease",
+    "tl_day": -10178
+   },
+   {
+    "code": "result",
+    "step": "Yeni yapı + Courier Memory",
+    "type": "result",
+    "tl_day": 91164
+   }
+  ],
+  "scale": [
+   {
+    "branch": 1,
+    "savings_tl_year": 5085108,
+    "agentless_extra_cost_tl_year": 10973772
+   },
+   {
+    "branch": 10,
+    "savings_tl_year": 50851080,
+    "agentless_extra_cost_tl_year": 109737720
+   },
+   {
+    "branch": 100,
+    "savings_tl_year": 508510800,
+    "agentless_extra_cost_tl_year": 1097377200
+   }
+  ],
+  "explanation": "Operasyon maliyeti = kurye-gün × kurye maliyeti + fazla mesai + başarısız teslim × deneme maliyeti + km × km maliyeti + LLM."
+ },
+ "source_running": "long_term",
+ "day_count": 60,
+ "assumptions": {
+  "usd_try": 45.0,
+  "courier_daily_cost_tl": 3500,
+  "courier_min_tl": 7.29,
+  "km_cost_tl": 6.0,
+  "failed_attempt_tl": 71.0,
+  "fails_other_tl": 20,
+  "second_attempt_min": 6,
+  "overtime_multiplier": 1.5,
+  "cache": false,
+  "price_source": "Anthropic liste fiyatı, MTok başına USD. Bedrock fiyatı farklı olabilir; etkinlikte kontrol edin.",
+  "agent_model": {
+   "assignment": "anthropic.claude-opus-5-5",
+   "memory": "anthropic.claude-opus-5-5",
+   "briefing": "anthropic.claude-opus-5-5",
+   "orchestrator": "anthropic.claude-opus-5-5",
+   "harvest": "anthropic.claude-opus-5-5"
+  },
+  "daily_assignment_question": 3
+ },
+ "volume_day": {
+  "shipment": 2812,
+  "stop": 2375,
+  "courier": 20.2,
+  "note": 41.5,
+  "llm_call": 88.3,
+  "token": {
+   "input": 742447,
+   "output": 106938
+  }
+ },
+ "llm": {
+  "daily_tl": 229.9,
+  "daily_usd": 5.11,
+  "agents": {
+   "propose_assignment": {
+    "call_day": 1.0,
+    "model": "anthropic.claude-opus-5-5",
+    "token_call": {
+     "input": 14026,
+     "output": 2100
+    },
+    "per_call_tl": 4.415,
+    "daily_tl": 4.4,
+    "source": "estimate"
+   },
+   "ask_assignment": {
+    "call_day": 3.0,
+    "model": "anthropic.claude-opus-5-5",
+    "token_call": {
+     "input": 5965,
+     "output": 900
+    },
+    "per_call_tl": 1.884,
+    "daily_tl": 5.7,
+    "source": "estimate"
+   },
+   "memory": {
+    "call_day": 41.5,
+    "model": "anthropic.claude-opus-5-5",
+    "token_call": {
+     "input": 6675,
+     "output": 1250
+    },
+    "per_call_tl": 2.327,
+    "daily_tl": 96.6,
+    "source": "estimate"
+   },
+   "briefing": {
+    "call_day": 20.2,
+    "model": "anthropic.claude-opus-5-5",
+    "token_call": {
+     "input": 2654,
+     "output": 850
+    },
+    "per_call_tl": 1.243,
+    "daily_tl": 25.1,
+    "source": "estimate"
+   },
+   "orchestrator": {
+    "call_day": 1.0,
+    "model": "anthropic.claude-opus-5-5",
+    "token_call": {
+     "input": 143158,
+     "output": 4500
+    },
+    "per_call_tl": 29.818,
+    "daily_tl": 29.8,
+    "source": "estimate"
+   },
+   "ask_orchestrator": {
+    "call_day": 3.0,
+    "model": "anthropic.claude-opus-5-5",
+    "token_call": {
+     "input": 24617,
+     "output": 1500
+    },
+    "per_call_tl": 5.781,
+    "daily_tl": 17.3,
+    "source": "estimate"
+   },
+   "harvest": {
+    "call_day": 1.0,
+    "model": "anthropic.claude-opus-5-5",
+    "token_call": {
+     "input": 45481,
+     "output": 2100
+    },
+    "per_call_tl": 10.077,
+    "daily_tl": 10.1,
+    "source": "estimate"
+   },
+   "harvest_answer": {
+    "call_day": 17.6,
+    "model": "anthropic.claude-opus-5-5",
+    "token_call": {
+     "input": 6675,
+     "output": 1250
+    },
+    "per_call_tl": 2.327,
+    "daily_tl": 40.9,
+    "source": "estimate"
+   }
+  },
+  "per_shipment_kurus": 8.17,
+  "per_note_tl": 2.327,
+  "per_briefing_tl": 1.243
+ },
+ "gain": {
+  "vs_C": {
+   "comparison": "Hafıza + Brifing (D, bugünkü sabahla) ← çekirdek bölgeli plan (C)",
+   "prevented_fails_day": 7.0,
+   "fails_tl_day": 494,
+   "prevented_overtime_min_day": 62,
+   "overtime_tl_day": 682,
+   "gained_door_min_day": 113,
+   "capacity_tl_day": 824,
+   "capacity_courier_hour_day": 1.9,
+   "direct_gain_tl_day": 1176,
+   "net_tl_day": 946,
+   "return_multiple": 5.1,
+   "total_gain_tl_day": 2000,
+   "first_attempt_score": 0.31
+  },
+  "vs_B": {
+   "comparison": "Ajan zinciri (D, sabah dahil) ← geçmişe bakmadan atama (B)",
+   "prevented_fails_day": 68.6,
+   "fails_tl_day": 4867,
+   "prevented_overtime_min_day": 4408,
+   "overtime_tl_day": 48211,
+   "gained_door_min_day": 3814,
+   "capacity_tl_day": 27814,
+   "capacity_courier_hour_day": 63.6,
+   "direct_gain_tl_day": 53078,
+   "net_tl_day": 52848,
+   "return_multiple": 230.9,
+   "total_gain_tl_day": 80892,
+   "first_attempt_score": 2.44
+  }
+ },
+ "morning": {
+  "departure_current_min": 90.0,
+  "departure_presorted_min": 30.0,
+  "overtime_min_day": 919,
+  "fails_per_day": 1.8,
+  "tl_day": 10178,
+  "tl_year": 3114468,
+  "overtime_tl_day": 10050,
+  "fails_tl_day": 128,
+  "gain": {
+   "comparison": "Sabah: ayrıştırma indirme okutmasında (D) ← aynı rota bugünkü sabahla",
+   "prevented_fails_day": 1.8,
+   "fails_tl_day": 128,
+   "prevented_overtime_min_day": 919,
+   "overtime_tl_day": 10050,
+   "gained_door_min_day": 0,
+   "capacity_tl_day": 0,
+   "capacity_courier_hour_day": 0.0,
+   "direct_gain_tl_day": 10178,
+   "net_tl_day": 9948,
+   "return_multiple": 44.3,
+   "total_gain_tl_day": 10178,
+   "first_attempt_score": 0.0
+  },
+  "note": "Aynı rota bugünkü sabahla (summary.sabah.counterfactual). Sabah süreleri saha bilgisi (VARSAYIM). Erken çıkışın vardiya içinde açtığı kapasite (daha az kurye ihtiyacı) ayrıca para değerine çevrilmedi."
+ },
+ "branch_annual": {
+  "llm_tl": 70345,
+  "net_tl_vs_C": 289476,
+  "net_tl_vs_B": 16171488
+ },
+ "scale": [
+  {
+   "branch": 1,
+   "llm_tl_year": 70345,
+   "direct_gain_tl_year_vs_C": 359856,
+   "net_tl_year_vs_C": 289476,
+   "net_tl_year_vs_B": 16171488
+  },
+  {
+   "branch": 10,
+   "llm_tl_year": 703448,
+   "direct_gain_tl_year_vs_C": 3598560,
+   "net_tl_year_vs_C": 2894760,
+   "net_tl_year_vs_B": 161714880
+  },
+  {
+   "branch": 100,
+   "llm_tl_year": 7034481,
+   "direct_gain_tl_year_vs_C": 35985600,
+   "net_tl_year_vs_C": 28947600,
+   "net_tl_year_vs_B": 1617148800
+  }
+ ],
+ "model_comparison": [
+  {
+   "model": "anthropic.claude-opus-5-5",
+   "name": "Claude Opus 5.5",
+   "llm_tl_day": 229.9,
+   "per_shipment_kurus": 8.17,
+   "return_multiple_vs_C": 5.1
+  },
+  {
+   "model": "anthropic.claude-sonnet-5-5",
+   "name": "Claude Sonnet 5.5",
+   "llm_tl_day": 114.9,
+   "per_shipment_kurus": 4.09,
+   "return_multiple_vs_C": 10.2
+  },
+  {
+   "model": "anthropic.claude-haiku-5-5",
+   "name": "Claude Haiku 5.5",
+   "llm_tl_day": 5.7,
+   "per_shipment_kurus": 0.2,
+   "return_multiple_vs_C": 204.6
+  }
+ ],
+ "dynamic_planning": {
+  "explanation": "Dinamik planlamanın kazancı (bu çalışmanın değil). Hafıza bu kazancı kalite kaybı olmadan mümkün kılar.",
+  "courier_day_diff": 2.1,
+  "courier_cost_tl_day": 7350,
+  "first_attempt_score_D_vs_A": 0.23,
+  "first_attempt_score_B_vs_A": -2.2
+ },
+ "warning": "Uygulama verisi · 1 aylık geçmiş. Maliyet varsayımları yer tutucudur; token sayıları canlı ölçümle güncellenir."
+}

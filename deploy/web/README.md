@@ -16,10 +16,11 @@ Betik image'ı derler, ECR'a yükler ve varsayılan VPC'de şunları kurar (tekr
 | ECR | `courier-memory-web` | push'ta tarama, son 10 image |
 | Güvenlik grupları | `courier-memory-web-alb`, `-task` | internetten yalnız ALB:80; container'a yalnız ALB:8000 |
 | ALB + hedef grup | `courier-memory-web` | sağlık `/api/status`, boşta zaman aşımı 300 sn (canlı akışlar) |
-| IAM | `courier-memory-web-exec`, `courier-memory-web-task` | container yalnız izinli modelleri çağırır (Sonnet 5, Haiku) |
+| IAM | `courier-memory-web-exec`, `courier-memory-web-task` | container yalnız izinli modelleri çağırır (Sonnet 5, Haiku) ve `polly:SynthesizeSpeech` |
 | ECS | cluster `courier-memory`, servis `courier-memory-web` | Fargate 1 vCPU / 2 GB, 1 görev, devre kesici + geri alma |
 
-Ortam: `CM_LLM_MODE=live`, `CM_BEDROCK_CLIENT=invoke`, `CM_MODEL_ID=global.anthropic.claude-sonnet-5`. Ek değişken `--env KEY=VALUE`,
+Ortam: `CM_LLM_MODE=live`, `CM_BEDROCK_CLIENT=invoke`, `CM_MODEL_ID=global.anthropic.claude-sonnet-5`,
+`CM_POLLY=1` (`/api/speech`: Amazon Polly, tr-TR `Burcu` / `neural`; Polly hata verirse arayüz tarayıcı sesine düşer). Ek değişken `--env KEY=VALUE`,
 ek izin `--extra-policy politika.json` (ör. DynamoDB).
 
 ## Sonraki dağıtımlar

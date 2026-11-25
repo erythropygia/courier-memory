@@ -8,10 +8,11 @@ Kurulanlar (varsayılan VPC'de; tekrar çalıştırmak güvenlidir):
   Güvenlik grubu   courier-memory-web-alb         internetten 80
   Güvenlik grubu   courier-memory-web-task        yalnız ALB'den 8000
   ALB + hedef grup courier-memory-web             HTTP 80 → container 8000, sağlık /api/status, boşta zaman aşımı 300 sn
-  IAM rolleri      courier-memory-web-exec (image çekme, log) · courier-memory-web-task (container kimliği: izinli modeller)
+  IAM rolleri      courier-memory-web-exec (image çekme, log) · courier-memory-web-task (container kimliği: izinli modeller, Polly)
   ECS              cluster courier-memory · servis courier-memory-web (Fargate, 1 vCPU / 2 GB, 1 görev)
 
-Model: Sonnet 5 (demo/test için Opus kullanılmaz). Ek izin (ör. DynamoDB) için --extra-policy, ek ortam için --env.
+Model: Sonnet 5 (demo/test için Opus kullanılmaz). Varsayılan: Polly (Burcu, neural) ve DynamoDB (courier-memory; yalnız bu tabloya izin).
+Ek izin için --extra-policy, ek ortam için --env (aynı adlı varsayılanı ezer; CM_STORAGE=file ile tablo kapatılır).
 """
 from __future__ import annotations
 
@@ -31,7 +32,12 @@ PORT = 8000
 ROOT = Path(__file__).resolve().parents[2]
 MODELS = ("anthropic.claude-sonnet-5", "anthropic.claude-haiku-4-5-20251001-v1:0")
 ENV = {"CM_LLM_MODE": "live", "CM_BEDROCK_CLIENT": "invoke", "CM_MODEL_ID": "global.anthropic.claude-sonnet-5",
-       "CM_AUTO_CACHE": "1", "CM_RUN_DIR": "data/demo_run"}
+       "CM_AUTO_CACHE": "1", "CM_RUN_DIR": "data/demo_run",
+       "CM_POLLY": "1", "CM_POLLY_VOICE": "Burcu", "CM_POLLY_ENGINE": "neural",  # /api/speech: Polly tr-TR neural ses
+       "CM_STORAGE": "dynamodb", "CM_DYNAMODB_TABLE": "courier-memory", "CM_DYNAMODB_SYNC_SECONDS": "1"}  # ortak durum tablosu
+# deploy/dynamodb/create_table.py APP_ACTIONS ile aynı (tablo: deploy/dynamodb/create_table.py ile kurulur)
+STORAGE_ACTIONS = ("dynamodb:GetItem", "dynamodb:Query", "dynamodb:BatchGetItem",
+                   "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:BatchWriteItem")
 
 
 # ------------------------------------------------------------------ IAM
@@ -55,6 +61,19 @@ def bedrock_policy() -> dict:
     models = [f"arn:aws:bedrock:*::foundation-model/{m}" for m in MODELS]
     return {"Version": "2012-10-17", "Statement": [{"Sid": "InvokeAllowedModels", "Effect": "Allow",
             "Action": ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"], "Resource": profiles + models}]}
+
+
+def polly_policy() -> dict:
+    # polly:SynthesizeSpeech yalnız lexicon ARN'i ile kısıtlanabilir; lexicon'suz istek bir kaynağa bağlanmaz,
+    # bu yüzden Resource "*" zorunludur (Polly IAM örnekleri). Yalnız bu tek eylem verilir.
+    return {"Version": "2012-10-17", "Statement": [{"Sid": "SynthesizeSpeech", "Effect": "Allow",
+            "Action": ["polly:SynthesizeSpeech"], "Resource": "*"}]}
+
+
+def storage_policy(region: str, account: str, table: str) -> dict:
+    """Yalnız bu tablo; tablo silme ve tarama yok."""
+    return {"Version": "2012-10-17", "Statement": [{"Sid": "CourierMemoryTable", "Effect": "Allow", "Action": list(STORAGE_ACTIONS),
+            "Resource": [f"arn:aws:dynamodb:{region}:{account}:table/{table}"]}]}
 
 
 # ------------------------------------------------------------------ image
@@ -180,10 +199,14 @@ def main(argv=None) -> int:
     exec_role = _role(iam, EXEC_ROLE, "ecs-tasks.amazonaws.com",
                       managed=("arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",))
     extra = {Path(p).stem: json.loads(Path(p).read_text(encoding="utf-8")) for p in args.extra_policy}
-    task_role = _role(iam, TASK_ROLE, "ecs-tasks.amazonaws.com", inline={"bedrock-allowed-models": bedrock_policy(), **extra})
+    env = {**ENV, "AWS_REGION": region, **dict(e.split("=", 1) for e in args.env)}
+    account = s.client("sts").get_caller_identity()["Account"]
+    storage = ({f"dynamodb-{env['CM_DYNAMODB_TABLE']}": storage_policy(region, account, env["CM_DYNAMODB_TABLE"])}
+               if env.get("CM_STORAGE") == "dynamodb" else {})
+    task_role = _role(iam, TASK_ROLE, "ecs-tasks.amazonaws.com", inline={"bedrock-allowed-models": bedrock_policy(),
+                                                                         "polly-synthesize-speech": polly_policy(), **storage, **extra})
     vpc, subnets, alb_sg, task_sg = network(c("ec2"))
     dns, tg = load_balancer(c("elbv2"), vpc, subnets, alb_sg)
-    env = {**ENV, "AWS_REGION": region, **dict(e.split("=", 1) for e in args.env)}
     time.sleep(10)                                   # yeni rollerin yayılması
     td = task_definition(c("ecs"), c("logs"), f"{uri}:{args.image_tag}", exec_role, task_role, env, region)
     service(c("ecs"), td, tg, subnets, task_sg)

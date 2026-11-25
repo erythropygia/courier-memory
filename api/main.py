@@ -789,15 +789,17 @@ def time_address(day: int, address: int):
 
 # ------------------------------------------------------------------ ses (P1: Amazon Polly)
 @app.get("/api/speech")
-def speech(text: str = Query(..., max_length=600)):
+def speech(text: str = Query(..., min_length=1, max_length=600)):  # Polly sınırı 3000 faturalı karakter; arayüz 600'de keser
     if os.environ.get("CM_POLLY", "0") != "1" or sv().llm.mode == "mock":
         return JSONResponse({"detail": "Polly kapalı; tarayıcı sesi kullanılır."}, status_code=501)
+    # tr-TR: Burcu yalnız neural, Filiz yalnız standard motorla çalışır (Polly ses listesi)
+    voice = os.environ.get("CM_POLLY_VOICE") or "Burcu"
+    engine = os.environ.get("CM_POLLY_ENGINE") or ("standard" if voice == "Filiz" else "neural")
     try:
         import boto3
 
         polly = boto3.client("polly", region_name=sv().llm.region)
-        out = polly.synthesize_speech(Text=text, OutputFormat="mp3", VoiceId=os.environ.get("CM_POLLY_VOICE", "Filiz"),
-                                      LanguageCode="tr-TR")
+        out = polly.synthesize_speech(Text=text, OutputFormat="mp3", VoiceId=voice, Engine=engine, LanguageCode="tr-TR")
         return Response(out["AudioStream"].read(), media_type="audio/mpeg")
     except Exception as e:  # sesi alamazsak arayüz tarayıcı sesine düşer
         return JSONResponse({"detail": f"Polly hatası: {e}"}, status_code=501)

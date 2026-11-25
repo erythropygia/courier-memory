@@ -25,6 +25,7 @@ UI_DIR = ROOT / "ui"
 UI_LEGACY = UI_DIR / "legacy"
 UI_STORY = UI_DIR / "story"
 UI_FLOW = UI_DIR / "flow"
+UI_DEMO = UI_DIR / "demo"
 
 app = FastAPI(title="Courier Memory", version="0.1.0",
               description="Uygulama verisi · 1 aylık geçmiş. Orkestratör, Atama, Hafıza, Hasat, Brifing, Değerlendirme ve Bölge ajanları.")
@@ -187,6 +188,11 @@ class DecisionRequest(BaseModel):
     note_: str | None = Field(None, alias="note")
 
 
+class OrchStartRequest(BaseModel):
+    day: int
+    manager_review: bool = False                      # müdür acil durum bildirdi: plan temassız kesinleşmez, onaya gelir
+
+
 class OrchQuestionRequest(BaseModel):
     question: str
     history: list[dict] = []
@@ -205,15 +211,16 @@ def _session(kid: str):
 
 
 @app.post("/api/orchestrator/start")
-def start_orch(req: DayRequest):
-    """Koşuyu arka planda başlatır; iz /kosu/{id} (poll) ya da /kosu/{id}/akis (SSE) ile izlenir."""
-    return sv().sessions.start(_day_ok(req.day), background=True).summary()
+def start_orch(req: OrchStartRequest):
+    """Koşuyu arka planda başlatır; iz /kosu/{id} (poll) ya da /kosu/{id}/akis (SSE) ile izlenir. Acil durum yoksa plan
+    temassız kesinleşir (status finalized); varsa ya da manager_review ile müdüre eskale edilir (awaiting_approval)."""
+    return sv().sessions.start(_day_ok(req.day), background=True, manager_review=req.manager_review).summary()
 
 
 @app.post("/api/orchestrator/plan")
-def plan_orch(req: DayRequest):
+def plan_orch(req: OrchStartRequest):
     """Eşzamanlı: koşu bitene kadar bekler, tüm izi ve öneriyi döndürür."""
-    return sv().sessions.start(_day_ok(req.day), background=False).summary()
+    return sv().sessions.start(_day_ok(req.day), background=False, manager_review=req.manager_review).summary()
 
 
 @app.get("/api/orchestrator/session/{kid}")
@@ -796,6 +803,83 @@ def speech(text: str = Query(..., max_length=600)):
         return JSONResponse({"detail": f"Polly hatası: {e}"}, status_code=501)
 
 
+class TranscribeRequest(BaseModel):
+    audio_base64: str = Field(..., description="Base64-encoded audio (WAV/MP3)")
+    language_code: str = Field(default="tr-TR", description="AWS Transcribe language code")
+
+
+@app.post("/api/transcribe")
+async def transcribe_audio(request: TranscribeRequest):
+    """Amazon Transcribe: ses → metin. Browser mikrofonundan gelen base64 audio'yu çözer."""
+    if os.environ.get("CM_TRANSCRIBE", "0") != "1" or sv().llm.mode == "mock":
+        return JSONResponse({"detail": "Transcribe kapalı."}, status_code=501)
+    
+    try:
+        import base64
+        import boto3
+        import uuid
+        import io
+        
+        # Transcribe streaming yerine StartTranscriptionJob kullanıyoruz (S3 gerekli)
+        # Basit use case için streaming'e gerek yok
+        transcribe = boto3.client("transcribe", region_name=sv().llm.region)
+        s3 = boto3.client("s3", region_name=sv().llm.region)
+        
+        bucket_name = os.environ.get("CM_TRANSCRIBE_BUCKET", "courier-memory-audio")
+        audio_key = f"temp/{uuid.uuid4()}.wav"
+        
+        # Decode base64 audio
+        audio_bytes = base64.b64decode(request.audio_base64)
+        
+        # Upload to S3
+        s3.put_object(Bucket=bucket_name, Key=audio_key, Body=audio_bytes)
+        audio_uri = f"s3://{bucket_name}/{audio_key}"
+        
+        # Start transcription job
+        job_name = f"cm-transcribe-{uuid.uuid4()}"
+        transcribe.start_transcription_job(
+            TranscriptionJobName=job_name,
+            Media={"MediaFileUri": audio_uri},
+            MediaFormat="wav",  # or detect from audio_bytes magic bytes
+            LanguageCode=request.language_code
+        )
+        
+        # Poll for completion (timeout 30s)
+        max_wait = 30
+        start_time = time.time()
+        while time.time() - start_time < max_wait:
+            status_resp = transcribe.get_transcription_job(TranscriptionJobName=job_name)
+            status = status_resp["TranscriptionJob"]["TranscriptionJobStatus"]
+            
+            if status == "COMPLETED":
+                transcript_uri = status_resp["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
+                
+                # Fetch transcript JSON
+                import urllib.request
+                with urllib.request.urlopen(transcript_uri) as resp:
+                    transcript_json = json.loads(resp.read().decode())
+                
+                text = transcript_json["results"]["transcripts"][0]["transcript"]
+                
+                # Cleanup S3
+                s3.delete_object(Bucket=bucket_name, Key=audio_key)
+                
+                return {"text": text, "confidence": transcript_json["results"]["transcripts"][0].get("confidence")}
+            
+            elif status == "FAILED":
+                s3.delete_object(Bucket=bucket_name, Key=audio_key)
+                return JSONResponse({"detail": "Transcription job failed"}, status_code=500)
+            
+            time.sleep(1)
+        
+        # Timeout
+        s3.delete_object(Bucket=bucket_name, Key=audio_key)
+        return JSONResponse({"detail": "Transcription timeout (30s)"}, status_code=504)
+    
+    except Exception as e:
+        return JSONResponse({"detail": f"Transcribe hatası: {e}"}, status_code=500)
+
+
 # ------------------------------------------------------------------ arayüz
 if UI_DIR.exists():
     app.mount("/ui", StaticFiles(directory=UI_DIR), name="ui")
@@ -803,6 +887,8 @@ if UI_STORY.exists():  # hikaye arayüzü (sunum): /story/
     app.mount("/story", StaticFiles(directory=UI_STORY, html=True), name="story")
 if UI_FLOW.exists():  # nasıl çalışır: ajanların izi, API çağrıları ve veri akışı adım adım: /flow/
     app.mount("/flow", StaticFiles(directory=UI_FLOW, html=True), name="flow")
+if UI_DEMO.exists():  # demo izi (QR): geçmiş demo koşusunda her ajanın aldığı, düşündüğü, verdiği: /demo/
+    app.mount("/demo", StaticFiles(directory=UI_DEMO, html=True), name="demo")
 
 
 @app.get("/")

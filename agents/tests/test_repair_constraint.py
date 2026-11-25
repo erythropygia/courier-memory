@@ -80,7 +80,7 @@ def test_agent_alternatives_match_simulator(sv):
 
 
 def test_unshiftable_finding_yields_alternative_in_trace(sv):
-    """Mock kurallı yedek: delivery_time_analysis → apply_time_constraint → time_alternatives (aynı iz biçimi); öneride müdür kararı."""
+    """Mock kurallı yedek: delivery_time_analysis → apply_time_constraint → time_alternatives (aynı iz biçimi); alternatifler öneri, plan beklemez."""
     ex = sv.run.meta["time_example_constraint"]
     day = int(ex["day"])
     sv.book.reset(day)

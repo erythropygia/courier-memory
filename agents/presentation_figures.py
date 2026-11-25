@@ -132,7 +132,7 @@ def main() -> int:
                          f"öncesine göre en çok {num(k['max_duration_diff_min'], 1, True)} dk ve {num(k['max_km_diff'], 2, True)} km "
                          f"(tolerans {num(k['tolerance_min'], 0, True)} dk / {num(k['tolerance_km'], 1, True)} km). Kısıt yüzünden aynı rotada "
                          f"kaydırılamayan {al.get('total', 0)} bulgu: aktarma {select.get('transfer', 0)}, ertesi gün {select.get('next_day', 0)}, "
-                         f"akşam/teslim noktası {select.get('evening_delivery_point', 0)} önerisi (+SMS; müdür kararı, uygulanmadı).")
+                         f"akşam/teslim noktası {select.get('evening_delivery_point', 0)} önerisi (+SMS; öneri, uygulanmadı).")
         if AB and AB.get("time_contribution"):
             L.append("")
             for g, lbl in (("g20", "20 günlük geçmiş"), ("g60", "60 günlük geçmiş (duyarlılık)"), ("tol5", "tolerans +5 dk (duyarlılık)"),

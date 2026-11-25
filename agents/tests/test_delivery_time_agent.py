@@ -90,7 +90,7 @@ def test_orchestrator_time_tools_in_trace_and_decision_changes_route(sv, ex):
     o = sv.orchestrator.plan(day)
     t = seq(o["trace"])
     i_a, i_u = t.index("tool:delivery_time_analysis"), t.index("tool:apply_time_constraint")
-    assert i_a < i_u and t[-3:] == ["tool:present_proposal", "proposal", "awaiting_approval"]
+    assert i_a < i_u and t[-4:] == ["tool:present_proposal", "proposal", "auto_decision", "done"]
     assert "tool:compute_route" not in t or i_u < t.index("tool:compute_route")      # riskli rota yoksa compute_route çağrılmaz
     zk = o["proposal"]["time_constraints"]
     assert zk["min_confidence"] == "mid" and zk["applied"] > 0

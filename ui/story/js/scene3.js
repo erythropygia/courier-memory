@@ -1,6 +1,9 @@
-/* Sahne 3 · Onay: müdür ekranı. Orkestratörün önerisi (gerekçe), riskler (bant üstü ilk 3, kaydırılamayan teslim saati →
-   alternatif + SMS), "Onur gelmezse?" sorusu (ajan iki yolu araçla hesaplar), insan onayı. Koşu Sahne 2'den devralınır;
-   yoksa /api/orkestrator/planla ile yenisi açılır. API yoksa kayıtlı yanıtlar (data/fallback.json). */
+/* Sahne 3 · Acil durum: müdür ekranı. Zincir normalde temassızdır (Sahne 2: plan müdüre gitmeden kesinleşir); müdür yalnız
+   acil durumda yetkilidir (kapasite açığı kapanmıyor, ciddi fazla mesai, ajan planı çıkaramadı ya da müdür acil durum bildirdi).
+   Burada müdür acil durum bildirir (manager_review): orkestratörün önerisi (gerekçe), riskler (bant üstü ilk 3, kaydırılamayan
+   teslim saati → alternatif + SMS), "Onur gelmezse?" sorusu (ajan iki yolu araçla hesaplar), insan onayı. Eskale edilmiş bir
+   Sahne 2 koşusu varsa devralınır; yoksa /api/orchestrator/plan {manager_review: true} ile yenisi açılır. API yoksa kayıtlı
+   yanıtlar (data/fallback.json). */
 (function (CM) {
   const DAY = 32;
   let data = null, session = null, proposal = null, ask = null, decision = null, trace = [];
@@ -13,11 +16,12 @@
     if (k2 && k2.id && !CM.apiStatus.offline && k2.source === 'api') {
       try {
         const d = await CM.api(`/api/orchestrator/session/${k2.id}`);
-        if (d.status === 'awaiting_approval' || d.status === 'finalized') return d;
+        if (d.status === 'awaiting_approval') return d;          // Sahne 2'nin koşusu zaten eskale edildiyse
       } catch (e) { /* yeni koşu */ }
     }
     CM.waitTrace(true);
-    try { return await CM.api('/api/orchestrator/plan', { day: DAY }, { ms: 120000 }); } finally { CM.waitTrace(false); }
+    // müdür acil durum bildirdi: plan temassız kesinleşmez, müdürün kararını bekler
+    try { return await CM.api('/api/orchestrator/plan', { day: DAY, manager_review: true }, { ms: 120000 }); } finally { CM.waitTrace(false); }
   }
 
   function camera() {
@@ -40,7 +44,7 @@
 
   function sideRationale() {
     const g = (proposal.rationale || []).map((s) => `<li>${CM.escape(s)}</li>`).join('');
-    CM.side(`<div class="side-head"><span>Müdür ekranı · öneri</span><span class="mod" id="mod3"></span></div>
+    CM.side(`<div class="side-head"><span>Müdür ekranı · acil durum</span><span class="mod" id="mod3"></span></div>
       <div class="side-inner"><div class="y-title">Gerekçe</div><ol class="rationale">${g}</ol></div>`, 'open');
     CM.writeMode(CM.$('mod3'));
   }
@@ -135,8 +139,8 @@
       highlight([]);
       CM.cards('');
       const p = decision.plan || proposal;
-      CM.figure([{ v: 'Onaylandı', boy: 'mid', l: 'plan kesinleşti · karar müdürün' }, { v: p.assignment.length, l: 'kurye' }],
-        'Kurye brifingleri ve hafızalı rotalar bu onaylı planı okur · ajan önerir, insan karar verir');
+      CM.figure([{ v: 'Onaylandı', boy: 'mid', l: 'acil durumda karar müdürün' }, { v: p.assignment.length, l: 'kurye' }],
+        'Kurye brifingleri ve hafızalı rotalar bu planı okur · normal günde zincir temassız, müdür yalnız acil durumda');
       CM.action('');
     } catch (e) {
       CM.action(`<span class="hint error">${CM.escape(e.detail || e.message)}</span>`);
@@ -182,8 +186,8 @@
   }
 
   const S3 = {
-    no: 3, name: 'Onay', stepCount: 6,
-    title: 'Gün 32 · müdür ekranı · ajan önerir, insan karar verir',
+    no: 3, name: 'Acil durum', stepCount: 6,
+    title: 'Gün 32 · acil durum: müdür devreye girer · zincir normalde temassız',
     attribution: '<b>Uygulama verisi · 1 aylık geçmiş</b> · Harita: OpenFreeMap © OpenMapTiles © OpenStreetMap · konumlar Beykoz saha verisi, sonuçlar simülasyon',
 
     async enter() {
@@ -209,7 +213,7 @@
         if (session.status === 'finalized') decision = { status: 'finalized', plan: session.plan };
         else decision = null;
         // geçmiş izden yalnız öneri anı (iz paneli bağlam için)
-        const ol = (session.events || []).filter((e) => e.type === 'proposal' || e.type === 'awaiting_approval');
+        const ol = (session.events || []).filter((e) => e.type === 'proposal' || e.type === 'escalation' || e.type === 'awaiting_approval');
         CM.writeTrace(ol, { next: false });
       } catch (e) {
         CM.action(`<span class="hint error">Öneri alınamadı: ${CM.escape(e.detail || e.message)}</span>`);

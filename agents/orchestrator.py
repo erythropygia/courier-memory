@@ -43,6 +43,10 @@ PLAN_CHANGE = obj({"borrowed": {"type": "array", "items": {"type": "string"}},
                         "pin": {"type": "array", "items": ASSIGNMENT_ITEM}})
 FINISH_PLAN, ASK_FINISH = "present_proposal", "respond"
 CONFIDENCE = {"type": "string", "enum": ["low", "mid", "high"]}
+# Temassız zincir: plan acil durum yoksa müdüre gitmeden kesinleşir. Eşikler deterministiktir (karar LLM'de değil, koruma kodda).
+# Simülasyonda 20 değerlendirme gününden 2'si (22, 24) eşiği aşar; olağan yoğun gün (ör. 32: en çok +107 dk, toplam 740 dk) temassızdır.
+ESCALATE_COURIER_OVER_MIN = 240   # tek kuryede vardiya bandı üstü dk: rota vardiyada fiilen bitirilemez (bant 528 + 240 = 12,8 saat)
+ESCALATE_TOTAL_OVER_MIN = 1500    # şubede toplam bant üstü dk (≈ 3 kurye-gün fazla mesai)
 
 
 def tr_lower(s: str) -> str:
@@ -343,7 +347,7 @@ class DayTools:
                 "constraint": {"tolerance_min": L.max_extra_min, "tolerance_km": L.max_extra_km, "band_min": L.band_max,
                           "shift_end": hhmm(self.planner.shift_end())},
                 "rule": ("Onarım rota süresini (sürüş + servis + bilinen öğle beklemesi) artıramaz, bandı aşamaz, durağı vardiya "
-                          "bitişinden sonraya koyamaz. Aktarmada kısıt iki rotada birlikte geçerli. Öneriler müdür kararına sunulur.")}
+                          "bitişinden sonraya koyamaz. Aktarmada kısıt iki rotada birlikte geçerli. Öneriler şube panelinde öneri olarak durur; plan beklemez, kendiliğinden uygulanmaz.")}
 
     def sorting_plan(self, inp: dict | None = None) -> dict:
         """Ayrıştırma indirme okutmasında. Onaylanacak atama + hafızalı rota sırasından raf planı: her kurye bir raf;
@@ -465,7 +469,7 @@ SUMMARY = {
     "apply_time_constraint": lambda i, r: (f"güven ≥ {LEVEL_TR.get(r['min_confidence'], r['min_confidence'])}: {r['applied']} bulgu {r['cluster_count']} rotaya alındı"
                                          + (f", {len(r['exclude'])} adres hariç" if r.get("exclude") else "")),
     "time_alternatives": lambda i, r: (f"kısıt yüzünden kaydırılamayan {r['unshiftable']} bulgu: {r['transfer']} aktarma, "
-                                          f"{r['next_day']} ertesi gün, {r['evening_delivery_point']} akşam/teslim noktası önerisi (+SMS; müdür kararı)"),
+                                          f"{r['next_day']} ertesi gün, {r['evening_delivery_point']} akşam/teslim noktası önerisi (+SMS; öneri, uygulanmadı)"),
     "sorting_plan": lambda i, r: (f"{r['shelf_count']} raf, {r['shipment']} gönderi okutmada rafına (yükleme sırası rota tersi); "
                                       f"çıkış {r['departure']['today']} → {r['departure']['presorted']} (−{r['departure']['gain_min']} dk)"),
 }
@@ -533,7 +537,7 @@ class Orchestrator:
             ("time_alternatives", "apply_time_constraint'dan sonra: sert kısıt (rota süresi artmaz, vardiya bandı aşılmaz, durak vardiya "
                                      "bitişinden sonraya kaymaz) yüzünden aynı rotada kaydırılamayan bulgular ve her biri için sırayla "
                                      "alternatif: başka kuryeye aktarma (kısıt iki rotada) → ertesi gün uygun dilim / akşam-teslim noktası; "
-                                     "hepsinde alıcıya SMS önerisi. Öneriler müdür kararına sunulur.",
+                                     "hepsinde alıcıya SMS önerisi. Öneriler şube panelinde öneri olarak durur; plan beklemez, kendiliğinden uygulanmaz.",
              obj({}), ar.time_alternatives),
             ("compute_route", "Bir küme–kurye rotası: durak, km, kuryeye özgü beklenen süre, tahmini dönüş, hafızalı durak, kısıtlar, "
                              "hafıza ve teslim zamanı değişiklikleri.",
@@ -546,7 +550,7 @@ class Orchestrator:
         fns = {n: wrap(n, fn) for n, _, _, fn in specs}
         tools = [Tool(n, d, s, fns[n], lambda i, r, n=n: SUMMARY[n](i, r)) for n, d, s, _ in specs]
         if finish == FINISH_PLAN:
-            tools.append(Tool(FINISH_PLAN, "Günün önerisini müdüre sunar (son adım). Plan, verilen odunc/exclude/sabitle ile "
+            tools.append(Tool(FINISH_PLAN, "Günün planını sunar (son adım); acil durum yoksa plan temassız kesinleşir, varsa kod müdüre eskale eder. Plan, verilen odunc/exclude/sabitle ile "
                                            "core_assignment'dan yeniden hesaplanır; sayı yazma, gerekçe ve riskleri yaz.",
                               obj({"borrowed": {"type": "array", "items": {"type": "string"}},
                                    "exclude": {"type": "array", "items": {"type": "string"}},
@@ -561,7 +565,9 @@ class Orchestrator:
         return tools, fns
 
     # ---------------------------------------------------------------- öneri
-    def plan(self, day: int, trace: Trace | None = None) -> dict:
+    def plan(self, day: int, trace: Trace | None = None, manager_review: bool = False) -> dict:
+        """Günü planlar. Acil durum yoksa plan temassız kesinleşir (`auto_decision`); varsa müdüre eskale edilir
+        (`escalation` + `awaiting_approval`). manager_review: müdür acil durum bildirdi (sistemin göremediği durum)."""
         trace = Trace() if trace is None else trace
         ar = self.tools(day)
         trace.source = "llm" if self.llm.uses_llm else "rule"
@@ -586,11 +592,48 @@ class Orchestrator:
         else:
             proposal = self._plan_rule(ar, trace, fns)
         trace.emit("proposal", proposal=proposal)
-        trace.emit("awaiting_approval")
-        out = {"day": day, "mode": self.llm.mode, "degraded": degraded, "status": "awaiting_approval", "proposal": proposal, "trace": trace.events}
+        reasons = self.escalation(ar, proposal, manager_review)
+        if reasons:
+            trace.emit("escalation", source="rule", reasons=reasons)
+            trace.emit("awaiting_approval")
+            status = "awaiting_approval"
+        else:
+            trace.emit("auto_decision", source="rule", decision="approval",
+                       text="Acil durum yok: kapasite açığı kapandı, fazla mesai eşiğin altında, plan geçmişe bakmayan atamadan iyi. "
+                            "Plan müdüre gitmeden kesinleşti.")
+            trace.emit("done", source="rule", status="finalized")
+            status = "finalized"
+        out = {"day": day, "mode": self.llm.mode, "degraded": degraded, "status": status, "proposal": proposal,
+               "escalation": reasons, "trace": trace.events}
         if error:
             out["error"] = error
         return out
+
+    def escalation(self, ar: DayTools, proposal: dict, manager_review: bool = False) -> list[dict]:
+        """Müdürü yalnız acil durumda çağıran deterministik eşikler. Boş liste → zincir temassız devam eder."""
+        reasons = []
+        if manager_review:
+            reasons.append({"code": "manual", "text": "Müdür acil durum bildirdi; plan onayına sunuluyor."})
+        gap = ar.capacity_gap()
+        borrowed = len(proposal.get("borrowed") or [])
+        unclosed = gap["shortfall"] - borrowed
+        dist = proposal.get("distributed_clusters") or []
+        if unclosed > 0 or dist:
+            reasons.append({"code": "capacity", "text": f"Kapasite açığı kapanmıyor: {gap['shortfall']} kurye-gün açık, komşu şubeden "
+                            f"{borrowed} kurye geliyor" + (f"; {len(dist)} küme komşu rotalara dağıtıldı" if dist else "") + "."})
+        band = ar.band[1]
+        heavy = sorted(((r["expected_min"] - band, r.get("courier_name") or r["courier"]) for r in proposal.get("assignment") or []
+                        if r["expected_min"] - band >= ESCALATE_COURIER_OVER_MIN), reverse=True)
+        total_over = (proposal.get("total") or {}).get("over_band_min", 0)
+        if heavy or total_over >= ESCALATE_TOTAL_OVER_MIN:
+            who = ", ".join(f"{n} +{round(m)} dk" for m, n in heavy[:3])
+            reasons.append({"code": "overtime", "text": f"Ciddi fazla mesai: toplam bant üstü {total_over} dk (eşik {ESCALATE_TOTAL_OVER_MIN})"
+                            + (f"; {len(heavy)} kuryede {ESCALATE_COURIER_OVER_MIN} dk üstü ({who})" if heavy else "") + "."})
+        blind = (proposal.get("comparison") or {}).get("history_blind_expected_fails")
+        fails = (proposal.get("total") or {}).get("expected_fails")
+        if blind is not None and fails is not None and fails > blind:
+            reasons.append({"code": "plan_worse", "text": f"Plan geçmişe bakmayan atamadan kötü: beklenen başarısız {num(fails)} > {num(blind)}."})
+        return reasons
 
     def _proposal(self, ar: DayTools, fi: dict) -> dict:
         ev = ar.core_assignment({"borrowed": fi.get("borrowed") or [], "exclude": fi.get("exclude") or [], "pin": fi.get("pin") or []})
@@ -650,7 +693,7 @@ class Orchestrator:
                     trace.emit("decision", text=f"{za['unshiftable']} bulgu kısıt yüzünden aynı rotada kaydırılamadı: {za['transfer']} tanesini "
                                            f"o saatte bölgeden geçen başka kuryeye aktarmayı (iki rota da uzamadan), "
                                            f"{za['next_day'] + za['evening_delivery_point']} tanesi için alıcıya SMS ile ertesi gün / "
-                                           f"teslim noktası seçeneğini öneriyorum. Bunlar müdür kararı.")
+                                           f"teslim noktası seçeneğini öneriyorum. Bunlar şube panelinde öneri olarak durur; plan beklemez.")
                 else:
                     trace.emit("decision", text="Kısıt yüzünden kaydırılamayan bulgu yok.")
             else:
@@ -679,9 +722,9 @@ class Orchestrator:
             alts = ar._zalt or []
             if alts:
                 risks.append(f"{len(alts)} durak kısıt yüzünden aynı rotada kaydırılamadı; alternatif öneriler (aktarma / ertesi gün + SMS) "
-                               f"onayınızı bekliyor: " + "; ".join(f"{r['label']} → {OPTION_NAME[r['option']]}" for r in alts[:3])
+                               f"şube panelinde öneri olarak duruyor (plan beklemez): " + "; ".join(f"{r['label']} → {OPTION_NAME[r['option']]}" for r in alts[:3])
                                + (" …" if len(alts) > 3 else "") + ".")
-        trace.emit("decision", text="Öneriyi gerekçesiyle müdüre sunuyorum; son karar müdürde.")
+        trace.emit("decision", text="Planı gerekçesiyle sunuyorum. Acil durum kapısı denetleyecek: acil durum yoksa plan müdüre gitmeden kesinleşir.")
         fi = {"borrowed": borrowed, "exclude": [], "pin": [], "rationale": rationale, "risks": risks, "questions": questions}
         trace.emit("tool", tool=FINISH_PLAN, input=fi)
         return self._proposal(ar, fi)
@@ -890,7 +933,8 @@ class Session:
     def summary(self, after: int = 0) -> dict:
         return {"session_id": self.id, "day": self.day, "status": self.status, "events": self.trace.since(after), "total_event": len(self.trace),
                 "proposal": (self.result or {}).get("proposal"), "mode": (self.result or {}).get("mode"),
-                "degraded": (self.result or {}).get("degraded"), "plan": (self.decision or {}).get("plan"), "error": self.error}
+                "degraded": (self.result or {}).get("degraded"), "plan": (self.decision or {}).get("plan"), "error": self.error,
+                "escalation": (self.result or {}).get("escalation") or []}
 
 
 class SessionStore:
@@ -903,17 +947,21 @@ class SessionStore:
         self._lock = threading.Lock()
         self._n = itertools.count(1)
 
-    def start(self, day: int, background: bool = True) -> Session:
+    def start(self, day: int, background: bool = True, manager_review: bool = False) -> Session:
         with self._lock:
             k = Session(f"G{day}-{next(self._n):03d}", day)
             self.sessions[k.id] = k
 
         def work():
             try:
-                k.result = self.orch.plan(day, k.trace)
-                k.status = "awaiting_approval"
-            except Exception as e:     # beklenmeyen hata: iz'e yaz, koşuyu kapat
+                k.result = self.orch.plan(day, k.trace, manager_review)
+                k.status = k.result["status"]
+                if k.status == "finalized":          # temassız: acil durum yok, plan müdüre gitmeden kesinleşti
+                    k.decision = {"status": "finalized", "plan": k.result["proposal"], "changed_clusters": [], "note": None, "auto": True}
+                    self.plans[day] = k.result["proposal"]
+            except Exception as e:     # ajan da kurallı yedek de planı çıkaramadı: acil durum, müdüre eskale
                 k.error, k.status = str(e), "error"
+                k.trace.emit("escalation", source="rule", reasons=[{"code": "agent_failed", "text": f"Plan çıkarılamadı ({e}); müdür devreye girmeli."}])
                 k.trace.emit("done", status="error", text=str(e))
             finally:
                 k.done.set()

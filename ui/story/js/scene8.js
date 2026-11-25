@@ -35,7 +35,7 @@
     const K = [
       ['Kişi değil adres', 'Hafıza binayı ve kapıyı anlatır. Ad, telefon, sağlık, yaş ve davranış yargısı araç düzeyinde reddedilir; ses metne çevrilince silinir (Sahne 4).'],
       ['Performans puanı yok', 'Kurye–bölge uyumu yalnız atama girdisidir: kurye sıralaması, disiplin ya da prim yok. Kimse kalıcı olarak "kötü rotaya" kilitlenmez.'],
-      ['Son karar insanda', 'Orkestratör önerir, müdür onaylar, reddeder ya da düzenler; izde İNSAN satırı (Sahne 3). Kaydırılamayan teslim için alternatifler de müdür kararıdır.'],
+      ['Temassız zincir, acil durumda insan', 'Normal günde plan müdüre gitmeden kesinleşir. Müdür yalnız acil durumda yetkili: kapasite açığı kapanmıyor, ciddi fazla mesai, ajan planı çıkaramadı. Eşikler deterministik kodda; her karar izde okunur (Sahne 3).'],
       ['Dürüst rakam', 'Her ekranda "Uygulama verisi · 1 aylık geçmiş"; maliyetler tahmini parametredir; simülasyon mekanizmayı gösterir, büyüklüğü pilot ölçer. Seçilmiş örnekler etiketli.'],
     ];
     CM.board(`<div class="quad">${K.map(([a, b]) => `<div class="chart card-text"><div class="g-title">${a}</div><p>${b}</p></div>`).join('')}</div>`, 'full mid');
@@ -63,7 +63,9 @@
   }
 
   function last() {
-    CM.board('');
+    // QR: geçmiş demo koşusunda her ajanın aldığı, düşündüğü ve verdiği (ui/demo/, build.py --url ile üretilir)
+    CM.board(`<div class="demo-qr"><img src="data/demo-qr.svg" alt="Demo izi QR kodu" onerror="this.closest('#board').innerHTML=''">
+      <p><b>Telefonunuzla okutun</b>Ajanlar ne aldı, ne düşündü, ne verdi: geçmiş demo koşusu adım adım</p></div>`, 'qr');
     CM.message(['Kuryeyi kaydırmıyoruz,', 'sınırı esnetiyoruz.', 'Bilgi kişiden <span class="blue">adrese</span> taşınır.']);
     const m = extra && extra.headline;
     CM.figure(m ? [{ v: CM.count(m.savings_tl_year / 1e6, 1) + ' mn', boy: 'mid', l: 'TL/yıl · şube başına' }, { v: `${m.quality.fails_per_day_current} → ${m.quality.fails_per_day_memory}`, boy: 'mid', l: 'başarısız teslim/gün' }] : [],

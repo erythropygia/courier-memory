@@ -31,7 +31,7 @@ def test_plan_flow_on_busy_day(sv, day):
     r = sv.orchestrator.plan(day)
     s = seq(r["trace"])
     assert s[:len(PLAN_FLOW)] == PLAN_FLOW
-    assert s[-3:] == [f"tool:{FINISH_PLAN}", "proposal", "awaiting_approval"] and "tool:compute_route" in s
+    assert s[-4:] == [f"tool:{FINISH_PLAN}", "proposal", "auto_decision", "done"] and "tool:compute_route" in s   # temassız
     assert all(e["source"] == "rule" for e in r["trace"]) and [e["i"] for e in r["trace"]] == list(range(len(r["trace"])))
     by = {e["tool"]: e["data"] for e in r["trace"] if e["type"] == "result"}
     gap = by["capacity_gap"]["shortfall"]
@@ -42,7 +42,7 @@ def test_plan_flow_on_busy_day(sv, day):
     assert len({x["courier"] for x in o["assignment"]}) == len(o["assignment"]) == by["capacity_gap"]["required_courier_day"]
     assert o["total"] == by["core_assignment"]["total"]           # öneri sayıları araçtan
     assert o["total"]["expected_fails"] < o["comparison"]["history_blind_expected_fails"]
-    assert o["rationale"] and o["questions"] and r["status"] == "awaiting_approval" and r["degraded"] is False
+    assert o["rationale"] and o["questions"] and r["status"] == "finalized" and r["escalation"] == [] and r["degraded"] is False
     sim = {int(k): v for k, v in sv.run.assign_input("D", day)["chosen"].items()}
     assert {x["cluster"]: x["courier"] for x in o["assignment"]} == sim      # brifing/anlık görüntü ile tutarlı
     c = by["neighbor_candidates"]
@@ -141,7 +141,9 @@ def test_live_path_produces_same_trace_format(sv, day):
     assert live["degraded"] is False and live["mode"] == "live"
     strip = lambda evs: [{k: v for k, v in e.items() if k not in ("source", "mod")} for e in evs]  # noqa: E731
     assert strip(live["trace"]) == strip(mock["trace"])
-    assert all(e["source"] == "llm" for e in live["trace"])
+    gate = {"escalation", "auto_decision", "done"}                       # eskalasyon denetimi kodda: kaynağı kural
+    assert all(e["source"] == "llm" for e in live["trace"] if e["type"] not in gate)
+    assert all(e["source"] == "rule" for e in live["trace"] if e["type"] in gate)
 
 
 def test_replay_without_cassette_falls_back_with_trace(tmp_path, day):
@@ -153,17 +155,38 @@ def test_replay_without_cassette_falls_back_with_trace(tmp_path, day):
     assert r["proposal"]["borrowed"]
 
 
-def test_human_approval(sv, day):
+def test_touchless_without_emergency(sv, day):
     dep = SessionStore(sv.orchestrator)
     k = dep.start(day, background=False)
+    assert k.status == "finalized" and seq(k.trace.events)[-2:] == ["auto_decision", "done"]
+    assert all(e["source"] != "human" for e in k.trace.events) and dep.plans[day]["assignment"] == k.result["proposal"]["assignment"]
+    with pytest.raises(ValueError):
+        dep.decision(k.id, "approval")                                   # müdür çağrılmadı: onay beklenmiyor
+
+
+def test_escalates_only_in_emergency(sv):
+    r = sv.orchestrator.plan(22)                                         # simülasyonun en ağır günlerinden: tek kuryede +343 dk
+    assert r["status"] == "awaiting_approval" and [x["code"] for x in r["escalation"]] == ["overtime"]
+    assert seq(r["trace"])[-3:] == ["proposal", "escalation", "awaiting_approval"]
+    dep = SessionStore(sv.orchestrator)
+    dep.orch = type("Broken", (), {"plan": lambda self, *a, **k: (_ for _ in ()).throw(RuntimeError("model ve yedek düştü"))})()
+    k = dep.start(22, background=False)
+    assert k.status == "error" and seq(k.trace.events)[-2:] == ["escalation", "done"]
+    assert k.trace.events[-2]["reasons"][0]["code"] == "agent_failed"
+
+
+def test_human_approval(sv, day):
+    dep = SessionStore(sv.orchestrator)
+    k = dep.start(day, background=False, manager_review=True)           # müdür acil durum bildirdi
     assert k.status == "awaiting_approval" and seq(k.trace.events)[-1] == "awaiting_approval" and k.trace.events[0]["type"] == "start"
+    assert [x["code"] for x in k.result["escalation"]] == ["manual"]
     res = dep.decision(k.id, "approval")
     assert res["status"] == "finalized" and dep.plans[day]["assignment"] == k.result["proposal"]["assignment"]
     assert seq(k.trace.events)[-2:] == ["human_decision", "done"] and k.trace.events[-2]["source"] == "human"
     with pytest.raises(ValueError):
         dep.decision(k.id, "approval")                                   # ikinci karar yok
 
-    k2 = dep.start(day, background=False)
+    k2 = dep.start(day, background=False, manager_review=True)
     rows = k2.result["proposal"]["assignment"]
     edit = [{"cluster": r["cluster"], "courier": r["courier"]} for r in rows]
     edit[0]["courier"], edit[1]["courier"] = edit[1]["courier"], edit[0]["courier"]
@@ -171,7 +194,7 @@ def test_human_approval(sv, day):
     assert res["status"] == "finalized" and res["changed_clusters"] == sorted([rows[0]["cluster"], rows[1]["cluster"]])
     assert "Müdür düzenledi" in res["plan"]["rationale"][-1]
 
-    k3 = dep.start(day, background=False)
+    k3 = dep.start(day, background=False, manager_review=True)
     with pytest.raises(ValueError):
         dep.decision(k3.id, "edit", [{"cluster": rows[0]["cluster"], "courier": "YOK"}])
     assert dep.decision(k3.id, "ret")["status"] == "rejected"

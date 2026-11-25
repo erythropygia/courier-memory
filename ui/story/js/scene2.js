@@ -3,7 +3,7 @@
 (function (CM) {
   const API = new URLSearchParams(location.search).get('api') || (location.pathname.match(/^(.*?\/proxy\/\d+)\//) || [])[1] || '';
   const DAY = 32;
-  const TYPES = ['start', 'decision', 'tool', 'result', 'error', 'fallback', 'proposal', 'awaiting_approval', 'human_decision', 'response', 'done'];
+  const TYPES = ['start', 'decision', 'tool', 'result', 'error', 'fallback', 'proposal', 'escalation', 'auto_decision', 'awaiting_approval', 'human_decision', 'response', 'done'];
   const GROUP = { delivery_time_analysis: 'time', apply_time_constraint: 'time', time_alternatives: 'time', present_proposal: 'proposal' };
   const INK = '#3A332D';
 
@@ -95,7 +95,7 @@
     if (pending.length && out.length) out[out.length - 1].events.push(...pending);
     out.forEach((v, i) => {
       const tool = v.events.filter((e) => e.type === 'tool').length, result = v.events.filter((e) => e.type === 'result' || e.type === 'error').length;
-      v.full = session.done || i < out.length - 1 || (v.group === 'proposal' ? v.events.some((e) => e.type === 'awaiting_approval') : result >= tool);
+      v.full = session.done || i < out.length - 1 || (v.group === 'proposal' ? v.events.some((e) => e.type === 'awaiting_approval' || e.type === 'auto_decision') : result >= tool);
     });
     return out;
   }
@@ -255,9 +255,9 @@
       const o = (v.events.find((e) => e.type === 'proposal') || {}).proposal;
       if (o) {
         CM.figure([{ v: o.assignment.length, l: 'kurye' }, { v: o.borrowed.length, l: 'komşu şubeden' }, { v: CM.percent(o.own_zone_share), l: 'kendi bölgesinde' }],
-          o.borrowed.map((q) => q.name).join(' ve ') + ' gelsin · karar müdürde');
+          o.borrowed.map((q) => q.name).join(' ve ') + (v.events.some((e) => e.type === 'auto_decision') ? ' gelsin · acil durum yok: plan temassız kesinleşti' : ' gelsin · acil durum: müdüre eskale'));
       }
-      CM.action('<button class="approval" id="approve">Müdür ekranı <span class="kbd">→</span></button><span class="hint">Karar müdürde: onay ve “Onur gelmezse?” sorusu</span>', true);
+      CM.action('<button class="approval" id="approve">Acil durumda müdür <span class="kbd">→</span></button><span class="hint">Müdür yalnız acil durumda yetkili: “Onur gelmezse?”</span>', true);
       CM.$('approve').onclick = () => CM.openScene && CM.openScene(3);
     } else {
       CM.figure([]);

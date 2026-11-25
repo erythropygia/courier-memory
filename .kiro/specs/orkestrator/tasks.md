@@ -26,3 +26,5 @@
   - _Gereksinimler: 1.9, 1.10_
 - [x] 13. `time_alternatives` aracı (`apply_time_constraint`'dan sonra, `compute_route`'dan önce); mock kurallı yedek aynı sırayla; kısıt kuralı iz'de "karar" cümlesi; `proposal.time_alternatives`, riskler; `prompts/orchestrator.md`; `agents/tests/test_repair_constraint.py`
   - _Gereksinimler: 1.11, 1.12_
+- [x] 14. Temassız zincir: `Orchestrator.escalation` (capacity, overtime 240/1500 dk, plan_worse, manual), `auto_decision`/`escalation` iz olayları, `SessionStore` hata yolunda `agent_failed`; API `manager_review`; testler (gün 32 temassız, gün 22 eskale, ajan hatası); flow ve hikaye arayüzü, `docs/sozlesmeler.md` §5
+  - _Gereksinimler: 6.1–6.5, 5.1_

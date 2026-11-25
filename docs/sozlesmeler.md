@@ -197,8 +197,8 @@ Tüm yanıtlar JSON'dur. Ajan yanıtlarında şu alanlar ortaktır:
 | `POST /api/demo/reset` | `{day}` | Hafıza, ajan akışı, Değerlendirme parametreleri ve önbellekler baştan |
 | `POST /api/memory/reset` | `{day}` | `{ok, total}` (teslim zamanı seçimi ve saat teyitleri de sıfırlanır) |
 | `GET /api/speech` | `?text=` | `audio/mpeg` (Polly yapılandırılmışsa) ya da 501. 501 gelirse arayüz tarayıcı sesine düşer. |
-| `POST /api/orchestrator/start` | `{day}` | Koşu özeti (aşağıda); koşu arka planda sürer |
-| `POST /api/orchestrator/plan` | `{day}` | Koşu özeti; koşu bitene kadar bekler |
+| `POST /api/orchestrator/start` | `{day, manager_review?}` | Koşu özeti (aşağıda); koşu arka planda sürer. Acil durum yoksa plan temassız kesinleşir (`finalized`); acil durumda ya da `manager_review: true` (müdür acil durum bildirdi) müdüre eskale edilir (`awaiting_approval`) |
+| `POST /api/orchestrator/plan` | `{day, manager_review?}` | Koşu özeti; koşu bitene kadar bekler |
 | `GET /api/orchestrator/session/{id}` | `?after=n` | Koşu özeti; `events` n. olaydan itibaren (poll) |
 | `GET /api/orchestrator/session/{id}/stream` | `?after=n&tempo_ms=0` | `text/event-stream`: her olay `id: i`, `event: <type>`, `data: <event JSON>`; planlama evresi bitince `event: last` `{status, total_event}` |
 | `POST /api/orchestrator/session/{id}/decision` | `{decision: approval\|ret\|edit, assignment?: [{cluster, courier}], note?}` | `{status: finalized\|rejected, plan\|null, changed_clusters[], note, diff?}`. Onay beklemiyorsa ya da düzenleme geçersizse 400 |
@@ -216,9 +216,12 @@ Tüm yanıtlar JSON'dur. Ajan yanıtlarında şu alanlar ortaktır:
 
 **Koşu özeti (orkestratör):**
 ```json
-{"session_id": "G32-001", "day": 32, "status": "calisiyor|awaiting_approval|kesinlesti|reddedildi|hata", "events": [/* §5 */],
- "total_event": 24, "proposal": {/* aşağıda */}, "mode": "mock", "degraded": false, "plan": null, "error": null}
+{"session_id": "G32-001", "day": 32, "status": "running|finalized|awaiting_approval|rejected|error", "events": [/* §5 */],
+ "total_event": 24, "proposal": {/* aşağıda */}, "mode": "mock", "degraded": false, "plan": {/* temassız ya da onaylı plan */}, "error": null,
+ "escalation": [/* acil durum gerekçeleri; boşsa temassız */]}
 ```
+
+**Temassız zincir ve eskalasyon (`Orchestrator.escalation`, deterministik):** müdür yalnız acil durumda yetkilidir. Gerekçe kodları: `capacity` (kapasite açığı komşu şubeden gelenlerle kapanmıyor ya da küme komşu rotalara dağıtıldı), `overtime` (tek kuryede bant üstü ≥ `ESCALATE_COURIER_OVER_MIN` = 240 dk ya da şube toplamı ≥ `ESCALATE_TOTAL_OVER_MIN` = 1500 dk), `plan_worse` (beklenen başarısız > geçmişe bakmayan atama), `agent_failed` (canlı yol ve kurallı yedek planı çıkaramadı; durum `error`), `manual` (`manager_review: true`). Liste boşsa plan müdüre gitmeden kesinleşir ve `/api/plan/{gün}`'e yazılır; `decision` ve `ask` yalnız `awaiting_approval` durumunda kabul edilir. Simülasyonda 20 değerlendirme gününden 2'si (22, 24) eskale olur; demo günü 32 temassızdır.
 
 **Öneri (`proposal`, ayrıca `plan`):**
 ```json
@@ -339,8 +342,10 @@ Her olay: `{"i": sıra, "type": ..., "source": "llm|kural|insan", ...alanlar}`. 
 | `result` | `arac, ozet, veri` | Araç sonucu; `data` aracın tam JSON çıktısı |
 | `error` | `arac, metin` | Araç hatası; ajana `is_error` ile geri verilir |
 | `fallback` | `text` | Canlı/replay yolu tamamlanamadı, kurallı yedek devam ediyor |
-| `proposal` | `proposal` | Müdüre sunulan öneri (§4) |
-| `awaiting_approval` | — | İnsan onayı noktası; planlama evresi biter |
+| `proposal` | `proposal` | Gerekçeli plan (§4); ardından acil durum denetimi |
+| `escalation` | `reasons[{code, text}]` | Acil durum: plan müdüre eskale edildi (`source: rule`; ajan çalışamadıysa `done: error` öncesinde) |
+| `auto_decision` | `decision: approval, text` | Acil durum yok: plan temassız kesinleşti (`source: rule`), ardından `done: finalized` |
+| `awaiting_approval` | — | Yalnız eskalasyonda: müdür kararı noktası; planlama evresi biter |
 | `human_decision` | `decision, note, changed_clusters` | Müdürün kararı (`source: human`) |
 | `response` | `yanit, fark` | Senaryo sorusunun cevabı |
 | `done` | `durum, metin?` | Koşu kapandı (`finalized`, `rejected`, `error`) |
@@ -475,7 +480,7 @@ Satır: `{address, source, reason, arrival, p_now, good, good_slot, min_extra_mi
 |---|---|
 | 1 Sorun ve ilke | adım 0–5 yok (`data/scene1.json`, gerçek veri istisnası); adım 6 `GET /api/summary` (`long_term.summary.arms.*.unfamiliar_share`) |
 | 2 Sabah | `GET /api/status` → `POST /api/memory/reset {day: 32}` → `POST /api/orchestrator/start {day: 32}` → `GET /api/orchestrator/session/{id}/stream?tempo_ms=0` (SSE; hata → `GET …/session/{id}?after=n` poll; API yok → `data/trace_fallback.json`) |
-| 3 Onay | `GET /api/orchestrator/session/{id}` (Sahne 2'nin koşusu; `awaiting_approval` değilse) `POST /api/orchestrator/plan {day: 32}` → `POST …/session/{id}/ask {soru}` → `POST …/session/{id}/decision {karar: "approval"}` → `GET …/session/{id}?after={total_event}` (insan kararı + kapanış olayları); son adım: `GET /api/morning/{gün}` → `POST /api/morning/scan` (örnek gönderiler + bir istisna) |
+| 3 Acil durum | `GET /api/orchestrator/session/{id}` (Sahne 2'nin koşusu yalnız `awaiting_approval` ise; değilse) `POST /api/orchestrator/plan {day: 32, manager_review: true}` → `POST …/session/{id}/ask {soru}` → `POST …/session/{id}/decision {karar: "approval"}` → `GET …/session/{id}?after={total_event}` (insan kararı + kapanış olayları); son adım: `GET /api/morning/{gün}` → `POST /api/morning/scan` (örnek gönderiler + bir istisna) |
 | 4 Kapıda | `GET /api/briefing/32/O02`, `GET /api/route/32/O02` (durak sırası = `comparison.memory.order`, varış = `expected_arrival`), `POST /api/memory/feedback {day, record, valid}`, `POST /api/note {day, courier, text, lat, lng, minute}`, `GET /api/briefing/{demo.next.day}/{demo.next.courier}`, `GET /api/meta` (`critical.memory_gain`), `GET /api/summary` (`summary.memory_routing.type`), `GET /api/speech?text=` (501 → tarayıcı sesi) |
 | 5 Hasat | `POST /api/harvest/plan {day: 32}` → (soru `demo.harvest_gap.address` / `demo.harvest_time.address` ile bulunur, kimlikle değil) `GET /api/route/32/{courier}` (önce) → `POST /api/harvest/simulate-answer {question_id}` → `GET /api/route/32/{courier}` (sonra); `GET /api/time/example` |
 | 6 Öğrenme | `GET /api/learning`, `GET /api/summary` (`daily.{A,B,C,D}[].{day, first_attempt_rate}`, `summary.arms.*.{label, first_attempt_rate, fail_by_reason}`, `summary.preventable_reasons`, `sweep.rows[].arms.*.first_attempt_rate`, `sweep.headline`, `calibration.{source, rows[].{measure, explanation, value, compatible}}`, `ablation.variants`) |

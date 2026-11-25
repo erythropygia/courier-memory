@@ -53,5 +53,5 @@ inclusion: always
 - **Kurye–bölge uyumu:**
   - "Performans puanı" ve kurye sıralama tablosu yoktur. Uyum, kurye×blok düzeyinde ve bloğun genel ortalamasına göre ölçülür. Kuryeye tek bir puan verilmez.
   - Disiplin, prim ya da değerlendirme amacıyla kullanılmaz. Sadece atama önerisine girdidir.
-  - Atama önerisinin son onayı insandadır ve gerekçesi okunabilir.
+  - Atama zinciri temassızdır: acil durum yoksa plan insan onayı beklemeden kesinleşir; gerekçesi ve eskalasyon denetimi izde okunur. Acil durumda (kapasite açığı kapanmıyor, ciddi fazla mesai, ajan planı çıkaramadı, müdür acil durum bildirdi) son karar insandadır. Eskalasyon eşikleri deterministik koddadır, LLM kararı değildir.
   - Kontrollü öğrenme rotasyonu: Kurye hafıza desteğiyle yeni bölgelere de gönderilir. Kimse kalıcı olarak "kötü rotaya" kilitlenmez.

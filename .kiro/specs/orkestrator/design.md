@@ -34,8 +34,10 @@ plan(gün):
   açık>0 ve aday var: karar → neighbor_candidates(need=açık) → karar
   → core_assignment(borrowed=önerilen)
   ödünç/yeni varsa: karar → compute_route ×(≤3)
-  karar → arac:present_proposal → oneri → awaiting_approval
-decision(onay|ret|duzenle) → human_decision → bitti
+  karar → arac:present_proposal → oneri → escalation()
+    acil durum yok:  auto_decision → bitti(finalized)          (temassız, kaynak kural)
+    acil durum var:  escalation{reasons} → awaiting_approval   (capacity | overtime | plan_worse | manual)
+decision(onay|ret|duzenle) → human_decision → bitti            (yalnız eskalasyonda)
 ask(soru): basla → karar → [neighbor_candidates → core_assignment] → core_assignment → arac:yanitla → yanit
 ```
 
@@ -62,3 +64,5 @@ Akış: `… apply_time_constraint → time_alternatives → compute_route → p
 ## Kayıt-oynat
 
 Ajan adları: `orchestrator`, `ask_orchestrator` (Hasat Ajanı aynı iz biçimini ve araç sarmalayıcılarını kullanır; adı `harvest`). Kaset anahtarı isteğin tamamıdır (araç sonuçları dahil); araç sonuçları deterministik olduğu için kayıt aynı tıklama sırası ve sıfırlanmış hafızayla oynar (`python -m agents.record`).
+
+**Temassız zincir (Gereksinim 6):** `Orchestrator.escalation(ar, proposal, manager_review)` saf ve deterministiktir; eşikler `ESCALATE_COURIER_OVER_MIN` (240) ve `ESCALATE_TOTAL_OVER_MIN` (1500) `agents/orchestrator.py` başındadır. Simülasyonun 20 değerlendirme gününde yalnız 22 ve 24 eskale olur; olağan yoğun gün (32) temassızdır. `SessionStore.start` hata yolunda `escalation{agent_failed}` yazar. Test: `agents/tests/test_orchestrator.py` (`test_touchless_without_emergency`, `test_escalates_only_in_emergency`).

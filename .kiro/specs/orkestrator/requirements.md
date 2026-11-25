@@ -57,9 +57,19 @@ Veri: yalnız çalıştırma klasörü (`data/demo_run/`, `docs/sozlesmeler.md` 
 2. Karar sonrası iz'e `human_decision` ve `done` (kaynak `human`) yazılır; kesinleşen plan `SessionStore.planlar[gün]`'e konur.
 3. Onay beklemeyen koşuya ikinci karar ya da senaryo sorusu verilemez (`ValueError` → API 400/409).
 
+### Gereksinim 6: Temassız zincir, acil durumda müdür
+**Kullanıcı hikayesi:** Bir şube müdürü olarak, olağan günde zincirin bana dokunmadan çalışmasını; yalnız gerçekten acil durumda devreye girmeyi istiyorum.
+
+#### Kabul kriterleri
+1. WHEN gerekçeli plan hazır olduğunda THE SYSTEM SHALL deterministik acil durum denetimi yapmalıdır (`Orchestrator.escalation`); karar LLM'de değildir.
+2. WHEN acil durum yoksa THE SYSTEM SHALL planı müdüre göndermeden kesinleştirmeli, iz'e `auto_decision` ve `done{finalized}` yazmalı (kaynak `rule`) ve planı `SessionStore.plans[gün]`'e koymalıdır.
+3. WHEN kapasite açığı komşu şubeden gelenlerle kapanmıyorsa (`capacity`), tek kuryede bant üstü ≥ 240 dk ya da şube toplamı ≥ 1500 dk ise (`overtime`), plan geçmişe bakmayan atamadan kötüyse (`plan_worse`) ya da müdür acil durum bildirdiyse (`manager_review`, `manual`) THE SYSTEM SHALL iz'e `escalation{reasons}` ve `awaiting_approval` yazmalı ve müdür kararını beklemelidir (Gereksinim 4).
+4. WHEN canlı yol ve kurallı yedek planı çıkaramazsa THE SYSTEM SHALL `escalation{agent_failed}` ve `done{error}` yazmalıdır.
+5. WHEN koşu temassız kesinleştiyse THE SYSTEM SHALL karar ve senaryo sorusunu reddetmelidir (Gereksinim 4.3).
+
 ### Gereksinim 5: API ve akış
 #### Kabul kriterleri
-1. `POST /api/orchestrator/start {day}` arka planda koşar; `GET /api/orchestrator/session/{id}?after=n` (poll) ve `GET /api/orchestrator/session/{id}/stream?after=&tempo_ms=` (SSE, `event: <type>`, `data: <event>`; planlama bitince `event: last`).
+1. `POST /api/orchestrator/start {day, manager_review?}` arka planda koşar; `GET /api/orchestrator/session/{id}?after=n` (poll) ve `GET /api/orchestrator/session/{id}/stream?after=&tempo_ms=` (SSE, `event: <type>`, `data: <event>`; planlama bitince `event: last`).
 2. `POST /api/orchestrator/plan {day}` eşzamanlı aynı sonucu döndürür.
 3. `POST /api/orchestrator/session/{id}/decision {decision, assignment?, note?}`, `POST /api/orchestrator/session/{id}/ask {question, history?}`, `GET /api/plan/{day}` (yoksa 404).
 4. Koşular bellek içindedir; sunucu yeniden başlarsa kaybolur.

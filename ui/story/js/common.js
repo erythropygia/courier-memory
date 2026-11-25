@@ -69,8 +69,10 @@
       case 'result': text = '← ' + (e.summary || ''); break;
       case 'error': text = `${e.tool}: ${e.text}`; break;
       case 'fallback': text = e.text; break;
-      case 'proposal': text = 'Öneri müdüre sunuldu'; break;
-      case 'awaiting_approval': text = 'Müdür onayı bekleniyor'; break;
+      case 'proposal': text = 'Gerekçeli plan hazır; acil durum denetimi'; break;
+      case 'escalation': text = 'Acil durum, müdüre eskale: ' + (e.reasons || []).map((r) => r.text).join(' · '); break;
+      case 'auto_decision': text = e.text || 'Acil durum yok: plan müdüre gitmeden kesinleşti'; break;
+      case 'awaiting_approval': text = 'Acil durum: müdür kararı bekleniyor'; break;
       case 'human_decision': text = `Müdür kararı: ${{ approval: 'onaylandı', ret: 'reddedildi', edit: 'düzenlendi' }[e.decision] || e.decision}${e.note ? ' · ' + e.note : ''}`; break;
       case 'response': text = 'Yanıt: ' + (e.response || ''); break;
       case 'done': text = e.text || ({ finalized: 'Plan kesinleşti', rejected: 'Plan reddedildi', error: 'Hata' }[e.status] || 'Bitti'); break;

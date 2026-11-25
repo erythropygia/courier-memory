@@ -358,7 +358,7 @@ class ReviewStore:
         if u["applied"]:
             good.append(f"{len(u['applied'])} düzeltme uygulandı")
         if u["awaiting"]:
-            bad.append(f"{len(u['awaiting'])} öneri onayınızı bekliyor")
+            bad.append(f"{len(u['awaiting'])} atama önerisi panelde (zinciri beklemez)")
         summary = (f"Son {WINDOW_DAYS} gün: " + ("; ".join(good[:3]) if good else "belirgin iyileşme yok") +
                 (". Dikkat: " + "; ".join(bad[:3]) if bad else "") + ".")
         trace.emit("tool", tool=FINISH, input={"summary": summary, "going_well": good, "going_badly": bad})

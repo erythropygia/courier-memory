@@ -67,7 +67,7 @@ def test_live_memory_moves_route(sv, day):
 def test_briefing_reads_approved_plan_eta_and_filters(sv, day):
     dep = SessionStore(sv.orchestrator)
     k = dep.start(day, background=False)
-    dep.decision(k.id, "approval")
+    assert k.status == "finalized"                                      # temassız: acil durum yok
     sv.briefing.plans = dep.plans
     hero = sv.run.meta["critical"]["courier"]
     b = sv.briefing.prepare(day, hero)

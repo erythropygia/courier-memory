@@ -14,7 +14,7 @@ saate kaydırılır. Değişiklik metinlerindeki sıra numaraları 1 tabanlı du
 onarımlar simülatörle aynı sert kısıtla (`RepairLimits`) çalışır: rota süresi (sürüş + servis + bilinen öğle beklemesi)
 ve km onarım öncesinden fazla artmaz, bant üstü aşılmaz, kaydırılan durak vardiya bitişinden sonraya konmaz. Kısıt yüzünden
 kaydırılamayan bulgu `time_unshiftable`da nedeniyle döner; `day_alternatives` günün tüm rotalarında simülatörle aynı
-`time_alternatives` fonksiyonunu çağırır (aktarma → ertesi gün / akşam-teslim noktası + SMS önerisi; müdür kararı).
+`time_alternatives` fonksiyonunu çağırır (aktarma → ertesi gün / akşam-teslim noktası + SMS önerisi; şube panelinde öneri, plan beklemez).
 """
 from __future__ import annotations
 
@@ -355,7 +355,7 @@ class RoutePlanner:
             out.append({**b, "label": lab[b["address"]], "good_slot": SLOT_NAMES[b["good"]],
                         "text": f"{lab[b['address']]}: {hhmm(b['arrival'])} (tahmini bulunamama %{round(100 * b['p_now'])}); en iyi saat "
                                  f"{SLOT_NAMES[b['good']]} ama aynı rotada kaydırılamadı: {reason}{extra}. Alternatif için "
-                                 f"time_alternatives (başka kurye / ertesi gün + SMS; müdür kararı)."})
+                                 f"time_alternatives (başka kurye / ertesi gün + SMS; öneri, plan beklemez)."})
         return out
 
     def day_alternatives(self, day: int, mapping: dict[int, str] | None = None) -> list[dict]:

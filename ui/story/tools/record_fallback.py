@@ -68,8 +68,7 @@ def route_courier(address, d32):
 
 def selections():
     reset()
-    p = request("/api/orchestrator/plan", {"day": DAY}, keep=False)
-    request(f"/api/orchestrator/session/{p['session_id']}/decision", {"decision": "approval"}, keep=False)
+    request("/api/orchestrator/plan", {"day": DAY}, keep=False)          # temassız: acil durum yok, plan kendiliğinden kesinleşir
     b = request(f"/api/briefing/{DAY}/{COURIER}", keep=False)
     F = b["stop_fields"]
     noted = {k["address"] for k in b["door_sentences"]}
@@ -135,8 +134,8 @@ def stream(demo):
     reset()
     request("/api/status")
     request("/api/meta")
-    # Sahne 3
-    p = request("/api/orchestrator/plan", {"day": DAY})
+    # Sahne 3: acil durum yolu (müdür acil durum bildirdi → plan onaya gelir)
+    p = request("/api/orchestrator/plan", {"day": DAY, "manager_review": True})
     kid = p["session_id"]
     request(f"/api/orchestrator/session/{kid}/ask", {"question": "Onur gelmezse ne olur?"}, name="onur")
     request(f"/api/orchestrator/session/{kid}/ask", {"question": "Gökhan gelmezse ne olur?"}, name="gokhan")

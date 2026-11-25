@@ -29,7 +29,7 @@
     ];
     CM.board(`<div class="diagram">
       <div class="sm-moments"><span>İzin</span><span>Ayrılma</span><span>Yeni kurye</span><span>Komşu şubeden kurye</span><span>Kampanya</span><b>→ bilgi kişiden adrese taşınır</b></div>
-      <div class="sm-orch"><div class="sm-name">Orkestratör</div><div class="sm-ne">Günü yönetir: hacim → kapasite açığı → kim gitsin → atama → teslim saati → rota → müdüre gerekçeli öneri. Karar modelde, hesap araçlarda; son onay insanda.</div>
+      <div class="sm-orch"><div class="sm-name">Orkestratör</div><div class="sm-ne">Günü yönetir: hacim → kapasite açığı → kim gitsin → atama → teslim saati → rota → gerekçeli plan, acil durum yoksa temassız kesinleşir. Karar modelde, hesap araçlarda; müdür yalnız acil durumda.</div>
         <div class="sm-tool">read_volume · capacity_gap · neighbor_candidates · core_assignment · delivery_time_analysis · time_alternatives · compute_route · present_proposal</div></div>
       <div class="sm-dort">${AJ.map(([name, ne, ar]) => `<div class="sm-aj"><div class="sm-name">${name}</div><div class="sm-ne">${ne}</div><div class="sm-tool">${ar}</div></div>`).join('')}</div>
       <div class="sm-cost"><div class="sm-f">beklenen_başarısızlık(kurye, küme) = Σ<sub>durak</sub> P(başarısız | blok zorluğu, kurye×blok uyumu, [tanıdık <b>veya</b> hafızada geçerli not])</div>

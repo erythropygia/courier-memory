@@ -167,7 +167,7 @@ const KIND = { back_entry: "arka giriş", saturday_closed: "cumartesi kapalı", 
   building_access: "bina erişimi", directions: "adres tarifi", animal: "hayvan", other_info: "not" };
 const kindTr = (k) => KIND[k] || k;
 const CONF = { confirmed: "teyitli", single_source: "tek kaynak", needs_confirmation: "teyit gerekli" };
-const S = { day: 32, courier: "O02", name: "Gökhan", session: null, stop: null, cardIds: [], cur: -1, done: new Set(), busy: false };
+const S = { day: 32, courier: "O02", name: "Gökhan", session: null, status: null, stop: null, cardIds: [], cur: -1, done: new Set(), busy: false };
 
 // ------------------------------------------------------------------ API + iz
 const trace = $("#trace");
@@ -188,7 +188,7 @@ async function api(method, path, body) {
   if (!r.ok) throw new Error(data.detail || r.status);
   return data;
 }
-// Ajan izi olayı (agents/trace.py): start, decision, tool, result, error, fallback, proposal, awaiting_approval, human_decision, done
+// Ajan izi olayı (agents/trace.py): start, decision, tool, result, error, fallback, proposal, escalation, auto_decision, awaiting_approval, human_decision, done
 function event(e) {
   const s = e.source;
   switch (e.type) {
@@ -199,8 +199,10 @@ function event(e) {
       ${e.data !== undefined ? `<details><summary>aracın döndürdüğü veri</summary><pre>${esc(fmt(e.data))}</pre></details>` : ""}`, s);
     case "error": return row("error", "hata", `${esc(e.tool || "")} ${esc(e.text)}`, s);
     case "fallback": return row("fallback", "yedek", esc(e.text), s);
-    case "proposal": return row("human", "öneri", "Müdüre gerekçeli öneri sunuldu (sağda).", s);
-    case "awaiting_approval": return row("human", "onay bekler", "İnsan onayı noktası: plan müdür onaylamadan uygulanmaz.", s);
+    case "proposal": return row("decision", "öneri", "Gerekçeli plan hazır (sağda); acil durum denetimi yapılıyor.", s);
+    case "escalation": return row("human", "acil durum", `Müdüre eskale: ${(e.reasons || []).map((r) => esc(r.text)).join(" · ")}`, s);
+    case "auto_decision": return row("result", "temassız", esc(e.text || "Acil durum yok: plan müdüre gitmeden kesinleşti."), s);
+    case "awaiting_approval": return row("human", "onay bekler", "Acil durum: plan müdür kararını bekliyor (onay, ret ya da düzenleme).", s);
     case "human_decision": return row("human", "müdür", `Karar: <b>${esc(e.decision)}</b>${e.note ? " · " + esc(e.note) : ""}`, "insan");
     case "done": return row("start", "bitti", `<span class="args">${esc(e.status || "")}</span>`, s);
     default: return row("start", esc(e.type), `<span class="args">${esc(short(e))}</span>`, s);
@@ -228,8 +230,8 @@ async function refreshSide() {
 const STEPS = [
   {
     t: "Gün planlanır", who: "Orkestratör Ajanı", code: ["agents/orchestrator.py", "agents/route.py", "POST /api/orchestrator/start"],
-    desc: "Hacmi okur, kapasite açığını bulur, komşu şubeden kimin geleceğini seçer, kümelere kurye atar, hafızalı rotayı hesaplar ve müdüre gerekçeli öneri sunar. Hesaplar araçlarda; ajan sırayı ve kararı verir.",
-    arch: ["records", "orch", "memory", "manager"], line: "Teslim kayıtları + hafıza → Orkestratör (araçlar) → müdüre öneri",
+    desc: "Hacmi okur, kapasite açığını bulur, komşu şubeden kimin geleceğini seçer, kümelere kurye atar, hafızalı rotayı hesaplar ve gerekçeli planı çıkarır; acil durum yoksa plan temassız kesinleşir. Hesaplar araçlarda; ajan sırayı ve kararı verir.",
+    arch: ["records", "orch", "memory", "manager"], line: "Teslim kayıtları + hafıza → Orkestratör (araçlar) → plan (acil durumda müdüre)",
     async run() {
       const k = await api("POST", "/api/orchestrator/start", { day: S.day });
       S.session = k.session_id;
@@ -240,8 +242,10 @@ const STEPS = [
         n += r.events.length;
         status = r.status;
         if (status !== "running" && n >= r.total_event) {
+          S.status = status;
           const p = r.proposal;
-          if (p) result(`<h3>Müdüre öneri</h3>
+          if (p) result(`<h3>${status === "finalized" ? "Plan kesinleşti (temassız)" : "Acil durum: müdüre öneri"}</h3>
+            ${(r.escalation || []).length ? `<ul>${r.escalation.map((x) => `<li>${esc(x.text)}</li>`).join("")}</ul>` : ""}
             <div class="kv"><b>${p.total?.courier_count ?? "–"}</b><span>kurye · ödünç: ${p.borrowed.map((b) => esc(b.name)).join(", ")}</span>
             <b>%${Math.round(100 * p.own_zone_share)}</b><span>kurye kendi bölgesinde</span>
             <b>${p.total?.expected_fails ?? "–"}</b><span>beklenen başarısız (geçmişe bakmadan ${p.comparison?.history_blind_expected_fails ?? "–"})</span></div>
@@ -254,15 +258,20 @@ const STEPS = [
     },
   },
   {
-    t: "Müdür onaylar", who: "İnsan (müdür)", code: ["agents/orchestrator.py · SessionStore.decision", "POST /api/orchestrator/session/{id}/decision"],
-    desc: "Plan müdür onaylamadan uygulanmaz. Onaylanan atama, sonraki ajanların (Brifing, kart, Hasat) okuduğu gün planı olur.",
-    arch: ["manager", "orch"], line: "Müdür kararı → onaylı plan (sonraki adımların girdisi)",
+    t: "Acil durum denetimi", who: "Kural (müdür yalnız acil durumda)", code: ["agents/orchestrator.py · Orchestrator.escalation", "POST /api/orchestrator/session/{id}/decision (yalnız eskalasyonda)"],
+    desc: "Zincir temassızdır: kapasite açığı kapanıyorsa, ciddi fazla mesai yoksa ve plan geçmişe bakmayan atamadan iyiyse plan müdüre gitmeden kesinleşir. Müdür yalnız acil durumda (açık kapanmıyor, ciddi fazla mesai, ajan planı çıkaramadı ya da müdür acil durum bildirdi) yetkilidir. Eşikler deterministik koddadır.",
+    arch: ["orch", "manager"], line: "Kesinleşen plan → sonraki adımların girdisi (müdür yalnız acil durumda)",
     async run() {
       if (!S.session) throw new Error("Önce 1. adım");
+      if (S.status === "finalized") {
+        note("Acil durum yok: plan temassız kesinleşti; müdüre onay isteği gitmedi.");
+        result(`<h3>Temassız</h3><p>Acil durum yok: plan müdüre gitmeden kesinleşti. ${S.name} için planın kümesi ve rotası artık Brifing Ajanı'nın girdisi.</p>`);
+        return;
+      }
       const r = await api("POST", `/api/orchestrator/session/${S.session}/decision`, { decision: "approval" });
       const evs = (r.events || []).filter((e) => ["human_decision", "done", "decision"].includes(e.type)).slice(-3);
       await play(evs);
-      result(`<h3>Plan onaylandı</h3><p>Durum: <b>${esc(r.status)}</b>. ${S.name} için onaylı planın kümesi ve rotası artık Brifing Ajanı'nın girdisi.</p>`);
+      result(`<h3>Acil durumda müdür onayladı</h3><p>Durum: <b>${esc(r.status)}</b>. ${S.name} için onaylı planın kümesi ve rotası artık Brifing Ajanı'nın girdisi.</p>`);
     },
   },
   {
@@ -389,7 +398,7 @@ $("#runall").onclick = async () => { for (let i = Math.max(0, S.cur + (S.done.ha
 $("#reset").onclick = async () => {
   S.busy = true; renderSteps();
   await fetch(BASE + "/api/demo/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ day: S.day }) });
-  Object.assign(S, { session: null, stop: null, cur: -1, done: new Set(), busy: false });
+  Object.assign(S, { session: null, status: null, stop: null, cur: -1, done: new Set(), busy: false });
   feedMax = 0; trace.innerHTML = ""; lightArch([], "");
   $("#stephead").innerHTML = '<p class="coltitle">İz</p><h2>Başlamak için “Sıradaki adım”</h2>';
   result('<span class="muted">Adımın çıktısı burada.</span>');

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Courier Memory · ajanlar ne aldı, ne düşündü, ne verdi</title>
+<meta name="theme-color" content="#0d1424">
+<style>
+:root {
+  --bg: #0d1424; --panel: #16203a; --panel2: #1c2847; --line: #2a3a5e; --text: #e2e8f0; --muted: #94a3b8; --faint: #64748b;
+  --blue: #3b82f6; --gray: #94a3b8; --violet: #a78bfa; --green: #22c55e; --teal: #2dd4bf; --amber: #f59e0b; --rose: #fb7185; --indigo: #818cf8; --red: #ef4444;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; -webkit-text-size-adjust: 100%; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 14px 40px; }
+header.top { padding: 22px 0 10px; }
+h1 { font-size: 22px; line-height: 1.25; margin: 0 0 6px; }
+h1 small { display: block; font-size: 13px; color: var(--muted); font-weight: 500; letter-spacing: .02em; text-transform: uppercase; margin-bottom: 4px; }
+.lead { color: #cbd5e1; margin: 0 0 10px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--panel2); color: #cbd5e1; border: 1px solid var(--line); }
+.chip.good { background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.4); color: #bbf7d0; }
+.chip.warn { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.4); color: #fecaca; }
+.legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 14px 0 4px; }
+.legend div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 7px 8px; font-size: 12px; color: var(--muted); }
+.legend b { display: block; color: var(--text); font-size: 13px; }
+nav.agents { position: sticky; top: 0; z-index: 5; background: rgba(13,20,36,.94); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display: flex; gap: 6px; overflow-x: auto; padding: 10px 14px; margin: 0 -14px; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+nav.agents::-webkit-scrollbar { display: none; }
+nav.agents a { flex: none; text-decoration: none; color: var(--text); font-size: 13px; padding: 5px 11px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); white-space: nowrap; }
+nav.agents a.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 18%, var(--panel)); }
+nav.agents a i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-right: 6px; vertical-align: 1px; }
+section.step { margin-top: 18px; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 14px; overflow: hidden; }
+.sh { padding: 14px 14px 10px; }
+.sh .no { font-size: 12px; color: var(--c); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.sh h2 { font-size: 19px; margin: 2px 0 4px; }
+.sh .role { color: var(--muted); font-size: 14px; margin: 0; }
+.sh .src { float: right; margin-left: 8px; }
+.blk { padding: 10px 14px 12px; border-top: 1px solid var(--line); }
+.blk h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+.blk h3 span.ico { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: var(--panel2); color: var(--c); font-size: 12px; }
+ul.took { margin: 0; padding: 0; list-style: none; }
+ul.took li { padding: 5px 0 5px 16px; position: relative; color: #dbe3ee; }
+ul.took li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 6px; height: 6px; border-radius: 50%; background: var(--c); opacity: .7; }
+s.secret { color: #fca5a5; text-decoration-color: var(--red); text-decoration-thickness: 2px; }
+.tl { position: relative; padding-left: 16px; }
+.tl::before { content: ""; position: absolute; left: 5px; top: 6px; bottom: 6px; width: 2px; background: var(--line); }
+.thought { position: relative; margin: 0 0 8px; padding: 8px 11px; background: var(--panel2); border-radius: 4px 12px 12px 12px; color: #e9edf5; font-size: 14px; }
+.thought::before { content: "💭"; position: absolute; left: -19px; top: 5px; font-size: 12px; background: var(--panel); border-radius: 50%; }
+details.tool { margin: 0 0 8px; background: rgba(255,255,255,.02); border: 1px solid var(--line); border-radius: 10px; position: relative; }
+details.tool::before { content: ""; position: absolute; left: -15px; top: 13px; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+details.tool summary { list-style: none; cursor: pointer; padding: 8px 11px; }
+details.tool summary::-webkit-details-marker { display: none; }
+details.tool summary .n { font-weight: 600; font-size: 14px; }
+details.tool summary .n code { font-weight: 400; color: var(--faint); font-size: 11px; margin-left: 6px; }
+details.tool summary .r { display: block; color: #bfd0e6; font-size: 13.5px; margin-top: 2px; }
+details.tool summary .more { float: right; font-size: 11px; color: var(--faint); }
+details.tool[open] summary .more { color: var(--c); }
+details.tool .io { padding: 0 11px 10px; }
+details.tool .io b { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 6px 0 3px; }
+pre { margin: 0; max-height: 260px; overflow: auto; background: #0a1020; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: 11.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: #cbd5e1; white-space: pre-wrap; word-break: break-word; }
+.turn { position: relative; margin: 0 0 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.02); }
+.turn::before { content: ""; position: absolute; left: -15px; top: 14px; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.tno { font-size: 11px; color: var(--c); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 4px; }
+.lbl { display: inline-block; min-width: 62px; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
+.turn .thought { margin: 0 0 6px; padding: 0; background: none; font-size: 14px; color: #e9edf5; }
+.turn .thought::before { content: none; }
+.call { margin: 4px 0 6px; font-size: 14px; }
+.call .n { font-weight: 700; }
+.call code { color: var(--faint); font-size: 11.5px; }
+table.params { width: 100%; border-collapse: collapse; margin: 6px 0 0; font-size: 12.5px; }
+table.params th { width: 1%; text-align: left; vertical-align: top; color: #a5b4cf; font-weight: 600; padding: 3px 8px 3px 0; white-space: nowrap; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; }
+table.params td { padding: 3px 0; word-break: break-word; }
+table.params td code { background: #0a1020; border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; font-size: 11.5px; display: inline-block; margin: 1px 2px 1px 0; color: #e2e8f0; }
+.params.none { font-size: 12px; color: var(--faint); margin-top: 4px; }
+.nil { color: var(--faint); }
+.res { font-size: 14px; color: #d1fae5; background: rgba(34,197,94,.07); border-radius: 8px; padding: 6px 8px; }
+.res details summary, details.raw summary { cursor: pointer; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.res pre, details.raw pre { margin-top: 6px; }
+.reqs { margin-top: 8px; }
+.reqs .sub { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.req { margin: 0 0 6px; }
+.req code.m { font: 12px ui-monospace, Menlo, monospace; color: #93c5fd; }
+.req pre.body { margin-top: 3px; max-height: 160px; }
+details.raw { margin-top: 8px; }
+.out { background: color-mix(in srgb, var(--c) 9%, var(--panel)); }
+.out .head { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin: 6px 0 8px; }
+.kv div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 7px 9px; }
+.kv b { display: block; font-size: 18px; }
+.kv span { font-size: 12px; color: var(--muted); }
+.say { border-left: 3px solid var(--c); padding: 7px 11px; background: rgba(0,0,0,.18); border-radius: 0 10px 10px 0; margin: 6px 0 8px; font-size: 14.5px; }
+.out ul { margin: 4px 0 6px; padding-left: 18px; }
+.out ul li { margin: 3px 0; }
+.out .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.out .chips .chip { border-radius: 10px; padding: 5px 10px; font-size: 13px; line-height: 1.4; }
+.q { font-size: 13.5px; color: #dbe3ee; background: rgba(0,0,0,.15); border-radius: 10px; padding: 7px 10px; margin: 6px 0; }
+.q::before { content: "❓ "; }
+.arrow { text-align: center; color: var(--faint); font-size: 12px; margin: 8px 0 -8px; }
+footer { margin-top: 26px; color: var(--muted); font-size: 13px; }
+footer p { margin: 6px 0; }
+.toggle { display: flex; justify-content: flex-end; margin: 10px 0 -6px; }
+.toggle button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+@media (max-width: 420px) { .legend { grid-template-columns: repeat(2, 1fr); } h1 { font-size: 20px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1><small><span lang="en">Courier Memory</span> · geçmiş demo koşusu</small>Ajanlar ne aldı, ne düşündü, ne verdi?</h1>
+    <p class="lead" id="lead"></p>
+    <div class="meta" id="meta"></div>
+    <div class="legend">
+      <div><b>⬇ Ne aldı</b>girdi ve gerçek API isteği</div>
+      <div><b>💭 Ne düşündü</b>sıradaki adım kararı</div>
+      <div><b>🔧 Ne yaptı</b>araç + gerçek parametre + sonuç</div>
+      <div><b>⬆ Ne verdi</b>sonraki halkaya çıktı</div>
+    </div>
+  </header>
+  <nav class="agents" id="nav"></nav>
+  <div class="toggle"><button id="openall" type="button">Tüm JSON çıktılarını aç</button></div>
+  <main id="steps"></main>
+  <footer>
+    <p><b>Zincir:</b> teslim kayıtları + hafıza → Orkestratör → acil durum kapısı (müdür yalnız acil durumda) → Brifing → kapıda kart → Hafıza → Hasat → Değerlendirme → Bölge → ertesi sabahın planı.</p>
+    <p><b>İlke:</b> kararı ajan verir, her sayıyı deterministik araç hesaplar. Kurye bilgisi zinciri güçlendirir ama zincir ona bağlı değildir: tek kaynaklı bilgi rotayı değiştirmez, kişisel veri ve kapı şifresi hafızaya yazılmaz.</p>
+    <p id="foot"></p>
+  </footer>
+</div>
+<script>
+const RUN = /*__DATA__*/null;
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const SRC = { rule: ["kural", "Kurallı mod: aynı araçlar, şablon kararlar"], llm: ["LLM", "Claude (Amazon Bedrock) karar verdi"], human: ["insan", "İnsan kararı"] };
+const ICON = { blue: "🧭", gray: "🛡️", violet: "🗣️", green: "🧠", teal: "📍", amber: "🌾", rose: "🔁", indigo: "🗺️" };
+function val(v) {
+  if (v === null || v === undefined) return '<span class="nil">—</span>';
+  if (Array.isArray(v)) return v.length ? v.map((x) => typeof x === "object" ? `<code>${esc(JSON.stringify(x))}</code>` : `<code>${esc(x)}</code>`).join(" ") : '<span class="nil">[ ]</span>';
+  if (typeof v === "object") return `<code>${esc(JSON.stringify(v))}</code>`;
+  return `<code>${secret(String(v))}</code>`;
+}
+function params(p) {
+  const e = Object.entries(p || {});
+  if (!e.length) return '<div class="params none">parametresiz</div>';
+  return `<table class="params">${e.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${val(v)}</td></tr>`).join("")}</table>`;
+}
+const secret = (s) => esc(s).replace(/(kapı şifresi \d+)/gi, '<s class="secret">$1</s>');
+
+function render() {
+  const llm = RUN.mode !== "mock";
+  $("#lead").innerHTML = `Bir şubenin bir günü, uçtan uca: gün ${RUN.day}, yoğun bir çarşamba. Bölgeyi hiç bilmeyen komşu şubeden ödünç kurye <b>${esc(RUN.courier)}</b> sahada. Her kartta bir ajanın aldığı, düşündüğü, yaptığı ve verdiği var.`;
+  $("#meta").innerHTML = [
+    `<span class="chip">${RUN.steps.length} halka</span>`,
+    `<span class="chip">${RUN.steps.reduce((n, s) => n + s.trace.filter((t) => t.tool).length, 0)} araç çağrısı</span>`,
+    `<span class="chip ${llm ? "good" : ""}">${llm ? "canlı: Claude, Amazon Bedrock" : "kurallı mod: kararlar şablon, araçlar ve sayılar gerçek"}</span>`,
+    `<span class="chip">simülasyon verisi · kişisel veri yok</span>`,
+  ].join("");
+  $("#nav").innerHTML = RUN.steps.map((s, i) => `<a href="#s${i}" style="--c:var(--${s.color})"><i></i>${esc(s.agent.replace(" Ajanı", ""))}</a>`).join("");
+  $("#steps").innerHTML = RUN.steps.map((s, i) => {
+    const g = s.gave || {};
+    const src = SRC[s.source] || SRC.rule;
+    let n = 0;
+    const trace = s.trace.map((t) => !t.tool
+      ? `<div class="turn"><div class="thought"><span class="lbl">Karar</span>${esc(t.why)}</div></div>`
+      : `<div class="turn"><div class="tno">Adım ${++n}</div>
+          ${t.why ? `<div class="thought"><span class="lbl">Düşündü</span>${esc(t.why)}</div>` : ""}
+          <div class="call"><span class="lbl">Çağırdı</span><span class="n">${esc(t.name)}</span> <code>${esc(t.tool)}</code>${params(t.params)}</div>
+          <div class="res"><span class="lbl">Sonuç</span>${esc(t.summary || "—")}
+            ${t.output && t.output !== "{}" ? `<details><summary>aracın tam çıktısı (JSON)</summary><pre>${esc(t.output)}</pre></details>` : ""}</div></div>`).join("");
+    const reqs = (s.requests || []).map((r) => `<div class="req"><code class="m">${esc(r.call)}</code>
+        ${r.body ? `<pre class="body">${esc(JSON.stringify(r.body, null, 1))}</pre>` : ""}</div>`).join("");
+    const resp = (s.requests || []).filter((r) => r.response).slice(-1).map((r) => `<details class="raw"><summary>API yanıtı · <code>${esc(r.call)}</code></summary><pre>${esc(r.response)}</pre></details>`).join("");
+    return `${i ? '<div class="arrow">▼ çıktı sonraki halkanın girdisi</div>' : ""}
+    <section class="step" id="s${i}" style="--c:var(--${s.color})">
+      <div class="sh"><span class="chip src" title="${esc(src[1])}">${esc(src[0])}</span>
+        <div class="no">${ICON[s.color] || ""} ${i + 1} · ${esc(s.agent)}</div><h2>${esc(s.title)}</h2><p class="role">${esc(s.role)}</p></div>
+      <div class="blk"><h3><span class="ico">⬇</span>Ne aldı</h3><ul class="took">${s.took.map((x) => `<li>${secret(x)}</li>`).join("")}</ul>
+        ${reqs ? `<div class="reqs"><div class="sub">Gerçek istek</div>${reqs}</div>` : `<div class="reqs"><div class="sub">API çağrısı yok: Orkestratör'ün planı üzerinde kod çalışır</div></div>`}</div>
+      <div class="blk"><h3><span class="ico">🔧</span>Hangi aracı hangi parametreyle çağırdı, ne karar verdi</h3><div class="tl">${trace}</div></div>
+      <div class="blk out"><h3><span class="ico">⬆</span>Ne verdi</h3><div class="head">${esc(g.head || "")}</div>
+        ${g.say ? `<div class="say">${esc(g.say)}</div>` : ""}
+        ${g.kv ? `<div class="kv">${g.kv.map(([v, l]) => `<div><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("")}</div>` : ""}
+        ${g.list && g.list.filter(Boolean).length ? `<ul>${g.list.filter(Boolean).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        ${(g.q || []).map((x) => `<div class="q">${esc(x)}</div>`).join("")}
+        ${resp}
+        ${(g.good || []).length || (g.warn || []).length ? `<div class="chips">${(g.good || []).map((x) => `<span class="chip good">${esc(x)}</span>`).join("")}${(g.warn || []).map((x) => `<span class="chip warn">${esc(x)}</span>`).join("")}</div>` : ""}
+      </div>
+    </section>`;
+  }).join("");
+  $("#foot").textContent = `Koşu ${RUN.built} tarihinde üretildi · mod: ${RUN.mode}. Kurye adları ve adresler simülasyondur.`;
+
+  const links = [...document.querySelectorAll("nav.agents a")];
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    links.forEach((a) => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
+    const on = links.find((a) => a.classList.contains("on"));
+    if (on) on.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  }), { rootMargin: "-45% 0px -50% 0px" });
+  document.querySelectorAll("section.step").forEach((s) => io.observe(s));
+  let open = false;
+  $("#openall").onclick = () => {
+    open = !open;
+    document.querySelectorAll("main details").forEach((d) => (d.open = open));
+    $("#openall").textContent = open ? "JSON çıktılarını kapat" : "Tüm JSON çıktılarını aç";
+  };
+}
+if (RUN) render(); else $("#steps").innerHTML = '<p class="lead">Veri gömülmemiş: <code>python ui/demo/build.py</code> çalıştırın.</p>';
+</script>
+</body>
+</html>

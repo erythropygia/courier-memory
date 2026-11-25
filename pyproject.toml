@@ -15,6 +15,7 @@ dependencies = [
   "fastapi>=0.110",
   "uvicorn[standard]>=0.29",
   "anthropic[bedrock]>=2.0",
+  "amazon-transcribe>=0.6.4",   # sesli not: Amazon Transcribe Streaming (boto3 akışı desteklemez)
 ]
 
 [project.optional-dependencies]

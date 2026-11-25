@@ -13,12 +13,13 @@ from pathlib import Path
 
 import numpy as np
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from agents import Services
+from api import transcribe
 
 ROOT = Path(__file__).resolve().parents[1]
 UI_DIR = ROOT / "ui"
@@ -805,81 +806,17 @@ def speech(text: str = Query(..., min_length=1, max_length=600)):  # Polly sın�
         return JSONResponse({"detail": f"Polly hatası: {e}"}, status_code=501)
 
 
-class TranscribeRequest(BaseModel):
-    audio_base64: str = Field(..., description="Base64-encoded audio (WAV/MP3)")
-    language_code: str = Field(default="tr-TR", description="AWS Transcribe language code")
+# ------------------------------------------------------------------ sesli not (P1: Amazon Transcribe, tr-TR)
+@app.get("/api/transcribe")
+def transcribe_status():
+    """Sunucu ses tanıması açık mı? Kapalıysa 501: arayüz tarayıcı tanımasını kullanır."""
+    return transcribe.status()
 
 
 @app.post("/api/transcribe")
-async def transcribe_audio(request: TranscribeRequest):
-    """Amazon Transcribe: ses → metin. Browser mikrofonundan gelen base64 audio'yu çözer."""
-    if os.environ.get("CM_TRANSCRIBE", "0") != "1" or sv().llm.mode == "mock":
-        return JSONResponse({"detail": "Transcribe kapalı."}, status_code=501)
-    
-    try:
-        import base64
-        import boto3
-        import uuid
-        import io
-        
-        # Transcribe streaming yerine StartTranscriptionJob kullanıyoruz (S3 gerekli)
-        # Basit use case için streaming'e gerek yok
-        transcribe = boto3.client("transcribe", region_name=sv().llm.region)
-        s3 = boto3.client("s3", region_name=sv().llm.region)
-        
-        bucket_name = os.environ.get("CM_TRANSCRIBE_BUCKET", "courier-memory-audio")
-        audio_key = f"temp/{uuid.uuid4()}.wav"
-        
-        # Decode base64 audio
-        audio_bytes = base64.b64decode(request.audio_base64)
-        
-        # Upload to S3
-        s3.put_object(Bucket=bucket_name, Key=audio_key, Body=audio_bytes)
-        audio_uri = f"s3://{bucket_name}/{audio_key}"
-        
-        # Start transcription job
-        job_name = f"cm-transcribe-{uuid.uuid4()}"
-        transcribe.start_transcription_job(
-            TranscriptionJobName=job_name,
-            Media={"MediaFileUri": audio_uri},
-            MediaFormat="wav",  # or detect from audio_bytes magic bytes
-            LanguageCode=request.language_code
-        )
-        
-        # Poll for completion (timeout 30s)
-        max_wait = 30
-        start_time = time.time()
-        while time.time() - start_time < max_wait:
-            status_resp = transcribe.get_transcription_job(TranscriptionJobName=job_name)
-            status = status_resp["TranscriptionJob"]["TranscriptionJobStatus"]
-            
-            if status == "COMPLETED":
-                transcript_uri = status_resp["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
-                
-                # Fetch transcript JSON
-                import urllib.request
-                with urllib.request.urlopen(transcript_uri) as resp:
-                    transcript_json = json.loads(resp.read().decode())
-                
-                text = transcript_json["results"]["transcripts"][0]["transcript"]
-                
-                # Cleanup S3
-                s3.delete_object(Bucket=bucket_name, Key=audio_key)
-                
-                return {"text": text, "confidence": transcript_json["results"]["transcripts"][0].get("confidence")}
-            
-            elif status == "FAILED":
-                s3.delete_object(Bucket=bucket_name, Key=audio_key)
-                return JSONResponse({"detail": "Transcription job failed"}, status_code=500)
-            
-            time.sleep(1)
-        
-        # Timeout
-        s3.delete_object(Bucket=bucket_name, Key=audio_key)
-        return JSONResponse({"detail": "Transcription timeout (30s)"}, status_code=504)
-    
-    except Exception as e:
-        return JSONResponse({"detail": f"Transcribe hatası: {e}"}, status_code=500)
+async def transcribe_audio(request: Request):
+    """Ham ses gövdesi (audio/pcm;rate=16000 · audio/ogg · audio/flac, en fazla 60 sn) → {"text", "language"}."""
+    return await transcribe.handle(request)
 
 
 # ------------------------------------------------------------------ arayüz

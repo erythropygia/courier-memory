@@ -1155,48 +1155,16 @@
       } else clear(el, icon, h('span', { class: 'faded-text', text: 'Konum yok: rotayı oynatın ya da haritada bir durağa tıklayın.' }));
     },
 
+    // bas-konuş: önce sunucu (Amazon Transcribe, /api/transcribe), 501/hata → tarayıcının ses tanıması (ui/story/js/listen.js)
     microphone() {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       const btn = $('#btn-microphone');
-      if (!SR) {
+      if (!window.CMListen || !CMListen.available()) {
         btn.hidden = true;
         return;
       }
       btn.hidden = false;
       clear(btn, CM.icon('microphone', 15), ' Bas-konuş');
-      let rec = null;
-      let previous = '';
-      const finish = () => {
-        if (rec) rec.stop();
-      };
-      btn.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        try {
-          rec = new SR();
-          rec.lang = 'tr-TR';
-          rec.interimResults = true;
-          rec.continuous = true;
-          previous = $('#note-text').value ? $('#note-text').value.trim() + ' ' : '';
-          rec.onresult = (ev) => {
-            let t = '';
-            for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript;
-            $('#note-text').value = previous + t;
-          };
-          rec.onerror = (ev) => {
-            CM.notify('Ses tanıma kullanılamıyor (' + (ev.error || 'error') + '). Notu yazabilirsiniz.', 'error');
-          };
-          rec.onend = () => {
-            btn.classList.remove('record');
-            rec = null;
-          };
-          rec.start();
-          btn.classList.add('record');
-        } catch (err) {
-          CM.notify('Ses tanıma başlatılamadı.', 'error');
-        }
-      });
-      btn.addEventListener('pointerup', finish);
-      btn.addEventListener('pointerleave', finish);
+      CMListen.pushToTalk({ button: btn, input: $('#note-text'), base: '', append: true, notify: (m) => CM.notify(m, 'error') });
     },
 
     clearNoteResult() {

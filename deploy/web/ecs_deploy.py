@@ -11,7 +11,7 @@ Kurulanlar (varsayılan VPC'de; tekrar çalıştırmak güvenlidir):
   IAM rolleri      courier-memory-web-exec (image çekme, log) · courier-memory-web-task (container kimliği: izinli modeller, Polly)
   ECS              cluster courier-memory · servis courier-memory-web (Fargate, 1 vCPU / 2 GB, 1 görev)
 
-Model: Sonnet 5 (demo/test için Opus kullanılmaz). Varsayılan: Polly (Burcu, neural) ve DynamoDB (courier-memory; yalnız bu tabloya izin).
+Model: Sonnet 5 (demo/test için Opus kullanılmaz). Varsayılan: Polly (Burcu, neural), Transcribe (tr-TR) ve DynamoDB (courier-memory; yalnız bu tabloya izin).
 Ek izin için --extra-policy, ek ortam için --env (aynı adlı varsayılanı ezer; CM_STORAGE=file ile tablo kapatılır).
 """
 from __future__ import annotations
@@ -34,7 +34,8 @@ MODELS = ("anthropic.claude-sonnet-5", "anthropic.claude-haiku-4-5-20251001-v1:0
 ENV = {"CM_LLM_MODE": "live", "CM_BEDROCK_CLIENT": "invoke", "CM_MODEL_ID": "global.anthropic.claude-sonnet-5",
        "CM_AUTO_CACHE": "1", "CM_RUN_DIR": "data/demo_run",
        "CM_POLLY": "1", "CM_POLLY_VOICE": "Burcu", "CM_POLLY_ENGINE": "neural",  # /api/speech: Polly tr-TR neural ses
-       "CM_STORAGE": "dynamodb", "CM_DYNAMODB_TABLE": "courier-memory", "CM_DYNAMODB_SYNC_SECONDS": "1"}  # ortak durum tablosu
+       "CM_STORAGE": "dynamodb", "CM_DYNAMODB_TABLE": "courier-memory", "CM_DYNAMODB_SYNC_SECONDS": "1",  # ortak durum tablosu
+       "CM_TRANSCRIBE": "1"}  # /api/transcribe: sesli not, Amazon Transcribe Streaming tr-TR
 # deploy/dynamodb/create_table.py APP_ACTIONS ile aynı (tablo: deploy/dynamodb/create_table.py ile kurulur)
 STORAGE_ACTIONS = ("dynamodb:GetItem", "dynamodb:Query", "dynamodb:BatchGetItem",
                    "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:BatchWriteItem")
@@ -74,6 +75,12 @@ def storage_policy(region: str, account: str, table: str) -> dict:
     """Yalnız bu tablo; tablo silme ve tarama yok."""
     return {"Version": "2012-10-17", "Statement": [{"Sid": "CourierMemoryTable", "Effect": "Allow", "Action": list(STORAGE_ACTIONS),
             "Resource": [f"arn:aws:dynamodb:{region}:{account}:table/{table}"]}]}
+
+
+def transcribe_policy() -> dict:
+    # StartStreamTranscription kaynak düzeyinde kısıtlanamaz (Transcribe streaming ARN'siz); Resource "*" zorunlu.
+    return {"Version": "2012-10-17", "Statement": [{"Sid": "StreamTranscription", "Effect": "Allow",
+            "Action": ["transcribe:StartStreamTranscription"], "Resource": "*"}]}
 
 
 # ------------------------------------------------------------------ image
@@ -204,7 +211,8 @@ def main(argv=None) -> int:
     storage = ({f"dynamodb-{env['CM_DYNAMODB_TABLE']}": storage_policy(region, account, env["CM_DYNAMODB_TABLE"])}
                if env.get("CM_STORAGE") == "dynamodb" else {})
     task_role = _role(iam, TASK_ROLE, "ecs-tasks.amazonaws.com", inline={"bedrock-allowed-models": bedrock_policy(),
-                                                                         "polly-synthesize-speech": polly_policy(), **storage, **extra})
+                                                                         "polly-synthesize-speech": polly_policy(),
+                                                                         "transcribe-streaming": transcribe_policy(), **storage, **extra})
     vpc, subnets, alb_sg, task_sg = network(c("ec2"))
     dns, tg = load_balancer(c("elbv2"), vpc, subnets, alb_sg)
     time.sleep(10)                                   # yeni rollerin yayılması

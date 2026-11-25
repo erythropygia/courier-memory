@@ -13,7 +13,8 @@ WORKDIR /app
 
 # Bağımlılıklar ayrı katmanda: kod değişince yeniden kurulmaz.
 RUN pip install --no-cache-dir "numpy>=2.0" "scipy>=1.13" "pydantic>=2.6" "pyyaml>=6.0" \
-        "fastapi>=0.110" "uvicorn[standard]>=0.29" "anthropic[bedrock]>=2.0"
+        "fastapi>=0.110" "uvicorn[standard]>=0.29" "anthropic[bedrock]>=2.0" \
+        "amazon-transcribe>=0.6.4"
 
 # Uygulama kaynak ağacından çalışır (api/main.py arayüzleri reponun kökünden okur).
 COPY sim/cm_sim sim/cm_sim

@@ -97,6 +97,8 @@ python ui/story/tools/prepare.py   # sonra mock API açıkken: tools/record_fall
 | `CM_MEMORY_FILE` | `data/live_memory.json` | Canlı hafıza dosyası |
 | `CM_POLLY` | `0` | `1`: `/api/speech` Amazon Polly kullanır (mock modda kapalı; hata/kapalıyken 501, arayüz tarayıcı sesine düşer) |
 | `CM_POLLY_VOICE` / `CM_POLLY_ENGINE` | `Burcu` / `neural` | Polly tr-TR sesi ve motoru. Burcu yalnız `neural`, Filiz yalnız `standard`; motor boşsa sese göre seçilir |
+| `CM_TRANSCRIBE` | `0` | `1`: sesli not `/api/transcribe` ile Amazon Transcribe Streaming'de (tr-TR) çözülür; kapalıyken 501, arayüz tarayıcının ses tanımasını kullanır. Bölge `AWS_REGION`; IAM: `transcribe:StartStreamTranscription` |
+| `CM_TRANSCRIBE_TIMEOUT` | `30` | Transcribe çağrısı zaman aşımı (sn); aşılırsa 504 |
 | `CM_AUTO_CACHE` | `1` | Otomatik prompt önbelleği (üst düzey `cache_control`) |
 | `CM_USAGE_LOG` | `data/usage.jsonl` | Canlı token kullanım günlüğü |
 | `CM_STORAGE` | `file` | Çalışma durumu deposu: `file` (JSON dosyaları; `CM_MEMORY_FILE`, `agent_feed.json`, `CM_USAGE_LOG`) \| `dynamodb` (canlı hafıza, ajan akışı ve token kullanımı tek DynamoDB tablosunda; web uygulaması ve AgentCore çalışma ortamları aynı durumu paylaşır, kullanım dosyaya da yazılır). Bölge `AWS_REGION` / `AWS_DEFAULT_REGION`. Anahtar düzeni: `agents/storage/dynamo_keys.py` |

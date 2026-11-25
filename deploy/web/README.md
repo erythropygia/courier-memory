@@ -38,3 +38,20 @@ docker run -p 8000:8000 --env-file .env -v ~/.aws:/home/app/.aws:ro courier-memo
 ```
 
 App Runner bu hesapta kuruluş politikasıyla kapalı olduğu için ECS kullanılır. Kalıcı durum için `CM_STORAGE=dynamodb`.
+
+## HTTPS (CloudFront)
+
+```bash
+AWS_PROFILE=<profil> python deploy/web/cloudfront_setup.py
+```
+
+ALB'nin önüne CloudFront koyar ve `https://<id>.cloudfront.net` adresini verir. Tarayıcı mikrofonu (sesli not, Amazon Transcribe)
+yalnız HTTPS sayfada açılır; sunum ve paylaşım için bu adres kullanılır. Önbellek kapalıdır (canlı API ve akışlar), HTTP → HTTPS
+yönlendirilir, kaynağa yanıt bekleme 60 sn'dir.
+
+## Ses
+
+- **Konuşma (Polly):** `/api/speech`, ses Burcu (neural). Rol izni `polly:SynthesizeSpeech`.
+- **Sesli not (Transcribe):** `/api/transcribe`, Amazon Transcribe Streaming tr-TR; tarayıcı 16 kHz PCM gönderir. Rol izni
+  `transcribe:StartStreamTranscription`. Kapalıysa ya da hata olursa arayüz tarayıcının ses tanımasına düşer.
+

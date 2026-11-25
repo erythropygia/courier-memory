@@ -81,28 +81,18 @@
   }
 
   // ------------------------------------------------------------ not
-  // not çipleri + serbest not (yazı ya da tarayıcının ses tanıması: bas-konuş)
+  // not çipleri + serbest not (yazı ya da bas-konuş: önce sunucu/Amazon Transcribe, yoksa tarayıcının ses tanıması; js/listen.js)
   function noteField() {
-    const speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const speech = window.CMListen && CMListen.available();
     return NOTES.map((q) => `<button class="phone-button chip-k" data-name="${q.name}">${q.label}</button>`).join('') +
       `<form class="phone-input" id="noteForm"><input id="note-text" autocomplete="off" placeholder="Kendi notunuz">${speech ? '<button type="button" class="phone-button" id="mik4">Bas-konuş</button>' : ''}<button class="phone-button good">Gönder</button></form>`;
   }
   function bindNoteField() {
     CM.$('side').querySelectorAll('.chip-k').forEach((b) => (b.onclick = () => sendNote(no, NOTES.find((q) => q.name === b.dataset.name))));
     CM.$('noteForm').onsubmit = (e) => { e.preventDefault(); const m = CM.$('note-text').value.trim(); if (m) sendNote(no, { name: 'serbest', text: m }); };
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition, b = CM.$('mik4');
-    if (!SR || !b) return;
-    let rec = null;
-    b.onpointerdown = (e) => {
-      e.preventDefault();
-      try {
-        rec = new SR(); rec.lang = 'tr-TR'; rec.interimResults = true; rec.continuous = true;
-        rec.onresult = (ev) => { let s = ''; for (let i = 0; i < ev.results.length; i++) s += ev.results[i][0].transcript; CM.$('note-text').value = s; };
-        rec.onend = () => b.classList.remove('record');
-        rec.start(); b.classList.add('record');
-      } catch (err) { b.classList.remove('record'); }
-    };
-    b.onpointerup = b.onpointerleave = () => { if (rec) rec.stop(); rec = null; };
+    const b = CM.$('mik4'), input = CM.$('note-text');
+    if (!b || !window.CMListen) return;
+    CMListen.pushToTalk({ button: b, input, base: CM.API, notify: (m) => { input.value = ''; input.placeholder = m; } });
   }
 
   async function sendNote(n, select) {

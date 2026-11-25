@@ -5,7 +5,7 @@
 - **İz → görünüm:** `agents/trace.py` olaylarından `decision` düşünce, `tool` + eşleşen `result` tek araç satırı olur (`TOOL_TR` Türkçe ad). İz taşımayan yanıtlarda (`steps[]`: Brifing, Hafıza) araç satırları oradan gelir. Yaklaşma adımı kuraldır: üç konum satırı.
 - **Sayfa:** `ui/demo/template.html` içindeki `/*__DATA__*/null` yerine JSON gömülür → `ui/demo/index.html` (~70 KB). Mobil öncelikli, tek sütun; üstte yapışkan ajan şeridi (görünen karta göre işaretlenir); araç ayrıntısı `<details>`.
 - **QR:** `build.py --url <adres>` `segno` ile `ui/demo/qr.svg` ve `ui/story/data/demo-qr.svg` yazar. Hikaye Sahne 8'in son adımı (`last()`) QR'ı sağda gösterir; dosya yoksa pano boş kalır.
-- **Yayın:** GitHub Pages (main, kök; `.nojekyll`) → `https://erythropygia.github.io/courier-memory/ui/demo/`. Yerelde `api/main.py` `/demo/` altında da sunar.
+- **Yayın:** AWS'deki web uygulaması (ECS Fargate + ALB, `deploy/web`) sayfayı `api/main.py` üzerinden `/demo/` altında sunar; QR bu adrese gider (`build.py --url <WEB_URL>/demo/`). main'e push CI ile imajı yeniden dağıtır.
 
 ## Test
 

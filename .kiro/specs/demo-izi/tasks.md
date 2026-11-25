@@ -10,7 +10,7 @@
   - _Gereksinimler: 4.3_
 - [x] 5. Kabul testi `api/tests/test_demo_page.py`
   - _Gereksinimler: 1.1, 1.2, 3.1, 3.2_
-- [ ] 6. GitHub Pages'i aç (Settings → Pages → main / kök) ve QR'ı telefonda dene
+- [x] 6. QR AWS web adresine (`/demo/`) yönlendirildi; dağıtım main'e push ile CI'dan
   - _Gereksinimler: 4.3_
 - [ ] 7. Canlı (Bedrock) koşuyla yeniden üret: düşünceler şablon değil Claude'un kendi metni olur
   - _Gereksinimler: 2.1_

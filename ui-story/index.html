@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="only light">
+<meta name="darkreader-lock">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Courier Memory · Hikaye</title>
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<link rel="stylesheet" href="story.css">
+</head>
+<body>
+<div id="map"></div>
+<canvas id="canvas" hidden></canvas>
+<div id="curtain"></div>
+
+<header id="top">
+  <div id="scene-no"></div>
+  <div id="scene-title"></div>
+</header>
+
+<section id="figure" aria-live="polite"></section>
+<section id="cards"></section>
+<section id="message"></section>
+<section id="board"></section>
+<aside id="side"></aside>
+
+<aside id="trace" hidden>
+  <div class="trace-head">
+    <span>Orkestratör izi</span>
+    <span id="mod" class="mod"></span>
+  </div>
+  <ol id="trace-list"></ol>
+  <div id="trace-wait" hidden><i></i><i></i><i></i></div>
+</aside>
+
+<div id="action"></div>
+
+<section id="narration" aria-live="polite"></section>
+
+<footer id="alt">
+  <nav id="scenes"></nav>
+  <div id="steps"></div>
+  <div id="arrows">
+    <button id="back" title="Geri (←)" aria-label="Geri">&#8592;</button>
+    <button id="next" title="Sonraki (→ / boşluk)" aria-label="Sonraki">&#8594;</button>
+    <button id="narration-key" title="Açıklama satırı (A)" aria-label="Açıklama satırını aç/kapat">A</button>
+  </div>
+  <div id="attribution"></div>
+</footer>
+
+<script src="vendor/maplibre-gl.js"></script>
+<script src="js/expression.js"></script>
+<script src="js/style.js"></script>
+<script src="js/stage.js"></script>
+<script src="js/common.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/narration.js"></script>
+<script src="js/scene1.js"></script>
+<script src="js/scene2.js"></script>
+<script src="js/scene3.js"></script>
+<script src="js/scene4.js"></script>
+<script src="js/scene5.js"></script>
+<script src="js/scene6.js"></script>
+<script src="js/scene7.js"></script>
+<script src="js/scene8.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

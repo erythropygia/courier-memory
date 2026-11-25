@@ -46,7 +46,7 @@ for p in list(app.glob("model/*.py")) + [app / "cm" / "model.py"]:
         ids |= set(re.findall(r"[\"']((?:[a-z]+\.)?anthropic\.[a-z0-9.\-:]+)[\"']", p.read_text(encoding="utf-8")))
 line(bool(ids) and all(i.split(".")[0] in ("global", "us", "eu", "apac", "au", "jp") for i in ids), "model kimliği çıkarım profili biçiminde: " + (", ".join(sorted(ids)) or "bulunamadı"))
 deps = (app / "pyproject.toml").read_text(encoding="utf-8") if (app / "pyproject.toml").exists() else ""
-m = re.search(r"(?ms)^dependencies\s*=\s*\[(.*?)\]", deps)
+m = re.search(r"(?ms)^dependencies\s*=\s*\[(.*?)^\]", deps)  # closing "]" on its own line, not one inside pkg[extra]
 body = m.group(1).lower() if m else ""
 if (app / "agents").is_dir():
     line(all(d in body for d in ("numpy", "scipy", "pydantic", "pyyaml")), "alan kodunun bağımlılıkları pyproject.toml'da (numpy, scipy, pydantic, pyyaml)")

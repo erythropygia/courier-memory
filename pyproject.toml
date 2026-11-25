@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "courier-memory"
+version = "0.1.0"
+description = "Courier Memory: uygulama verisi, simülatör, ajanlar, API ve demo arayüzü"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=2.0",
+  "scipy>=1.13",
+  "pydantic>=2.6",
+  "pyyaml>=6.0",
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.29",
+  "anthropic[bedrock]>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27"]
+story = ["shapely>=2.0"]   # yalnız ui-story/tools/prepare.py (sahne verisi üretimi)
+agentcore = ["strands-agents>=1.0", "bedrock-agentcore>=1.0", "mcp>=1.2"]   # deploy/agentcore testleri ve deploy/mcp sunucusu
+
+[tool.setuptools]
+package-dir = {"cm_sim" = "sim/cm_sim", "agents" = "agents", "api" = "api"}
+packages = ["cm_sim", "cm_sim.policies", "agents", "api"]
+
+[tool.pytest.ini_options]
+pythonpath = ["sim", "."]
+testpaths = ["sim/tests", "agents/tests", "api/tests", "deploy/agentcore/tests"]
+markers = ["slow: uzun süren testler (pytest -m slow)"]
+addopts = "-m 'not slow'"

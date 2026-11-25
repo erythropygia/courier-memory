@@ -1,0 +1,170 @@
+# Courier Memory CI/CD
+#   Her push ve PR: testler (mock, AWS'siz).
+#   main'e push: web (ECR → ECS), değişen dosyalara göre AgentCore ajanları ve Quick köprüsü.
+# AWS kimliği OIDC ile (secret yok): deploy/ci/github_oidc_setup.py rolü kurar; rol yalnız bu deponun main dalına açıktır.
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: cicd-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ROLE_ARN: arn:aws:iam::914401873868:role/courier-memory-github-deploy
+  ECR_REPOSITORY: courier-memory-web
+  ECS_CLUSTER: courier-memory
+  ECS_SERVICE: courier-memory-web
+  AGENT_MODEL_ID: global.anthropic.claude-sonnet-5
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev,agentcore]"
+      - name: pytest (mock)
+        env:
+          CM_LLM_MODE: mock
+          PYTHONUTF8: "1"
+        run: python -m pytest -q
+
+  changes:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.f.outputs.web }}
+      agentcore: ${{ steps.f.outputs.agentcore }}
+      quick: ${{ steps.f.outputs.quick }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: f
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            web:
+              - Dockerfile
+              - .dockerignore
+              - api/**
+              - agents/**
+              - sim/cm_sim/**
+              - sim/config/**
+              - data/**
+              - ui/**
+              - pyproject.toml
+            agentcore:
+              - deploy/agentcore/**
+              - agents/**
+              - sim/cm_sim/**
+              - sim/config/**
+              - data/**
+            quick:
+              - deploy/quick/bridge_lambda.py
+
+  deploy-web:
+    needs: [test, changes]
+    if: github.ref == 'refs/heads/main' && (needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push image
+        id: img
+        run: |
+          IMAGE="${{ steps.ecr.outputs.registry }}/${ECR_REPOSITORY}:${GITHUB_SHA::12}"
+          docker build --platform linux/amd64 -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+      - name: Current task definition
+        run: aws ecs describe-task-definition --task-definition "$ECS_SERVICE" --query taskDefinition > task-def.json
+      - id: td
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-def.json
+          container-name: web
+          image: ${{ steps.img.outputs.image }}
+      - uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.td.outputs.task-definition }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          service: ${{ env.ECS_SERVICE }}
+          wait-for-service-stability: true
+
+  deploy-agentcore:
+    needs: [test, changes]
+    if: github.ref == 'refs/heads/main' && (needs.changes.outputs.agentcore == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: astral-sh/setup-uv@v5
+      - run: npm install -g @aws/agentcore@1.2.0
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Bootstrap AgentCore project
+        env:
+          CM_WORKSPACE: ${{ runner.temp }}
+          CM_AGENT_MODEL_ID: ${{ env.AGENT_MODEL_ID }}
+          PYTHONUTF8: "1"
+        run: |
+          git config --global user.email "ci@courier-memory.local"
+          git config --global user.name "courier-memory-ci"
+          bash deploy/agentcore/bootstrap.sh CourierMemory
+          bash deploy/agentcore/verify.sh CourierMemory
+        working-directory: ${{ github.workspace }}
+      - name: Deploy (5 runtimes + memory)
+        working-directory: ${{ runner.temp }}/CourierMemory
+        run: agentcore deploy --region "$AWS_REGION"
+
+  deploy-quick:
+    needs: [test, changes]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.quick == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Update bridge Lambda code
+        run: |
+          cd deploy/quick && zip -q bridge.zip bridge_lambda.py
+          aws lambda update-function-code --function-name courier-memory-quick-bridge --zip-file fileb://bridge.zip > /dev/null
+          aws lambda wait function-updated-v2 --function-name courier-memory-quick-bridge

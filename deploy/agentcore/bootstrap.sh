@@ -96,6 +96,14 @@ PY
 # Her runtime'a UNIFIED_TRACES_DESTINATION_ENABLED=true yazılır (gözlemlenebilirlik).
 python3 "$REPO/deploy/agentcore/agentcore_config.py" "$PROJ/agentcore/agentcore.json" "$NAME" "${CM_MULTI_AGENT:-1}" "${CM_TARGET:-default}"
 
+# Model: şablonun model/load.py dosyası hesabın izin listesinde olmayan bir modeli yazabilir; CM_AGENT_MODEL_ID verilirse o kullanılır.
+LOAD="$APP/model/load.py"
+if [ -n "${CM_AGENT_MODEL_ID:-}" ] && [ -f "$LOAD" ]; then
+  [[ "$CM_AGENT_MODEL_ID" =~ ^(global|us|eu|apac|au|jp)\.[A-Za-z0-9.:_-]+$ ]] || die "CM_AGENT_MODEL_ID çıkarım profili biçiminde olmalı: $CM_AGENT_MODEL_ID"
+  sed -i -E "s#model_id=\"[^\"]+\"#model_id=\"$CM_AGENT_MODEL_ID\"#" "$LOAD"
+  echo "  model: $(grep -o 'model_id="[^"]*"' "$LOAD")"
+fi
+
 if command -v uv >/dev/null; then
   echo "==> uv sync ($APP)"
   (cd "$APP" && uv sync >/dev/null 2>&1) || echo "  uyarı: uv sync başarısız; 'cd $APP && uv sync' çıktısına bakın."

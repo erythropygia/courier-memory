@@ -10,3 +10,4 @@ data/memory_evaluation.json
 data/usage.jsonl
 data/agent_feed.json
 *.egg-info/
+!.env.example
